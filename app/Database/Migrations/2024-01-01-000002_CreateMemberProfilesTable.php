@@ -285,12 +285,12 @@ class CreateMemberProfilesTable extends Migration
 
         // Indexes for better performance
         $this->forge->addKey('user_id');
-        $this->forge->addKey('member_number');
+
         $this->forge->addKey('membership_status');
         $this->forge->addKey('university_id');
         $this->forge->addKey('region_id');
         $this->forge->addKey(['province_id', 'regency_id']);
-        $this->forge->addKey('qr_code');
+
         $this->forge->addKey('legacy_member_id');
 
         $this->forge->createTable('member_profiles');

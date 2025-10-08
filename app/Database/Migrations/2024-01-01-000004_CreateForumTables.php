@@ -63,7 +63,7 @@ class CreateForumTables extends Migration
             ],
         ]);
         $this->forge->addKey('id', true);
-        $this->forge->addKey('slug');
+
         $this->forge->createTable('forum_categories');
 
         // ========================================
@@ -190,7 +190,7 @@ class CreateForumTables extends Migration
         $this->forge->addForeignKey('moderated_by', 'users', 'id', 'SET NULL', 'CASCADE');
         $this->forge->addKey('category_id');
         $this->forge->addKey('user_id');
-        $this->forge->addKey('slug');
+
         $this->forge->addKey('status');
         $this->forge->addKey(['is_pinned', 'last_post_at']);
         $this->forge->createTable('forum_threads');

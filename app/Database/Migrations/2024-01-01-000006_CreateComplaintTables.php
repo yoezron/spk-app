@@ -63,7 +63,7 @@ class CreateComplaintTables extends Migration
             ],
         ]);
         $this->forge->addKey('id', true);
-        $this->forge->addKey('slug');
+
         $this->forge->createTable('complaint_categories');
 
         // ========================================
@@ -252,7 +252,7 @@ class CreateComplaintTables extends Migration
         $this->forge->addForeignKey('assigned_to', 'users', 'id', 'SET NULL', 'CASCADE');
         $this->forge->addForeignKey('resolved_by', 'users', 'id', 'SET NULL', 'CASCADE');
         $this->forge->addForeignKey('region_id', 'regions', 'id', 'SET NULL', 'CASCADE');
-        $this->forge->addKey('ticket_number');
+
         $this->forge->addKey('category_id');
         $this->forge->addKey('user_id');
         $this->forge->addKey('status');

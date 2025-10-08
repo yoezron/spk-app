@@ -145,7 +145,6 @@ class CreatePaymentsTable extends Migration
 
         // Indexes
         $this->forge->addKey('user_id');
-        $this->forge->addKey('payment_code');
         $this->forge->addKey('status');
         $this->forge->addKey('payment_period');
         $this->forge->addKey(['user_id', 'payment_period']);

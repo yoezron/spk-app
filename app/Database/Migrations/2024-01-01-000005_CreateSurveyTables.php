@@ -127,7 +127,7 @@ class CreateSurveyTables extends Migration
         ]);
         $this->forge->addKey('id', true);
         $this->forge->addForeignKey('created_by', 'users', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->addKey('slug');
+
         $this->forge->addKey('status');
         $this->forge->addKey(['status', 'start_date', 'end_date']);
         $this->forge->createTable('surveys');
@@ -353,7 +353,7 @@ class CreateSurveyTables extends Migration
         $this->forge->addForeignKey('user_id', 'users', 'id', 'SET NULL', 'CASCADE');
         $this->forge->addKey('survey_id');
         $this->forge->addKey('user_id');
-        $this->forge->addKey('response_token');
+
         $this->forge->addKey(['survey_id', 'user_id']);
         $this->forge->createTable('survey_responses');
 

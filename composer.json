@@ -14,6 +14,7 @@
   },
   "require-dev": {
     "fakerphp/faker": "^1.23",
+    "kint-php/kint": "*",
     "mikey179/vfsstream": "^1.6",
     "phpunit/phpunit": "^10.5",
     "predis/predis": "^2.2"

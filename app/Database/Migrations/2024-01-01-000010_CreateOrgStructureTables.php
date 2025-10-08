@@ -170,7 +170,7 @@ class CreateOrgStructureTables extends Migration
         $this->forge->addForeignKey('parent_id', 'org_units', 'id', 'CASCADE', 'CASCADE');
         $this->forge->addForeignKey('region_id', 'regions', 'id', 'SET NULL', 'CASCADE');
         $this->forge->addForeignKey('university_id', 'universities', 'id', 'SET NULL', 'CASCADE');
-        $this->forge->addKey('slug');
+
         $this->forge->addKey('parent_id');
         $this->forge->addKey('scope');
         $this->forge->addKey('region_id');
@@ -318,7 +318,7 @@ class CreateOrgStructureTables extends Migration
         $this->forge->addForeignKey('unit_id', 'org_units', 'id', 'CASCADE', 'CASCADE');
         $this->forge->addForeignKey('reports_to', 'org_positions', 'id', 'SET NULL', 'CASCADE');
         $this->forge->addKey('unit_id');
-        $this->forge->addKey('slug');
+
         $this->forge->addKey('reports_to');
         $this->forge->addKey(['unit_id', 'display_order']);
         $this->forge->addKey(['is_active', 'is_vacant']);
@@ -613,7 +613,7 @@ class CreateOrgStructureTables extends Migration
         $this->forge->addForeignKey('unit_id', 'org_units', 'id', 'SET NULL', 'CASCADE');
         $this->forge->addForeignKey('chairperson_user_id', 'users', 'id', 'SET NULL', 'CASCADE');
         $this->forge->addForeignKey('secretary_user_id', 'users', 'id', 'SET NULL', 'CASCADE');
-        $this->forge->addKey('slug');
+
         $this->forge->addKey('status');
         $this->forge->addKey('committee_type');
         $this->forge->createTable('org_committees');

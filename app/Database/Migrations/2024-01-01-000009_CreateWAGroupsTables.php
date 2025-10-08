@@ -427,7 +427,7 @@ class CreateWAGroupsTables extends Migration
         $this->forge->addForeignKey('group_id', 'wa_groups', 'id', 'CASCADE', 'CASCADE');
         $this->forge->addForeignKey('user_id', 'users', 'id', 'CASCADE', 'CASCADE');
         $this->forge->addForeignKey('invited_by', 'users', 'id', 'SET NULL', 'CASCADE');
-        $this->forge->addKey('invitation_token');
+
         $this->forge->addKey('status');
         $this->forge->addKey(['group_id', 'user_id']);
         $this->forge->addKey(['status', 'expires_at']);

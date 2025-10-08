@@ -146,7 +146,7 @@ class CreatePagePostsTables extends Migration
 
         $this->forge->addKey('id', true);
         $this->forge->addForeignKey('author_id', 'users', 'id', 'CASCADE', 'CASCADE');
-        $this->forge->addKey('slug');
+
         $this->forge->addKey('is_published');
         $this->forge->addKey('page_type');
         $this->forge->addKey(['is_published', 'published_at']);
@@ -206,7 +206,7 @@ class CreatePagePostsTables extends Migration
         ]);
 
         $this->forge->addKey('id', true);
-        $this->forge->addKey('slug');
+
         $this->forge->addKey('is_active');
         $this->forge->createTable('tags');
 
@@ -396,7 +396,7 @@ class CreatePagePostsTables extends Migration
         $this->forge->addKey('id', true);
         $this->forge->addForeignKey('author_id', 'users', 'id', 'CASCADE', 'CASCADE');
         $this->forge->addForeignKey('editor_id', 'users', 'id', 'SET NULL', 'CASCADE');
-        $this->forge->addKey('slug');
+
         $this->forge->addKey('status');
         $this->forge->addKey('post_type');
         $this->forge->addKey('author_id');
