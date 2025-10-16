@@ -122,11 +122,11 @@ class ProfileController extends BaseController
                 'member' => $member,
 
                 // Master data
-                'provinsi' => model('ProvinceModel')->orderBy('name', 'ASC')->findAll(),
-                'jenis_pt' => model('JenisPtModel')->orderBy('name', 'ASC')->findAll(),
-                'status_kepegawaian' => model('StatusKepegawaianModel')->orderBy('name', 'ASC')->findAll(),
-                'pemberi_gaji' => model('PemberiGajiModel')->orderBy('name', 'ASC')->findAll(),
-                'range_gaji' => model('RangeGajiModel')->orderBy('min_salary', 'ASC')->findAll()
+                'provinsi' => $this->loadMasterData('ProvinceModel', 'name'),
+                'jenis_pt' => $this->loadMasterData('JenisPtModel', 'name'),
+                'status_kepegawaian' => $this->loadMasterData('StatusKepegawaianModel', 'name'),
+                'pemberi_gaji' => $this->loadMasterData('PemberiGajiModel', 'name'),
+                'range_gaji' => $this->loadMasterData('RangeGajiModel', 'min_salary')
             ];
 
             return view('member/profile/edit', $data);
@@ -135,6 +135,36 @@ class ProfileController extends BaseController
 
             return redirect()->to('/member/profile')
                 ->with('error', 'Terjadi kesalahan saat memuat form.');
+        }
+    }
+
+    /**
+     * Safely load master data for dropdowns.
+     *
+     * @param string $modelName
+     * @param string|null $orderBy
+     * @param string $direction
+     *
+     * @return array
+     */
+    protected function loadMasterData(string $modelName, ?string $orderBy = null, string $direction = 'ASC'): array
+    {
+        try {
+            $model = model($modelName);
+
+            if (!is_object($model)) {
+                log_message('error', 'Model not found when loading profile master data: ' . $modelName);
+                return [];
+            }
+
+            if ($orderBy) {
+                return $model->orderBy($orderBy, $direction)->findAll();
+            }
+
+            return $model->findAll();
+        } catch (\Throwable $e) {
+            log_message('error', sprintf('Failed loading profile master data via %s: %s', $modelName, $e->getMessage()));
+            return [];
         }
     }
 
