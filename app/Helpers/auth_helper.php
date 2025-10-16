@@ -117,6 +117,25 @@ if (!function_exists('has_all_permissions')) {
     }
 }
 
+if (!function_exists('normalize_role_key')) {
+    /**
+     * Normalize role names into a comparable key.
+     *
+     * Menghapus karakter non-alfanumerik dan menurunkan huruf untuk mempermudah perbandingan
+     * antar variasi penulisan nama role (mis. "Super Admin", "superadmin", atau "super_admin").
+     *
+     * @param string $roleName
+     * @return string
+     */
+    function normalize_role_key(string $roleName): string
+    {
+        $normalized = strtolower($roleName);
+        $normalized = preg_replace('/[^a-z0-9]+/u', '', $normalized ?? '');
+
+        return $normalized ?? '';
+    }
+}
+
 if (!function_exists('has_role')) {
     /**
      * Check if current user has specific role
@@ -130,7 +149,134 @@ if (!function_exists('has_role')) {
             return false;
         }
 
+        
+@@ -95,64 +95,112 @@ if (!function_exists('has_any_permission')) {
+        }
+        }
+
+
+        return false;
+        return false;
+    }
+    }
+}
+}
+
+
+if (!function_exists('has_all_permissions')) {
+if (!function_exists('has_all_permissions')) {
+    /**
+    /**
+     * Check if user has all specified permissions
+     * Check if user has all specified permissions
+     * 
+     * 
+     * @param array $permissions Array of permission keys
+     * @param array $permissions Array of permission keys
+     * @return bool
+     * @return bool
+     */
+     */
+    function has_all_permissions(array $permissions): bool
+    function has_all_permissions(array $permissions): bool
+    {
+    {
+        foreach ($permissions as $permission) {
+        foreach ($permissions as $permission) {
+            if (!has_permission($permission)) {
+            if (!has_permission($permission)) {
+                return false;
+                return false;
+            }
+            }
+        }
+        }
+
+
+        return true;
+        return true;
+    }
+    }
+}
+}
+
+
+if (!function_exists('normalize_role_key')) {
+    /**
+     * Normalize role names into a comparable key.
+     *
+     * Menghapus karakter non-alfanumerik dan menurunkan huruf untuk mempermudah perbandingan
+     * antar variasi penulisan nama role (mis. "Super Admin", "superadmin", atau "super_admin").
+     *
+     * @param string $roleName
+     * @return string
+     */
+    function normalize_role_key(string $roleName): string
+    {
+        $normalized = strtolower($roleName);
+        $normalized = preg_replace('/[^a-z0-9]+/u', '', $normalized ?? '');
+
+        return $normalized ?? '';
+    }
+}
+
+if (!function_exists('has_role')) {
+if (!function_exists('has_role')) {
+    /**
+    /**
+     * Check if current user has specific role
+     * Check if current user has specific role
+     * 
+     *
+     * @param string $role Role name
+     * @param string $role Role name
+     * @return bool
+     * @return bool
+     */
+     */
+    function has_role(string $role): bool
+    function has_role(string $role): bool
+    {
+    {
+        if (!is_logged_in()) {
+        if (!is_logged_in()) {
+            return false;
+            return false;
+        }
+        }
+
+
         return current_user()->inGroup($role);
+        $user = current_user();
+
+        // Cek langsung berdasarkan nama yang diberikan
+        if ($user->inGroup($role)) {
+            return true;
+        }
+
+        // Coba beberapa variasi umum (spasi/underscore/hyphen)
+        $roleVariants = array_unique([
+            $role,
+            str_replace(['_', '-'], ' ', $role),
+            str_replace([' ', '-'], '_', $role),
+            str_replace([' ', '_'], '-', $role),
+        ]);
+
+        foreach ($roleVariants as $variant) {
+            if ($user->inGroup($variant)) {
+                return true;
+            }
+        }
+
+        // Bandingkan menggunakan bentuk ter-normalisasi
+        $targetKey = normalize_role_key($role);
+        foreach (user_roles() as $userRole) {
+            if (normalize_role_key($userRole) === $targetKey) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 
