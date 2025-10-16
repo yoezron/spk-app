@@ -15,6 +15,9 @@ use CodeIgniter\Router\RouteCollection;
 // Default controller
 $routes->get('/', 'Public\HomeController::index');
 
+// Convenience route for legacy logout URL
+$routes->get('logout', 'Auth\\LoginController::logout');
+
 /*
  * --------------------------------------------------------------------
  * Public Routes
@@ -49,6 +52,20 @@ $routes->group('', ['namespace' => 'App\Controllers\Public'], function ($routes)
  * --------------------------------------------------------------------
  * Login, Register, Password Reset, Email Verification
  */
+
+// Friendly root-level aliases for authentication pages
+// Friendly authentication endpoints without the /auth prefix
+$routes->group('', ['namespace' => 'App\Controllers\Auth'], function ($routes) {
+    // Login shortcuts
+    $routes->get('login', 'LoginController::index', ['as' => 'login.short']);
+    $routes->post('login', 'LoginController::attempt');
+
+    // Register shortcuts
+    $routes->get('register', 'RegisterController::index', ['as' => 'register.short']);
+    $routes->post('register', 'RegisterController::register');
+});
+
+
 $routes->group('auth', ['namespace' => 'App\Controllers\Auth'], function ($routes) {
     // Login
     $routes->get('login', 'LoginController::index', ['as' => 'login']);
