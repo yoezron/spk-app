@@ -201,6 +201,65 @@ if (!function_exists('is_anggota')) {
     }
 }
 
+if (!function_exists('user_dashboard_path')) {
+    /**
+     * Get default dashboard path for the current user based on their role
+     *
+     * @return string
+     */
+    function user_dashboard_path(): string
+    {
+        if (!is_logged_in()) {
+            return '/';
+        }
+
+        // Prioritize Super Admin
+        if (has_role('superadmin') || has_role('Super Admin')) {
+            return 'super/dashboard';
+        }
+
+        // Pengurus level (including koordinator)
+        if (
+            has_role('pengurus') ||
+            has_role('Pengurus') ||
+            has_role('koordinator_wilayah') ||
+            has_role('Koordinator Wilayah')
+        ) {
+            return 'admin/dashboard';
+        }
+
+        // Anggota aktif
+        if (has_role('anggota') || has_role('Anggota')) {
+            return 'member/dashboard';
+        }
+
+        // Calon anggota diarahkan ke dashboard member juga
+        if (has_role('calon_anggota') || has_role('Calon Anggota')) {
+            return 'member/dashboard';
+        }
+
+        return '/';
+    }
+}
+
+if (!function_exists('user_dashboard_url')) {
+    /**
+     * Get default dashboard URL (absolute) for the current user
+     *
+     * @return string
+     */
+    function user_dashboard_url(): string
+    {
+        $path = user_dashboard_path();
+
+        if ($path === '/' || $path === '') {
+            return base_url();
+        }
+
+        return base_url($path);
+    }
+}
+
 if (!function_exists('user_roles')) {
     /**
      * Get current user's roles

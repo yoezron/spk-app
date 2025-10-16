@@ -14,6 +14,7 @@
 
 // Get current user
 $currentUser = auth()->user();
+$hasMemberPortalAccess = has_role('anggota') || has_role('Anggota') || has_role('calon_anggota') || has_role('Calon Anggota');
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -204,25 +205,27 @@ $currentUser = auth()->user();
                     <?php endif; ?>
 
                     <!-- Member Portal Access -->
-                    <li class="sidebar-title">Portal Anggota</li>
+                    <?php if ($hasMemberPortalAccess): ?>
+                        <li class="sidebar-title">Portal Anggota</li>
 
-                    <li>
-                        <a href="<?= base_url('member/dashboard') ?>">
-                            <i class="material-icons-two-tone">home</i>Dashboard Anggota
-                        </a>
-                    </li>
+                        <li>
+                            <a href="<?= base_url('member/dashboard') ?>">
+                                <i class="material-icons-two-tone">home</i>Dashboard Anggota
+                            </a>
+                        </li>
 
-                    <li>
-                        <a href="<?= base_url('member/profile') ?>">
-                            <i class="material-icons-two-tone">person</i>Profil Saya
-                        </a>
-                    </li>
+                        <li>
+                            <a href="<?= base_url('member/profile') ?>">
+                                <i class="material-icons-two-tone">person</i>Profil Saya
+                            </a>
+                        </li>
 
-                    <li>
-                        <a href="<?= base_url('member/card') ?>">
-                            <i class="material-icons-two-tone">badge</i>Kartu Anggota
-                        </a>
-                    </li>
+                        <li>
+                            <a href="<?= base_url('member/card') ?>">
+                                <i class="material-icons-two-tone">badge</i>Kartu Anggota
+                            </a>
+                        </li>
+                    <?php endif; ?>
 
                     <!-- Information -->
                     <li class="sidebar-title">Informasi</li>
@@ -254,11 +257,13 @@ $currentUser = auth()->user();
                     <!-- Settings -->
                     <li class="sidebar-title">Pengaturan</li>
 
-                    <li>
-                        <a href="<?= base_url('member/profile/change-password') ?>">
-                            <i class="material-icons-two-tone">lock</i>Ubah Password
-                        </a>
-                    </li>
+                    <?php if ($hasMemberPortalAccess): ?>
+                        <li>
+                            <a href="<?= base_url('member/profile/change-password') ?>">
+                                <i class="material-icons-two-tone">lock</i>Ubah Password
+                            </a>
+                        </li>
+                    <?php endif; ?>
 
                     <li>
                         <a href="<?= base_url('auth/logout') ?>" onclick="return confirm('Apakah Anda yakin ingin keluar?')">
@@ -365,21 +370,23 @@ $currentUser = auth()->user();
                                         <?php endif; ?>
                                     </a>
                                     <ul class="dropdown-menu dropdown-menu-end">
-                                        <li>
-                                            <a class="dropdown-item" href="<?= base_url('member/profile') ?>">
-                                                <i class="material-icons-outlined">person</i> Profil Saya
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" href="<?= base_url('member/dashboard') ?>">
-                                                <i class="material-icons-outlined">dashboard</i> Portal Anggota
-                                            </a>
-                                        </li>
-                                        <li>
-                                            <a class="dropdown-item" href="<?= base_url('member/profile/change-password') ?>">
-                                                <i class="material-icons-outlined">lock</i> Ubah Password
-                                            </a>
-                                        </li>
+                                        <?php if ($hasMemberPortalAccess): ?>
+                                            <li>
+                                                <a class="dropdown-item" href="<?= base_url('member/profile') ?>">
+                                                    <i class="material-icons-outlined">person</i> Profil Saya
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="<?= base_url('member/dashboard') ?>">
+                                                    <i class="material-icons-outlined">dashboard</i> Portal Anggota
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="<?= base_url('member/profile/change-password') ?>">
+                                                    <i class="material-icons-outlined">lock</i> Ubah Password
+                                                </a>
+                                            </li>
+                                        <?php endif; ?>
                                         <li>
                                             <hr class="dropdown-divider">
                                         </li>

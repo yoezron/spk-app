@@ -244,12 +244,15 @@ $showTopNav = in_array($headerType, ['admin', 'super']);
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
-                            <li>
-                                <a class="dropdown-item" href="<?= base_url('member/profile') ?>">
-                                    <i class="material-icons-outlined">person</i> Profil Saya
-                                </a>
-                            </li>
-                            <?php if (in_array($headerType, ['admin', 'super'])): ?>
+                            <?php $hasMemberPortalAccess = has_role('anggota') || has_role('Anggota') || has_role('calon_anggota') || has_role('Calon Anggota'); ?>
+                            <?php if ($hasMemberPortalAccess): ?>
+                                <li>
+                                    <a class="dropdown-item" href="<?= base_url('member/profile') ?>">
+                                        <i class="material-icons-outlined">person</i> Profil Saya
+                                    </a>
+                                </li>
+                            <?php endif; ?>
+                            <?php if ($hasMemberPortalAccess && in_array($headerType, ['admin', 'super'])): ?>
                                 <li>
                                     <a class="dropdown-item" href="<?= base_url('member/dashboard') ?>">
                                         <i class="material-icons-outlined">dashboard</i> Portal Anggota
@@ -263,19 +266,23 @@ $showTopNav = in_array($headerType, ['admin', 'super']);
                                     </a>
                                 </li>
                             <?php endif; ?>
-                            <li>
-                                <a class="dropdown-item" href="<?= base_url('member/card') ?>">
-                                    <i class="material-icons-outlined">badge</i> Kartu Anggota
-                                </a>
-                            </li>
+                            <?php if ($hasMemberPortalAccess): ?>
+                                <li>
+                                    <a class="dropdown-item" href="<?= base_url('member/card') ?>">
+                                        <i class="material-icons-outlined">badge</i> Kartu Anggota
+                                    </a>
+                                </li>
+                            <?php endif; ?>
                             <li>
                                 <hr class="dropdown-divider">
                             </li>
-                            <li>
-                                <a class="dropdown-item" href="<?= base_url('member/profile/change-password') ?>">
-                                    <i class="material-icons-outlined">lock</i> Ubah Password
-                                </a>
-                            </li>
+                            <?php if ($hasMemberPortalAccess): ?>
+                                <li>
+                                    <a class="dropdown-item" href="<?= base_url('member/profile/change-password') ?>">
+                                        <i class="material-icons-outlined">lock</i> Ubah Password
+                                    </a>
+                                </li>
+                            <?php endif; ?>
                             <li>
                                 <hr class="dropdown-divider">
                             </li>

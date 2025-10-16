@@ -292,8 +292,16 @@
                     </li>
 
                     <?php if (auth()->loggedIn()): ?>
+                        <?php
+                        $dashboardPath = trim(user_dashboard_path(), '/');
+                        if ($dashboardPath === '') {
+                            $dashboardActive = url_is('/');
+                        } else {
+                            $dashboardActive = url_is($dashboardPath) || url_is($dashboardPath . '/*');
+                        }
+                        ?>
                         <li class="nav-item">
-                            <a class="nav-link" href="<?= base_url('member/dashboard') ?>">
+                            <a class="nav-link <?= $dashboardActive ? 'active' : '' ?>" href="<?= user_dashboard_url() ?>">
                                 <i class="material-icons-outlined" style="vertical-align: middle; font-size: 20px;">dashboard</i>
                                 Dashboard
                             </a>
