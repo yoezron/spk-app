@@ -3,8 +3,10 @@
 namespace App\Controllers\Member;
 
 use App\Controllers\BaseController;
-use App\Services\Member\MemberStatisticsService;
 use App\Services\Communication\NotificationService;
+use App\Services\Member\MemberStatisticsService;
+use CodeIgniter\HTTP\ResponseInterface;
+
 
 /**
  * DashboardController (Member Area)
@@ -40,10 +42,9 @@ class DashboardController extends BaseController
     /**
      * Display member dashboard
      * Shows personal info, statistics, notifications, and quick actions
-     * 
-     * @return string
+   
      */
-    public function index(): string
+    public function index(): ResponseInterface|string
     {
         // Check if user is logged in
         if (!auth()->loggedIn()) {
