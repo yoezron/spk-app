@@ -4,7 +4,7 @@ namespace App\Controllers\Public;
 
 use App\Controllers\BaseController;
 use App\Services\Member\MemberStatisticsService;
-use App\Services\Content\ContentService;
+use App\Services\ContentService; // ✅ CORRECT
 use CodeIgniter\HTTP\RedirectResponse;
 
 /**

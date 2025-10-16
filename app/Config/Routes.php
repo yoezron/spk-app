@@ -12,12 +12,25 @@ use CodeIgniter\Router\RouteCollection;
 $routes->get('/', 'Public\HomeController::index');
 
 // ========================================
-// SHIELD AUTH ROUTES
+// AUTHENTICATION ROUTES
 // ========================================
-service('auth')->routes($routes);
+$routes->group('auth', ['namespace' => 'App\Controllers\Auth'], function ($routes) {
+    // Login
+    $routes->get('login', 'LoginController::index');
+    $routes->post('login', 'LoginController::attempt');
+    $routes->get('logout', 'LoginController::logout');
+
+    // Register
+    $routes->get('register', 'RegisterController::index');
+    $routes->post('register', 'RegisterController::store');
+
+    // Verify Email
+    $routes->get('verify/(:segment)', 'VerifyController::verify/$1');
+    $routes->get('verify/resend', 'VerifyController::resend');
+});
 
 // ========================================
-// PUBLIC ROUTES (No Auth Required)
+// PUBLIC ROUTES
 // ========================================
 $routes->group('', ['namespace' => 'App\Controllers\Public'], function ($routes) {
     $routes->get('home', 'HomeController::index');
@@ -29,26 +42,7 @@ $routes->group('', ['namespace' => 'App\Controllers\Public'], function ($routes)
 });
 
 // ========================================
-// AUTHENTICATION ROUTES (Custom - extend Shield)
-// ========================================
-$routes->group('auth', ['namespace' => 'App\Controllers\Auth'], function ($routes) {
-    // Login
-    $routes->get('login', 'LoginController::loginView');
-    $routes->post('login', 'LoginController::loginAction');
-
-    // Register
-    $routes->get('register', 'RegisterController::registerView');
-    $routes->post('register', 'RegisterController::registerAction');
-
-    // Verify Email
-    $routes->get('verify/(:segment)', 'VerifyController::verify/$1');
-
-    // Logout
-    $routes->get('logout', 'LoginController::logoutAction');
-});
-
-// ========================================
-// MEMBER ROUTES (Role: anggota, pengurus, superadmin)
+// MEMBER ROUTES (Authenticated Users)
 // ========================================
 $routes->group('member', ['namespace' => 'App\Controllers\Member', 'filter' => 'session'], function ($routes) {
     // Dashboard
@@ -78,7 +72,7 @@ $routes->group('member', ['namespace' => 'App\Controllers\Member', 'filter' => '
     $routes->get('survey/(:num)', 'SurveyController::show/$1');
     $routes->post('survey/(:num)/submit', 'SurveyController::submit/$1');
 
-    // Complaint/Ticket
+    // Complaint
     $routes->get('complaint', 'ComplaintController::index');
     $routes->get('complaint/create', 'ComplaintController::create');
     $routes->post('complaint/store', 'ComplaintController::store');
@@ -86,7 +80,7 @@ $routes->group('member', ['namespace' => 'App\Controllers\Member', 'filter' => '
 });
 
 // ========================================
-// ADMIN ROUTES (Role: pengurus, koordinator_wilayah, superadmin)
+// ADMIN ROUTES (Pengurus, Koordinator, Super Admin)
 // ========================================
 $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'role:pengurus,koordinator_wilayah,superadmin'], function ($routes) {
     // Dashboard
@@ -99,7 +93,6 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'ro
     $routes->post('members/(:num)/approve', 'MemberController::approve/$1', ['filter' => 'permission:member.approve']);
     $routes->post('members/(:num)/reject', 'MemberController::reject/$1', ['filter' => 'permission:member.approve']);
     $routes->post('members/(:num)/suspend', 'MemberController::suspend/$1', ['filter' => 'permission:member.suspend']);
-    $routes->post('members/(:num)/activate', 'MemberController::activate/$1', ['filter' => 'permission:member.suspend']);
     $routes->get('members/export', 'MemberController::export', ['filter' => 'permission:member.export']);
 
     // Bulk Import
@@ -110,42 +103,34 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'ro
 
     // Statistics
     $routes->get('statistics', 'StatisticsController::index', ['filter' => 'permission:statistics.view']);
-    $routes->get('statistics/export', 'StatisticsController::export', ['filter' => 'permission:statistics.view']);
 
-    // Forum Moderation
+    // Forum
     $routes->get('forum', 'ForumController::index', ['filter' => 'permission:forum.moderate']);
-    $routes->post('forum/(:num)/delete', 'ForumController::delete/$1', ['filter' => 'permission:forum.moderate']);
 
-    // Survey Management
+    // Survey
     $routes->get('survey', 'SurveyController::index', ['filter' => 'permission:survey.create']);
     $routes->get('survey/create', 'SurveyController::create', ['filter' => 'permission:survey.create']);
     $routes->post('survey/store', 'SurveyController::store', ['filter' => 'permission:survey.create']);
-    $routes->get('survey/(:num)/edit', 'SurveyController::edit/$1', ['filter' => 'permission:survey.edit']);
-    $routes->post('survey/(:num)/update', 'SurveyController::update/$1', ['filter' => 'permission:survey.edit']);
     $routes->get('survey/(:num)/responses', 'SurveyController::responses/$1', ['filter' => 'permission:survey.view']);
 
-    // Complaint Management
+    // Complaint
     $routes->get('complaint', 'ComplaintController::index', ['filter' => 'permission:complaint.view']);
     $routes->get('complaint/(:num)', 'ComplaintController::show/$1', ['filter' => 'permission:complaint.view']);
     $routes->post('complaint/(:num)/reply', 'ComplaintController::reply/$1', ['filter' => 'permission:complaint.respond']);
 
     // WhatsApp Groups
     $routes->get('wa-groups', 'WAGroupController::index', ['filter' => 'permission:wagroup.manage']);
-    $routes->get('wa-groups/create', 'WAGroupController::create', ['filter' => 'permission:wagroup.manage']);
-    $routes->post('wa-groups/store', 'WAGroupController::store', ['filter' => 'permission:wagroup.manage']);
 
-    // Content Management
+    // Content
     $routes->get('content/posts', 'ContentController::posts', ['filter' => 'permission:content.manage']);
-    $routes->get('content/posts/create', 'ContentController::createPost', ['filter' => 'permission:content.manage']);
-    $routes->post('content/posts/store', 'ContentController::storePost', ['filter' => 'permission:content.manage']);
 });
 
 // ========================================
-// SUPER ADMIN ROUTES (Role: superadmin only)
+// SUPER ADMIN ROUTES
 // ========================================
 $routes->group('super', ['namespace' => 'App\Controllers\Super', 'filter' => 'role:superadmin'], function ($routes) {
-    // Dashboard
-    $routes->get('dashboard', 'RoleController::index'); // Temporary
+    // Dashboard (temporary use roles index)
+    $routes->get('dashboard', 'RoleController::index');
 
     // Role Management
     $routes->get('roles', 'RoleController::index');
@@ -153,27 +138,19 @@ $routes->group('super', ['namespace' => 'App\Controllers\Super', 'filter' => 'ro
     $routes->post('roles/store', 'RoleController::store');
     $routes->get('roles/(:num)/edit', 'RoleController::edit/$1');
     $routes->post('roles/(:num)/update', 'RoleController::update/$1');
-    $routes->post('roles/(:num)/delete', 'RoleController::delete/$1');
 
     // Permission Management
     $routes->get('permissions', 'PermissionController::index');
     $routes->get('permissions/create', 'PermissionController::create');
     $routes->post('permissions/store', 'PermissionController::store');
-    $routes->get('permissions/(:num)/edit', 'PermissionController::edit/$1');
-    $routes->post('permissions/(:num)/update', 'PermissionController::update/$1');
 
     // Menu Management
     $routes->get('menus', 'MenuController::index');
     $routes->get('menus/create', 'MenuController::create');
     $routes->post('menus/store', 'MenuController::store');
-    $routes->get('menus/(:num)/edit', 'MenuController::edit/$1');
-    $routes->post('menus/(:num)/update', 'MenuController::update/$1');
 
-    // Master Data Management
+    // Master Data
     $routes->get('master-data/provinces', 'MasterDataController::provinces');
-    $routes->get('master-data/provinces/create', 'MasterDataController::createProvince');
-    $routes->post('master-data/provinces/store', 'MasterDataController::storeProvince');
-
     $routes->get('master-data/regencies', 'MasterDataController::regencies');
     $routes->get('master-data/universities', 'MasterDataController::universities');
 });

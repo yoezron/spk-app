@@ -489,12 +489,12 @@ class MemberProfileModel extends Model
      * @param array $data
      * @return array
      */
-    protected function generateMemberNumber(array $data): array
-    {
-        if (!isset($data['data']['member_number']) || empty($data['data']['member_number'])) {
-            $data['data']['member_number'] = $this->generateMemberNumber();
-        }
+    // protected function generateMemberNumber(array $data): array
+    // {
+    //     if (!isset($data['data']['member_number']) || empty($data['data']['member_number'])) {
+    //         $data['data']['member_number'] = $this->generateMemberNumber();
+    //     }
 
-        return $data;
-    }
+    //     return $data;
+    // }
 }

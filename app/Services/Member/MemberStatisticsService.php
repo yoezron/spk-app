@@ -690,4 +690,126 @@ class MemberStatisticsService
 
         return $stats;
     }
+
+    /**
+     * Get public statistics for homepage
+     * 
+     * @return array
+     */
+    public function getPublicStatistics(): array
+    {
+        return [
+            'total_members' => $this->getTotalMembers(),
+            'active_members' => $this->getActiveMembers(),
+            'total_provinces' => $this->getCoveredProvinces(),
+            'total_universities' => $this->getCoveredUniversities(),
+        ];
+    }
+
+    /**
+     * Get covered provinces count
+     * 
+     * @return int
+     */
+    public function getCoveredProvinces(): int
+    {
+        return $this->memberModel
+            ->select('province_id')
+            ->distinct()
+            ->where('province_id IS NOT NULL')
+            ->countAllResults();
+    }
+
+    /**
+     * Get covered universities count
+     * 
+     * @return int
+     */
+    public function getCoveredUniversities(): int
+    {
+        return $this->memberModel
+            ->select('university_id')
+            ->distinct()
+            ->where('university_id IS NOT NULL')
+            ->countAllResults();
+    }
+
+    /**
+     * Get published posts with filters
+     * 
+     * @param array $filters Filters (limit, order_by, order_dir, category_id)
+     * @return array
+     */
+    public function getPublishedPosts(array $filters = []): array
+    {
+        try {
+            $postModel = new \App\Models\PostModel();
+
+            $builder = $postModel
+                ->select('posts.*, post_categories.name as category_name, users.username as author_name')
+                ->join('post_categories', 'post_categories.id = posts.category_id', 'left')
+                ->join('users', 'users.id = posts.author_id', 'left')
+                ->where('posts.status', 'published')
+                ->where('posts.published_at <=', date('Y-m-d H:i:s'));
+
+            // Apply category filter
+            if (isset($filters['category_id']) && !empty($filters['category_id'])) {
+                $builder->where('posts.category_id', $filters['category_id']);
+            }
+
+            // Apply ordering
+            $orderBy = $filters['order_by'] ?? 'published_at';
+            $orderDir = $filters['order_dir'] ?? 'DESC';
+            $builder->orderBy($orderBy, $orderDir);
+
+            // Apply limit
+            $limit = $filters['limit'] ?? 10;
+            $builder->limit($limit);
+
+            return $builder->find();
+        } catch (\Exception $e) {
+            log_message('error', 'Error getting published posts: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get featured pages (Manifesto, Sejarah, AD/ART)
+     * 
+     * @return array
+     */
+    public function getFeaturedPages(): array
+    {
+        try {
+            $pageModel = new \App\Models\PageModel();
+
+            return $pageModel
+                ->where('status', 'published')
+                ->where('is_featured', 1)
+                ->orderBy('display_order', 'ASC')
+                ->limit(5)
+                ->find();
+        } catch (\Exception $e) {
+            log_message('error', 'Error getting featured pages: ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Get latest announcements
+     * 
+     * @param int $limit Number of announcements
+     * @return array
+     */
+    public function getLatestAnnouncements(int $limit = 5): array
+    {
+        try {
+            // Assuming you have announcement functionality
+            // Return empty for now if table doesn't exist
+            return [];
+        } catch (\Exception $e) {
+            log_message('error', 'Error getting announcements: ' . $e->getMessage());
+            return [];
+        }
+    }
 }
