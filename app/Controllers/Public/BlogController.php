@@ -3,7 +3,7 @@
 namespace App\Controllers\Public;
 
 use App\Controllers\BaseController;
-use App\Services\Content\ContentService;
+use App\Services\ContentService;
 
 /**
  * BlogController
