@@ -75,9 +75,9 @@ $routes->group('auth', ['namespace' => 'App\Controllers\Auth'], function ($route
  * --------------------------------------------------------------------
  * Member Routes
  * --------------------------------------------------------------------
- * Routes for authenticated members (role: anggota)
+ * Routes for authenticated members (role: anggota, calon anggota, pengurus, superadmin)
  */
-$routes->group('member', ['namespace' => 'App\Controllers\Member', 'filter' => 'role:anggota,pengurus,superadmin'], function ($routes) {
+$routes->group('member', ['namespace' => 'App\Controllers\Member', 'filter' => 'role:anggota,calon anggota,pengurus,superadmin'], function ($routes) {
     // Dashboard
     $routes->get('dashboard', 'DashboardController::index', ['as' => 'member.dashboard']);
 

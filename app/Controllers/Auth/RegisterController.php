@@ -46,9 +46,9 @@ class RegisterController extends BaseController
     /**
      * Display registration form
      * 
-     * @return string
+     * @return string|RedirectResponse
      */
-    public function index(): string
+    public function index(): string|RedirectResponse
     {
         // Redirect if already logged in
         if (auth()->loggedIn()) {

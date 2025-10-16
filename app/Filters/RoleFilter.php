@@ -139,24 +139,28 @@ class RoleFilter implements FilterInterface
     protected function determineRedirectUrl(array $userRoles): string
     {
         // Priority order for redirect
-        if (in_array('superadmin', $userRoles)) {
+        if (in_array('superadmin', $userRoles) || in_array('Super Admin', $userRoles)) {
             return '/super/dashboard';
         }
 
-        if (in_array('pengurus', $userRoles)) {
+        if (in_array('pengurus', $userRoles) || in_array('Pengurus', $userRoles)) {
             return '/admin/dashboard';
         }
 
-        if (in_array('koordinator_wilayah', $userRoles)) {
+        if (in_array('koordinator_wilayah', $userRoles) || in_array('Koordinator Wilayah', $userRoles)) {
             return '/admin/dashboard';
         }
 
-        if (in_array('anggota', $userRoles)) {
+        if (in_array('anggota', $userRoles) || in_array('Anggota', $userRoles)) {
             return '/member/dashboard';
         }
 
-        // Default to member dashboard
-        return '/member/dashboard';
+        if (in_array('calon_anggota', $userRoles) || in_array('Calon Anggota', $userRoles)) {
+            return '/member/dashboard';
+        }
+
+        // Default to home page (not logged in or no specific role)
+        return '/';
     }
 
     /**
