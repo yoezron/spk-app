@@ -1,646 +1,534 @@
-<?php
+<!DOCTYPE html>
+<html lang="id">
 
-/**
- * View: Register
- * Controller: Auth\RegisterController
- * Description: Halaman registrasi anggota baru SPK
- * * Features:
- * - Multi-section form (Data Pribadi, Kepegawaian, Kampus, Pembayaran)
- * - Dynamic dropdowns (cascade: provinsi, kampus, prodi)
- * - File upload (foto & bukti bayar)
- * - Password strength indicator
- * - Validation error display
- * - CSRF protection
- * * @package App\Views\Auth
- * @author  SPK Development Team
- * @version 2.1.0 (Fixed header overflow issue)
- */
-?>
-<?= $this->extend('layouts/auth') ?>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daftar Anggota - SPK</title>
 
-<?= $this->section('styles') ?>
-<style>
-    /* Wider auth card for register form */
-    .auth-container {
-        max-width: 750px;
-    }
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    /* Stepper Wizard */
-    .stepper-wrapper {
-        display: flex;
-        justify-content: space-between;
-        margin-bottom: 25px;
-        position: relative;
-    }
-
-    .stepper-line {
-        position: absolute;
-        top: 50%;
-        left: 0;
-        right: 0;
-        height: 2px;
-        background-color: #e0e0e0;
-        transform: translateY(-50%);
-        z-index: 1;
-    }
-
-    .stepper-item {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        position: relative;
-        z-index: 2;
-        background-color: #fff;
-        /* Match auth card background */
-        padding: 0 8px;
-    }
-
-    .step-counter {
-        height: 40px;
-        width: 40px;
-        border-radius: 50%;
-        background: #e0e0e0;
-        color: #fff;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-weight: bold;
-        transition: all 0.3s ease;
-        border: 3px solid #e0e0e0;
-    }
-
-    .stepper-item.active .step-counter {
-        background: #0d6efd;
-        /* Bootstrap primary */
-        border-color: #0d6efd;
-    }
-
-    .stepper-item.completed .step-counter {
-        background: #198754;
-        /* Bootstrap success */
-        border-color: #198754;
-    }
-
-    .step-name {
-        margin-top: 8px;
-        font-size: 12px;
-        font-weight: 500;
-        color: #6c757d;
-    }
-
-    .stepper-item.active .step-name {
-        color: #0d6efd;
-    }
-
-    .stepper-item.completed .step-name {
-        color: #198754;
-    }
-
-    /* Form Steps */
-    .form-step {
-        display: none;
-        animation: fadeIn 0.5s;
-    }
-
-    .form-step.active {
-        display: block;
-    }
-
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px 0;
         }
 
-        to {
-            opacity: 1;
-            transform: translateY(0);
+        .register-container {
+            max-width: 900px;
+            margin: 0 auto;
         }
-    }
 
-    /* Navigation Buttons */
-    .step-navigation {
-        margin-top: 30px;
-        display: flex;
-        justify-content: space-between;
-    }
+        .card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+        }
 
-    /* Section Headers */
-    .section-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 12px 20px;
-        /* KUNCI PERBAIKAN: Mengubah margin-top dari -40px menjadi 0 */
-        margin: 0 -30px 30px -30px;
-        font-weight: 600;
-        font-size: 16px;
-        border-radius: 16px 16px 0 0;
-        text-align: center;
-    }
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0 !important;
+            padding: 25px;
+        }
 
-    .section-header i {
-        margin-right: 8px;
-        vertical-align: middle;
-    }
+        .section-title {
+            color: #667eea;
+            font-weight: 600;
+            margin-top: 25px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #e9ecef;
+        }
 
-    /* File upload preview */
-    .file-preview {
-        margin-top: 10px;
-        padding: 10px;
-        background: #f8f9fa;
-        border-radius: 8px;
-        display: none;
-    }
+        .form-label {
+            font-weight: 500;
+            color: #495057;
+        }
 
-    .file-preview.show {
-        display: block;
-    }
+        .required::after {
+            content: " *";
+            color: #dc3545;
+        }
 
-    .file-preview img {
-        max-width: 150px;
-        max-height: 150px;
-        border-radius: 8px;
-    }
+        .image-preview {
+            max-width: 200px;
+            max-height: 200px;
+            margin-top: 10px;
+            border-radius: 8px;
+            display: none;
+        }
 
-    /* Password strength indicator */
-    .password-strength {
-        height: 4px;
-        background: #e9ecef;
-        border-radius: 2px;
-        margin-top: 8px;
-        overflow: hidden;
-    }
+        .password-strength {
+            height: 5px;
+            border-radius: 3px;
+            transition: all 0.3s;
+            margin-top: 5px;
+        }
 
-    .password-strength-bar {
-        height: 100%;
-        width: 0%;
-        transition: all 0.3s ease;
-    }
+        .btn-register {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            padding: 12px 40px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
 
-    .password-strength-bar.weak {
-        width: 33%;
-        background: #dc3545;
-    }
+        .btn-register:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+    </style>
+</head>
 
-    .password-strength-bar.medium {
-        width: 66%;
-        background: #ffc107;
-    }
-
-    .password-strength-bar.strong {
-        width: 100%;
-        background: #28a745;
-    }
-
-    /* Helper text */
-    .form-text {
-        font-size: 12px;
-        color: #6c757d;
-    }
-
-    .required-note {
-        font-size: 13px;
-        color: #6c757d;
-        margin-bottom: 20px;
-    }
-</style>
-<?= $this->endSection() ?>
-
-<?= $this->section('content') ?>
-<div class="section-header">
-    <i class="material-icons-outlined">person_add</i>
-    Formulir Pendaftaran Anggota Baru
-</div>
-
-<div class="stepper-wrapper">
-    <div class="stepper-line"></div>
-    <div class="stepper-item active" data-step="1">
-        <div class="step-counter">1</div>
-        <div class="step-name">Pribadi</div>
-    </div>
-    <div class="stepper-item" data-step="2">
-        <div class="step-counter">2</div>
-        <div class="step-name">Kepegawaian</div>
-    </div>
-    <div class="stepper-item" data-step="3">
-        <div class="step-counter">3</div>
-        <div class="step-name">Kampus</div>
-    </div>
-    <div class="stepper-item" data-step="4">
-        <div class="step-counter">4</div>
-        <div class="step-name">Pembayaran</div>
-    </div>
-</div>
-
-<div class="required-note">
-    <i class="material-icons-outlined" style="font-size: 14px; vertical-align: middle;">info</i>
-    <span class="text-danger">*</span> wajib diisi
-</div>
-
-<form action="<?= base_url('auth/register') ?>" method="POST" enctype="multipart/form-data" id="registerForm">
-    <?= csrf_field() ?>
-
-    <div class="form-step active" data-step="1">
-        <h5 class="mb-3">
-            <i class="material-icons-outlined" style="font-size: 20px; vertical-align: middle; color: #6c757d;">badge</i>
-            Data Pribadi
-        </h5>
-        <div class="row">
-            <div class="col-md-12 mb-3">
-                <label for="nama_lengkap" class="form-label">Nama Lengkap <span class="text-danger">*</span></label>
-                <input type="text" class="form-control <?= session('errors.nama_lengkap') ? 'is-invalid' : '' ?>" id="nama_lengkap" name="nama_lengkap" value="<?= old('nama_lengkap') ?>" placeholder="Masukkan nama lengkap" required>
-                <?php if (session('errors.nama_lengkap')): ?><div class="invalid-feedback"><?= session('errors.nama_lengkap') ?></div><?php endif; ?>
+<body>
+    <div class="register-container">
+        <div class="card">
+            <div class="card-header text-center">
+                <h3 class="mb-1"><i class="fas fa-user-plus"></i> Pendaftaran Anggota Baru</h3>
+                <p class="mb-0 small">Serikat Pekerja Kampus (SPK)</p>
             </div>
-            <div class="col-md-6 mb-3">
-                <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
-                <input type="email" class="form-control <?= session('errors.email') ? 'is-invalid' : '' ?>" id="email" name="email" value="<?= old('email') ?>" placeholder="contoh@email.com" required>
-                <div class="form-text">Gunakan email aktif untuk verifikasi</div>
-                <?php if (session('errors.email')): ?><div class="invalid-feedback"><?= session('errors.email') ?></div><?php endif; ?>
-            </div>
-            <div class="col-md-6 mb-3">
-                <label for="no_wa" class="form-label">No. WhatsApp <span class="text-danger">*</span></label>
-                <input type="text" class="form-control <?= session('errors.no_wa') ? 'is-invalid' : '' ?>" id="no_wa" name="no_wa" value="<?= old('no_wa') ?>" placeholder="08xxxxxxxxxx" required>
-                <?php if (session('errors.no_wa')): ?><div class="invalid-feedback"><?= session('errors.no_wa') ?></div><?php endif; ?>
-            </div>
-            <div class="col-md-6 mb-3">
-                <label for="password" class="form-label">Password <span class="text-danger">*</span></label>
-                <input type="password" class="form-control <?= session('errors.password') ? 'is-invalid' : '' ?>" id="password" name="password" placeholder="Min. 8 karakter" required>
-                <div class="password-strength">
-                    <div class="password-strength-bar"></div>
-                </div>
-                <div class="form-text" id="passwordHelp">Minimal 8 karakter, kombinasi huruf dan angka</div>
-                <?php if (session('errors.password')): ?><div class="invalid-feedback"><?= session('errors.password') ?></div><?php endif; ?>
-            </div>
-            <div class="col-md-6 mb-3">
-                <label for="password_confirm" class="form-label">Konfirmasi Password <span class="text-danger">*</span></label>
-                <input type="password" class="form-control <?= session('errors.password_confirm') ? 'is-invalid' : '' ?>" id="password_confirm" name="password_confirm" placeholder="Ulangi password" required>
-                <?php if (session('errors.password_confirm')): ?><div class="invalid-feedback"><?= session('errors.password_confirm') ?></div><?php endif; ?>
-            </div>
-            <div class="col-md-6 mb-3">
-                <label class="form-label">Jenis Kelamin <span class="text-danger">*</span></label>
-                <div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="jenis_kelamin" id="jk_l" value="L" <?= old('jenis_kelamin') === 'L' ? 'checked' : '' ?> required>
-                        <label class="form-check-label" for="jk_l">Laki-laki</label>
+
+            <div class="card-body p-4">
+                <?php if (session()->getFlashdata('error')): ?>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fas fa-exclamation-circle"></i> <?= session()->getFlashdata('error') ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
-                    <div class="form-check form-check-inline">
-                        <input class="form-check-input" type="radio" name="jenis_kelamin" id="jk_p" value="P" <?= old('jenis_kelamin') === 'P' ? 'checked' : '' ?> required>
-                        <label class="form-check-label" for="jk_p">Perempuan</label>
+                <?php endif; ?>
+
+                <?php if (session()->getFlashdata('errors')): ?>
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <i class="fas fa-exclamation-circle"></i> <strong>Terdapat kesalahan:</strong>
+                        <ul class="mb-0 mt-2">
+                            <?php foreach (session()->getFlashdata('errors') as $error): ?>
+                                <li><?= esc($error) ?></li>
+                            <?php endforeach; ?>
+                        </ul>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
-                </div>
-                <?php if (session('errors.jenis_kelamin')): ?><div class="text-danger small"><?= session('errors.jenis_kelamin') ?></div><?php endif; ?>
+                <?php endif; ?>
+
+                <form action="<?= base_url('auth/register') ?>" method="POST" enctype="multipart/form-data" id="registerForm">
+                    <?= csrf_field() ?>
+
+                    <!-- SECTION 1: Data Akun -->
+                    <h5 class="section-title"><i class="fas fa-key"></i> Data Akun</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label required">Email</label>
+                            <input type="email" class="form-control" id="email" name="email"
+                                value="<?= old('email') ?>" required>
+                            <small class="form-text text-muted">Email akan digunakan untuk login</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="username" class="form-label required">Username</label>
+                            <input type="text" class="form-control" id="username" name="username"
+                                value="<?= old('username') ?>" required minlength="5">
+                            <small class="form-text text-muted">Min. 5 karakter, tanpa spasi</small>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="password" class="form-label required">Password</label>
+                            <div class="input-group">
+                                <input type="password" class="form-control" id="password" name="password"
+                                    required minlength="8">
+                                <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <div class="password-strength" id="passwordStrength"></div>
+                            <small class="form-text text-muted">Min. 8 karakter, kombinasi huruf, angka & simbol</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="password_confirm" class="form-label required">Konfirmasi Password</label>
+                            <input type="password" class="form-control" id="password_confirm"
+                                name="password_confirm" required>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 2: Data Pribadi -->
+                    <h5 class="section-title"><i class="fas fa-user"></i> Data Pribadi</h5>
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="full_name" class="form-label required">Nama Lengkap</label>
+                            <input type="text" class="form-control" id="full_name" name="full_name"
+                                value="<?= old('full_name') ?>" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nik" class="form-label">NIK</label>
+                            <input type="text" class="form-control" id="nik" name="nik"
+                                value="<?= old('nik') ?>" maxlength="16" pattern="[0-9]{16}">
+                            <small class="form-text text-muted">16 digit NIK KTP</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="nidn_nip" class="form-label">NIDN/NIP</label>
+                            <input type="text" class="form-control" id="nidn_nip" name="nidn_nip"
+                                value="<?= old('nidn_nip') ?>">
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="gender" class="form-label required">Jenis Kelamin</label>
+                            <select class="form-select" id="gender" name="gender" required>
+                                <option value="">-- Pilih --</option>
+                                <option value="L" <?= old('gender') === 'L' ? 'selected' : '' ?>>Laki-laki</option>
+                                <option value="P" <?= old('gender') === 'P' ? 'selected' : '' ?>>Perempuan</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="birth_place" class="form-label">Tempat Lahir</label>
+                            <input type="text" class="form-control" id="birth_place" name="birth_place"
+                                value="<?= old('birth_place') ?>">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="birth_date" class="form-label">Tanggal Lahir</label>
+                            <input type="date" class="form-control" id="birth_date" name="birth_date"
+                                value="<?= old('birth_date') ?>">
+                        </div>
+                    </div>
+
+                    <!-- SECTION 3: Kontak -->
+                    <h5 class="section-title"><i class="fas fa-phone"></i> Kontak</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="phone" class="form-label required">No. HP/Telepon</label>
+                            <input type="tel" class="form-control" id="phone" name="phone"
+                                value="<?= old('phone') ?>" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="whatsapp" class="form-label required">No. WhatsApp</label>
+                            <input type="tel" class="form-control" id="whatsapp" name="whatsapp"
+                                value="<?= old('whatsapp') ?>" required>
+                            <small class="form-text text-muted">Contoh: 081234567890</small>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="address" class="form-label required">Alamat Lengkap</label>
+                        <textarea class="form-control" id="address" name="address" rows="3" required><?= old('address') ?></textarea>
+                    </div>
+
+                    <!-- SECTION 4: Data Kepegawaian -->
+                    <h5 class="section-title"><i class="fas fa-briefcase"></i> Data Kepegawaian</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="employment_status_id" class="form-label required">Status Kepegawaian</label>
+                            <select class="form-select" id="employment_status_id" name="employment_status_id" required>
+                                <option value="">-- Pilih Status --</option>
+                                <?php if (isset($employmentStatuses)): ?>
+                                    <?php foreach ($employmentStatuses as $status): ?>
+                                        <option value="<?= $status['id'] ?>" <?= old('employment_status_id') == $status['id'] ? 'selected' : '' ?>>
+                                            <?= esc($status['name']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="payer_id" class="form-label required">Pemberi Gaji</label>
+                            <select class="form-select" id="payer_id" name="payer_id" required>
+                                <option value="">-- Pilih Pemberi Gaji --</option>
+                                <?php if (isset($payers)): ?>
+                                    <?php foreach ($payers as $payer): ?>
+                                        <option value="<?= $payer['id'] ?>" <?= old('payer_id') == $payer['id'] ? 'selected' : '' ?>>
+                                            <?= esc($payer['name']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="salary_range_id" class="form-label required">Range Gaji</label>
+                            <select class="form-select" id="salary_range_id" name="salary_range_id" required>
+                                <option value="">-- Pilih Range Gaji --</option>
+                                <?php if (isset($salaryRanges)): ?>
+                                    <?php foreach ($salaryRanges as $range): ?>
+                                        <option value="<?= $range['id'] ?>" <?= old('salary_range_id') == $range['id'] ? 'selected' : '' ?>>
+                                            <?= esc($range['range_text']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="basic_salary" class="form-label">Gaji Pokok (Opsional)</label>
+                            <input type="number" class="form-control" id="basic_salary" name="basic_salary"
+                                value="<?= old('basic_salary') ?>" min="0">
+                            <small class="form-text text-muted">Data ini bersifat rahasia</small>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 5: Data Institusi -->
+                    <h5 class="section-title"><i class="fas fa-university"></i> Data Institusi</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="province_id" class="form-label required">Provinsi</label>
+                            <select class="form-select" id="province_id" name="province_id" required>
+                                <option value="">-- Pilih Provinsi --</option>
+                                <?php if (isset($provinces)): ?>
+                                    <?php foreach ($provinces as $province): ?>
+                                        <option value="<?= $province['id'] ?>" <?= old('province_id') == $province['id'] ? 'selected' : '' ?>>
+                                            <?= esc($province['name']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="university_type_id" class="form-label required">Jenis Perguruan Tinggi</label>
+                            <select class="form-select" id="university_type_id" name="university_type_id" required>
+                                <option value="">-- Pilih Jenis PT --</option>
+                                <?php if (isset($universityTypes)): ?>
+                                    <?php foreach ($universityTypes as $type): ?>
+                                        <option value="<?= $type['id'] ?>" <?= old('university_type_id') == $type['id'] ? 'selected' : '' ?>>
+                                            <?= esc($type['name']) ?>
+                                        </option>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="university_id" class="form-label required">Perguruan Tinggi</label>
+                            <select class="form-select" id="university_id" name="university_id" required>
+                                <option value="">-- Pilih Provinsi dulu --</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="study_program_id" class="form-label required">Program Studi</label>
+                            <select class="form-select" id="study_program_id" name="study_program_id" required>
+                                <option value="">-- Pilih Kampus dulu --</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- SECTION 6: Upload File -->
+                    <h5 class="section-title"><i class="fas fa-upload"></i> Upload Dokumen</h5>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="photo" class="form-label required">Pas Foto</label>
+                            <input type="file" class="form-control" id="photo" name="photo"
+                                accept="image/jpeg,image/png,image/jpg" required>
+                            <small class="form-text text-muted">Format: JPG/PNG, Max: 2MB</small>
+                            <img id="photoPreview" class="image-preview img-thumbnail" alt="Preview">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="payment_proof" class="form-label required">Bukti Pembayaran Iuran</label>
+                            <input type="file" class="form-control" id="payment_proof" name="payment_proof"
+                                accept="image/jpeg,image/png,image/jpg,application/pdf" required>
+                            <small class="form-text text-muted">Format: JPG/PNG/PDF, Max: 2MB</small>
+                            <img id="paymentPreview" class="image-preview img-thumbnail" alt="Preview">
+                        </div>
+                    </div>
+
+                    <!-- SECTION 7: Informasi Tambahan -->
+                    <h5 class="section-title"><i class="fas fa-info-circle"></i> Informasi Tambahan</h5>
+                    <div class="mb-3">
+                        <label for="expertise" class="form-label">Bidang Keahlian</label>
+                        <textarea class="form-control" id="expertise" name="expertise" rows="2"
+                            placeholder="Contoh: Psikologi, Statistika, Hukum Perburuhan"><?= old('expertise') ?></textarea>
+                        <small class="form-text text-muted">Pisahkan dengan titik koma (;)</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="motivation" class="form-label required">Motivasi Bergabung</label>
+                        <textarea class="form-control" id="motivation" name="motivation" rows="3"
+                            required placeholder="Ceritakan motivasi Anda bergabung dengan SPK..."><?= old('motivation') ?></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="social_media" class="form-label">Link Media Sosial</label>
+                        <input type="url" class="form-control" id="social_media" name="social_media"
+                            value="<?= old('social_media') ?>" placeholder="https://...">
+                        <small class="form-text text-muted">LinkedIn, Instagram, atau media sosial lainnya (opsional)</small>
+                    </div>
+
+                    <!-- Terms & Conditions -->
+                    <div class="mb-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="terms" name="terms" required>
+                            <label class="form-check-label" for="terms">
+                                Saya menyetujui <a href="<?= base_url('pages/terms') ?>" target="_blank">Syarat & Ketentuan</a>
+                                serta <a href="<?= base_url('pages/privacy') ?>" target="_blank">Kebijakan Privasi</a> SPK
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Submit Button -->
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary btn-register btn-lg">
+                            <i class="fas fa-paper-plane"></i> Daftar Sekarang
+                        </button>
+                        <a href="<?= base_url('auth/login') ?>" class="btn btn-outline-secondary">
+                            <i class="fas fa-arrow-left"></i> Sudah punya akun? Login
+                        </a>
+                    </div>
+                </form>
             </div>
-            <div class="col-md-12 mb-3">
-                <label for="alamat" class="form-label">Alamat Lengkap <span class="text-danger">*</span></label>
-                <textarea class="form-control <?= session('errors.alamat') ? 'is-invalid' : '' ?>" id="alamat" name="alamat" rows="3" placeholder="Masukkan alamat lengkap" required><?= old('alamat') ?></textarea>
-                <?php if (session('errors.alamat')): ?><div class="invalid-feedback"><?= session('errors.alamat') ?></div><?php endif; ?>
-            </div>
-            <div class="col-md-12 mb-3">
-                <label for="foto" class="form-label">Foto <span class="text-danger">*</span></label>
-                <input type="file" class="form-control <?= session('errors.foto') ? 'is-invalid' : '' ?>" id="foto" name="foto" accept="image/jpeg,image/jpg,image/png" required>
-                <div class="form-text">Format: JPG, PNG. Maksimal 2MB</div>
-                <div class="file-preview" id="fotoPreview"><img src="" alt="Preview Foto" id="fotoPreviewImg"></div>
-                <?php if (session('errors.foto')): ?><div class="invalid-feedback"><?= session('errors.foto') ?></div><?php endif; ?>
-            </div>
+        </div>
+
+        <div class="text-center mt-3">
+            <p class="text-white small">
+                <i class="fas fa-shield-alt"></i> Data Anda aman dan terlindungi
+            </p>
         </div>
     </div>
 
-    <div class="form-step" data-step="2">
-        <h5 class="mb-3">
-            <i class="material-icons-outlined" style="font-size: 20px; vertical-align: middle; color: #6c757d;">work</i>
-            Data Kepegawaian
-        </h5>
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <label for="status_kepegawaian_id" class="form-label">Status Kepegawaian <span class="text-danger">*</span></label>
-                <select class="form-select <?= session('errors.status_kepegawaian_id') ? 'is-invalid' : '' ?>" id="status_kepegawaian_id" name="status_kepegawaian_id" required>
-                    <option value="">-- Pilih Status --</option>
-                    <?php if (isset($status_kepegawaian)) foreach ($status_kepegawaian as $status): ?>
-                        <option value="<?= $status->id ?>" <?= old('status_kepegawaian_id') == $status->id ? 'selected' : '' ?>><?= esc($status->name) ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <?php if (session('errors.status_kepegawaian_id')): ?><div class="invalid-feedback"><?= session('errors.status_kepegawaian_id') ?></div><?php endif; ?>
-            </div>
-            <div class="col-md-6 mb-3">
-                <label for="nidn_nip" class="form-label">NIDN/NIP</label>
-                <input type="text" class="form-control <?= session('errors.nidn_nip') ? 'is-invalid' : '' ?>" id="nidn_nip" name="nidn_nip" value="<?= old('nidn_nip') ?>" placeholder="Opsional">
-                <?php if (session('errors.nidn_nip')): ?><div class="invalid-feedback"><?= session('errors.nidn_nip') ?></div><?php endif; ?>
-            </div>
-            <div class="col-md-6 mb-3">
-                <label for="pemberi_gaji_id" class="form-label">Pemberi Gaji <span class="text-danger">*</span></label>
-                <select class="form-select <?= session('errors.pemberi_gaji_id') ? 'is-invalid' : '' ?>" id="pemberi_gaji_id" name="pemberi_gaji_id" required>
-                    <option value="">-- Pilih Pemberi Gaji --</option>
-                    <?php if (isset($pemberi_gaji)) foreach ($pemberi_gaji as $pemberi): ?>
-                        <option value="<?= $pemberi->id ?>" <?= old('pemberi_gaji_id') == $pemberi->id ? 'selected' : '' ?>><?= esc($pemberi->name) ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <?php if (session('errors.pemberi_gaji_id')): ?><div class="invalid-feedback"><?= session('errors.pemberi_gaji_id') ?></div><?php endif; ?>
-            </div>
-            <div class="col-md-6 mb-3">
-                <label for="range_gaji_id" class="form-label">Range Gaji <span class="text-danger">*</span></label>
-                <select class="form-select <?= session('errors.range_gaji_id') ? 'is-invalid' : '' ?>" id="range_gaji_id" name="range_gaji_id" required>
-                    <option value="">-- Pilih Range Gaji --</option>
-                    <?php if (isset($range_gaji)) foreach ($range_gaji as $range): ?>
-                        <option value="<?= $range->id ?>" <?= old('range_gaji_id') == $range->id ? 'selected' : '' ?>><?= esc($range->name) ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <?php if (session('errors.range_gaji_id')): ?><div class="invalid-feedback"><?= session('errors.range_gaji_id') ?></div><?php endif; ?>
-            </div>
-            <div class="col-md-12 mb-3">
-                <label for="gaji_pokok" class="form-label">Gaji Pokok <span class="text-danger">*</span></label>
-                <input type="number" class="form-control <?= session('errors.gaji_pokok') ? 'is-invalid' : '' ?>" id="gaji_pokok" name="gaji_pokok" value="<?= old('gaji_pokok') ?>" placeholder="Contoh: 5000000" required>
-                <div class="form-text">Isi dengan angka tanpa titik atau koma</div>
-                <?php if (session('errors.gaji_pokok')): ?><div class="invalid-feedback"><?= session('errors.gaji_pokok') ?></div><?php endif; ?>
-            </div>
-        </div>
-    </div>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
-    <div class="form-step" data-step="3">
-        <h5 class="mb-3">
-            <i class="material-icons-outlined" style="font-size: 20px; vertical-align: middle; color: #6c757d;">school</i>
-            Data Kampus
-        </h5>
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <label for="provinsi_id" class="form-label">Provinsi <span class="text-danger">*</span></label>
-                <select class="form-select <?= session('errors.provinsi_id') ? 'is-invalid' : '' ?>" id="provinsi_id" name="provinsi_id" required>
-                    <option value="">-- Pilih Provinsi --</option>
-                    <?php if (isset($provinsi)) foreach ($provinsi as $prov): ?>
-                        <option value="<?= $prov->id ?>" <?= old('provinsi_id') == $prov->id ? 'selected' : '' ?>><?= esc($prov->name) ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <?php if (session('errors.provinsi_id')): ?><div class="invalid-feedback"><?= session('errors.provinsi_id') ?></div><?php endif; ?>
-            </div>
-            <div class="col-md-6 mb-3">
-                <label for="jenis_pt_id" class="form-label">Jenis Perguruan Tinggi <span class="text-danger">*</span></label>
-                <select class="form-select <?= session('errors.jenis_pt_id') ? 'is-invalid' : '' ?>" id="jenis_pt_id" name="jenis_pt_id" required>
-                    <option value="">-- Pilih Jenis PT --</option>
-                    <?php if (isset($jenis_pt)) foreach ($jenis_pt as $jenis): ?>
-                        <option value="<?= $jenis->id ?>" <?= old('jenis_pt_id') == $jenis->id ? 'selected' : '' ?>><?= esc($jenis->name) ?></option>
-                    <?php endforeach; ?>
-                </select>
-                <?php if (session('errors.jenis_pt_id')): ?><div class="invalid-feedback"><?= session('errors.jenis_pt_id') ?></div><?php endif; ?>
-            </div>
-            <div class="col-md-6 mb-3">
-                <label for="kampus_id" class="form-label">Kampus <span class="text-danger">*</span></label>
-                <select class="form-select <?= session('errors.kampus_id') ? 'is-invalid' : '' ?>" id="kampus_id" name="kampus_id" required disabled>
-                    <option value="">-- Pilih Provinsi & Jenis PT Dulu --</option>
-                </select>
-                <?php if (session('errors.kampus_id')): ?><div class="invalid-feedback"><?= session('errors.kampus_id') ?></div><?php endif; ?>
-            </div>
-            <div class="col-md-6 mb-3">
-                <label for="prodi_id" class="form-label">Program Studi <span class="text-danger">*</span></label>
-                <select class="form-select <?= session('errors.prodi_id') ? 'is-invalid' : '' ?>" id="prodi_id" name="prodi_id" required disabled>
-                    <option value="">-- Pilih Kampus Dulu --</option>
-                </select>
-                <?php if (session('errors.prodi_id')): ?><div class="invalid-feedback"><?= session('errors.prodi_id') ?></div><?php endif; ?>
-            </div>
-            <div class="col-md-12 mb-3">
-                <label for="expertise" class="form-label">Keahlian/Bidang Ilmu</label>
-                <input type="text" class="form-control" id="expertise" name="expertise" value="<?= old('expertise') ?>" placeholder="Contoh: Pendidikan Matematika, Teknologi Informasi">
-            </div>
-        </div>
-    </div>
+    <script>
+        // Toggle Password Visibility
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const password = document.getElementById('password');
+            const icon = this.querySelector('i');
 
-    <div class="form-step" data-step="4">
-        <h5 class="mb-3">
-            <i class="material-icons-outlined" style="font-size: 20px; vertical-align: middle; color: #6c757d;">description</i>
-            Data Tambahan & Pembayaran
-        </h5>
-        <div class="row">
-            <div class="col-md-12 mb-3">
-                <label for="motivasi" class="form-label">Motivasi Bergabung</label>
-                <textarea class="form-control" id="motivasi" name="motivasi" rows="3" placeholder="Ceritakan motivasi Anda bergabung dengan SPK"><?= old('motivasi') ?></textarea>
-            </div>
-            <div class="col-md-12 mb-3">
-                <label for="sosmed" class="form-label">Link Social Media</label>
-                <input type="url" class="form-control" id="sosmed" name="sosmed" value="<?= old('sosmed') ?>" placeholder="https://facebook.com/username">
-            </div>
-            <div class="col-md-12 mb-3">
-                <label for="bukti_bayar" class="form-label">Bukti Pembayaran Iuran Pertama <span class="text-danger">*</span></label>
-                <input type="file" class="form-control <?= session('errors.bukti_bayar') ? 'is-invalid' : '' ?>" id="bukti_bayar" name="bukti_bayar" accept="image/jpeg,image/jpg,image/png,application/pdf" required>
-                <div class="form-text">Format: JPG, PNG, PDF. Maksimal 4MB</div>
-                <div class="file-preview" id="buktiBayarPreview"><img src="" alt="Preview Bukti Bayar" id="buktiBayarPreviewImg"></div>
-                <?php if (session('errors.bukti_bayar')): ?><div class="invalid-feedback"><?= session('errors.bukti_bayar') ?></div><?php endif; ?>
-            </div>
-            <div class="col-md-12 mt-2">
-                <div class="form-check">
-                    <input class="form-check-input" type="checkbox" name="terms" id="terms" required>
-                    <label class="form-check-label" for="terms">
-                        Saya menyetujui <a href="<?= base_url('terms') ?>" target="_blank">Syarat & Ketentuan</a>
-                        serta <a href="<?= base_url('privacy') ?>" target="_blank">Kebijakan Privasi</a>
-                    </label>
-                </div>
-            </div>
-        </div>
-    </div>
+            if (password.type === 'password') {
+                password.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                password.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        });
 
-    <div class="step-navigation">
-        <button type="button" class="btn btn-secondary" id="prevButton" style="display: none;">
-            <i class="material-icons-outlined align-middle" style="font-size: 18px;">arrow_back</i>
-            Sebelumnya
-        </button>
-        <button type="button" class="btn btn-primary ms-auto" id="nextButton">
-            Berikutnya
-            <i class="material-icons-outlined align-middle" style="font-size: 18px;">arrow_forward</i>
-        </button>
-        <button type="submit" class="btn btn-success ms-auto" id="submitButton" style="display: none;">
-            <i class="material-icons-outlined align-middle" style="font-size: 18px;">how_to_reg</i>
-            Daftar Sekarang
-        </button>
-    </div>
-
-    <div class="text-center mt-4">
-        <p class="mb-0">
-            Sudah punya akun?
-            <a href="<?= base_url('auth/login') ?>" class="text-decoration-none fw-bold">Login di sini</a>
-        </p>
-    </div>
-</form>
-<?= $this->endSection() ?>
-
-<?= $this->section('footer') ?>
-<div class="auth-footer">
-    <p class="mb-0">
-        <a href="<?= base_url('/') ?>" class="me-3"><i class="material-icons-outlined align-middle" style="font-size: 16px;">home</i> Kembali ke Beranda</a>
-        <a href="<?= base_url('help') ?>"><i class="material-icons-outlined align-middle" style="font-size: 16px;">help</i> Bantuan</a>
-    </p>
-</div>
-<?= $this->endSection() ?>
-
-<?= $this->section('scripts') ?>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const form = document.getElementById('registerForm');
-
-        // --- ORIGINAL SCRIPTS ---
-        const passwordInput = document.getElementById('password');
-        const passwordConfirm = document.getElementById('password_confirm');
-        const passwordStrengthBar = document.querySelector('.password-strength-bar');
-
-        passwordInput.addEventListener('input', function() {
+        // Password Strength Indicator
+        document.getElementById('password').addEventListener('input', function() {
             const password = this.value;
+            const strengthBar = document.getElementById('passwordStrength');
             let strength = 0;
+
             if (password.length >= 8) strength++;
-            if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength++;
-            if (password.match(/[0-9]/)) strength++;
-            passwordStrengthBar.className = 'password-strength-bar';
-            if (strength <= 1) passwordStrengthBar.classList.add('weak');
-            else if (strength <= 3) passwordStrengthBar.classList.add('medium');
-            else passwordStrengthBar.classList.add('strong');
+            if (password.match(/[a-z]+/)) strength++;
+            if (password.match(/[A-Z]+/)) strength++;
+            if (password.match(/[0-9]+/)) strength++;
+            if (password.match(/[$@#&!]+/)) strength++;
+
+            strengthBar.style.width = (strength * 20) + '%';
+
+            if (strength < 2) {
+                strengthBar.style.backgroundColor = '#dc3545';
+            } else if (strength < 4) {
+                strengthBar.style.backgroundColor = '#ffc107';
+            } else {
+                strengthBar.style.backgroundColor = '#28a745';
+            }
         });
 
-        passwordConfirm.addEventListener('input', function() {
-            this.setCustomValidity(this.value !== passwordInput.value ? 'Password tidak cocok' : '');
-        });
+        // Image Preview
+        function previewImage(input, previewId) {
+            const file = input.files[0];
+            const preview = document.getElementById(previewId);
 
-        document.getElementById('foto').addEventListener('change', function(e) {
-            const file = e.target.files[0];
             if (file) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    document.getElementById('fotoPreviewImg').src = e.target.result;
-                    document.getElementById('fotoPreview').classList.add('show');
-                };
+                    preview.src = e.target.result;
+                    preview.style.display = 'block';
+                }
                 reader.readAsDataURL(file);
-            }
-        });
-
-        document.getElementById('bukti_bayar').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file && file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('buktiBayarPreviewImg').src = e.target.result;
-                    document.getElementById('buktiBayarPreview').classList.add('show');
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-
-        const provinsiSelect = document.getElementById('provinsi_id');
-        const jenisPtSelect = document.getElementById('jenis_pt_id');
-        const kampusSelect = document.getElementById('kampus_id');
-        const prodiSelect = document.getElementById('prodi_id');
-
-        function loadKampus() {
-            const provinsiId = provinsiSelect.value;
-            const jenisPtId = jenisPtSelect.value;
-            if (provinsiId && jenisPtId) {
-                kampusSelect.disabled = true;
-                kampusSelect.innerHTML = '<option value="">Loading...</option>';
-                fetch(`<?= base_url('api/kampus') ?>?provinsi_id=${provinsiId}&jenis_pt_id=${jenisPtId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        kampusSelect.innerHTML = '<option value="">-- Pilih Kampus --</option>';
-                        data.forEach(kampus => {
-                            kampusSelect.innerHTML += `<option value="${kampus.id}">${kampus.name}</option>`;
-                        });
-                        kampusSelect.disabled = false;
-                    }).catch(error => {
-                        console.error('Error:', error);
-                        kampusSelect.innerHTML = '<option value="">Error loading data</option>';
-                    });
             }
         }
 
-        function loadProdi() {
-            const kampusId = kampusSelect.value;
-            if (kampusId) {
-                prodiSelect.disabled = true;
-                prodiSelect.innerHTML = '<option value="">Loading...</option>';
-                fetch(`<?= base_url('api/prodi') ?>?kampus_id=${kampusId}`)
+        document.getElementById('photo').addEventListener('change', function() {
+            previewImage(this, 'photoPreview');
+        });
+
+        document.getElementById('payment_proof').addEventListener('change', function() {
+            const file = this.files[0];
+            if (file && file.type.includes('image')) {
+                previewImage(this, 'paymentPreview');
+            }
+        });
+
+        // Dynamic Dropdown: Province -> University
+        document.getElementById('province_id').addEventListener('change', function() {
+            const provinceId = this.value;
+            const universitySelect = document.getElementById('university_id');
+            const studyProgramSelect = document.getElementById('study_program_id');
+
+            // Reset
+            universitySelect.innerHTML = '<option value="">-- Loading... --</option>';
+            studyProgramSelect.innerHTML = '<option value="">-- Pilih Kampus dulu --</option>';
+
+            if (provinceId) {
+                fetch(`<?= base_url('api/universities') ?>?province_id=${provinceId}`)
                     .then(response => response.json())
                     .then(data => {
-                        prodiSelect.innerHTML = '<option value="">-- Pilih Program Studi --</option>';
-                        data.forEach(prodi => {
-                            prodiSelect.innerHTML += `<option value="${prodi.id}">${prodi.name}</option>`;
+                        universitySelect.innerHTML = '<option value="">-- Pilih Perguruan Tinggi --</option>';
+                        data.forEach(university => {
+                            universitySelect.innerHTML += `<option value="${university.id}">${university.name}</option>`;
                         });
-                        prodiSelect.disabled = false;
-                    }).catch(error => {
+                    })
+                    .catch(error => {
                         console.error('Error:', error);
-                        prodiSelect.innerHTML = '<option value="">Error loading data</option>';
+                        universitySelect.innerHTML = '<option value="">-- Error loading data --</option>';
                     });
-            }
-        }
-
-        provinsiSelect.addEventListener('change', loadKampus);
-        jenisPtSelect.addEventListener('change', loadKampus);
-        kampusSelect.addEventListener('change', loadProdi);
-
-        // --- NEW MULTI-STEP WIZARD SCRIPT ---
-        const steps = Array.from(document.querySelectorAll('.form-step'));
-        const stepperItems = Array.from(document.querySelectorAll('.stepper-item'));
-        const nextButton = document.getElementById('nextButton');
-        const prevButton = document.getElementById('prevButton');
-        const submitButton = document.getElementById('submitButton');
-        let currentStep = 0;
-
-        const updateButtons = () => {
-            prevButton.style.display = currentStep > 0 ? 'inline-flex' : 'none';
-            nextButton.style.display = currentStep < steps.length - 1 ? 'inline-flex' : 'none';
-            submitButton.style.display = currentStep === steps.length - 1 ? 'inline-flex' : 'none';
-        };
-
-        const goToStep = (stepIndex) => {
-            steps[currentStep].classList.remove('active');
-            stepperItems[currentStep].classList.remove('active');
-
-            steps[stepIndex].classList.add('active');
-            stepperItems[stepIndex].classList.add('active');
-            stepperItems[stepIndex].classList.add('completed'); // Mark as visited
-
-            currentStep = stepIndex;
-            updateButtons();
-        };
-
-        const validateStep = (stepIndex) => {
-            const currentStepElement = steps[stepIndex];
-            const inputs = Array.from(currentStepElement.querySelectorAll('input[required], select[required], textarea[required]'));
-            let isValid = true;
-            for (const input of inputs) {
-                if (!input.checkValidity()) {
-                    isValid = false;
-                    // Trigger bootstrap validation styles
-                    input.classList.add('is-invalid');
-                    // Add was-validated to the form to show all messages in the step
-                    form.classList.add('was-validated');
-                } else {
-                    input.classList.remove('is-invalid');
-                }
-            }
-            return isValid;
-        };
-
-        nextButton.addEventListener('click', () => {
-            if (validateStep(currentStep)) {
-                form.classList.remove('was-validated'); // Reset for the next step
-                if (currentStep < steps.length - 1) {
-                    goToStep(currentStep + 1);
-                }
-            }
-        });
-
-        prevButton.addEventListener('click', () => {
-            form.classList.remove('was-validated'); // No need to show errors when going back
-            if (currentStep > 0) {
-                goToStep(currentStep - 1);
-            }
-        });
-
-        form.addEventListener('submit', function(e) {
-            if (!validateStep(currentStep)) {
-                e.preventDefault();
-                e.stopPropagation();
             } else {
-                submitButton.disabled = true;
-                submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Memproses...';
+                universitySelect.innerHTML = '<option value="">-- Pilih Provinsi dulu --</option>';
             }
-            form.classList.add('was-validated');
         });
 
-        // Initialize
-        updateButtons();
-    });
-</script>
-<?= $this->endSection() ?>
+        // Dynamic Dropdown: University -> Study Program
+        document.getElementById('university_id').addEventListener('change', function() {
+            const universityId = this.value;
+            const studyProgramSelect = document.getElementById('study_program_id');
+
+            studyProgramSelect.innerHTML = '<option value="">-- Loading... --</option>';
+
+            if (universityId) {
+                fetch(`<?= base_url('api/study-programs') ?>?university_id=${universityId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        studyProgramSelect.innerHTML = '<option value="">-- Pilih Program Studi --</option>';
+                        data.forEach(program => {
+                            studyProgramSelect.innerHTML += `<option value="${program.id}">${program.name}</option>`;
+                        });
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        studyProgramSelect.innerHTML = '<option value="">-- Error loading data --</option>';
+                    });
+            } else {
+                studyProgramSelect.innerHTML = '<option value="">-- Pilih Kampus dulu --</option>';
+            }
+        });
+
+        // Form Validation
+        document.getElementById('registerForm').addEventListener('submit', function(e) {
+            const password = document.getElementById('password').value;
+            const passwordConfirm = document.getElementById('password_confirm').value;
+
+            if (password !== passwordConfirm) {
+                e.preventDefault();
+                alert('Password dan konfirmasi password tidak cocok!');
+                return false;
+            }
+
+            // Show loading state
+            const submitBtn = this.querySelector('button[type="submit"]');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Memproses...';
+        });
+    </script>
+</body>
+
+</html>

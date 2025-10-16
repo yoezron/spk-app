@@ -497,4 +497,66 @@ class EmailService
             ];
         }
     }
+
+    /**
+     * Send verification email
+     * 
+     * @param User $user
+     * @return array
+     */
+    public function sendVerificationEmail($user): array
+    {
+        try {
+            // Generate verification token
+            $token = bin2hex(random_bytes(32));
+
+            // Store token in database (implement your token storage logic)
+            // e.g., save to user_tokens table with expiry time
+
+            // Generate verification link
+            $verificationLink = base_url("auth/verify/{$token}");
+
+            // Prepare email data
+            $emailData = [
+                'fullName' => $user->full_name ?? $user->username,
+                'verificationLink' => $verificationLink,
+                'contactEmail' => 'admin@spk.org',
+                'contactPhone' => '+62 812-3456-7890',
+                'facebookUrl' => 'https://facebook.com/spk',
+                'twitterUrl' => 'https://twitter.com/spk',
+                'instagramUrl' => 'https://instagram.com/spk',
+                'linkedinUrl' => 'https://linkedin.com/company/spk',
+            ];
+
+            // Load email template
+            $message = view('emails/verify_email', $emailData);
+
+            // Send email
+            $email = \Config\Services::email();
+            $email->setFrom('noreply@spk.org', 'SPK - Serikat Pekerja Kampus');
+            $email->setTo($user->email);
+            $email->setSubject('Verifikasi Email Anda - SPK');
+            $email->setMessage($message);
+
+            if ($email->send()) {
+                return [
+                    'success' => true,
+                    'message' => 'Email verifikasi berhasil dikirim'
+                ];
+            } else {
+                log_message('error', 'Email send failed: ' . $email->printDebugger(['headers']));
+                return [
+                    'success' => false,
+                    'message' => 'Gagal mengirim email'
+                ];
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error sending verification email: ' . $e->getMessage());
+
+            return [
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat mengirim email'
+            ];
+        }
+    }
 }

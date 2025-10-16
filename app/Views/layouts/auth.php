@@ -3,14 +3,12 @@
 /**
  * Layout: Auth
  * Neptune Admin Template - Authentication Layout
- * 
- * Layout untuk halaman authentication (Login, Register, Email Verification)
+ * * Layout untuk halaman authentication (Login, Register, Email Verification)
  * Design: Clean card-based layout dengan background gradient
  * Features: Flash messages, CSRF protection, responsive design
- * 
- * @package App\Views\Layouts
+ * * @package App\Views\Layouts
  * @author  SPK Development Team
- * @version 1.0.0
+ * @version 1.1.0 (Fixed vertical alignment for long content)
  */
 ?>
 <!DOCTYPE html>
@@ -38,14 +36,20 @@
 
     <!-- Custom Auth CSS -->
     <style>
+        /*
+         * KUNCI PERBAIKAN ADA DI SINI
+         */
         body.auth-page {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             display: flex;
-            align-items: center;
+            /* SEBELUMNYA: align-items: center; (Ini penyebab masalah) */
+            /* SESUDAH:  align-items: flex-start; (Memulai konten dari atas) */
+            align-items: flex-start;
             justify-content: center;
             font-family: 'Poppins', sans-serif;
-            padding: 20px;
+            /* Menambahkan padding vertikal agar tidak menempel di atas */
+            padding: 50px 20px;
         }
 
         .auth-container {
@@ -238,6 +242,10 @@
 
         /* Responsive */
         @media (max-width: 576px) {
+            body.auth-page {
+                padding: 20px 15px;
+            }
+
             .auth-header {
                 padding: 30px 20px;
             }
@@ -273,7 +281,7 @@
                 <div class="auth-logo">
                     <i class="material-icons-outlined">group</i>
                 </div>
-                <h1 class="auth-title"><?= esc($pageTitle ?? 'Serikat Pekerja Kampus') ?></h1>
+                <h1 class="auth-title"><?= esc($pageTitle ?? 'Formulir Pendaftaran') ?></h1>
                 <p class="auth-subtitle">Sistem Informasi Anggota SPK</p>
             </div>
 

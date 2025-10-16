@@ -293,4 +293,71 @@ class VerifyController extends BaseController
             'email' => $user->email
         ]);
     }
+
+
+    /**
+     * Resend verification email
+     * 
+     * @return \CodeIgniter\HTTP\ResponseInterface
+     */
+    public function resendVerification()
+    {
+        // Check if AJAX request
+        if (!$this->request->isAJAX()) {
+            return redirect()->back()->with('error', 'Invalid request');
+        }
+
+        try {
+            $email = $this->request->getJSON()->email ?? null;
+
+            if (empty($email)) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Email tidak ditemukan'
+                ]);
+            }
+
+            // Find user by email
+            $userModel = new \CodeIgniter\Shield\Models\UserModel();
+            $user = $userModel->where('email', $email)->first();
+
+            if (!$user) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Email tidak terdaftar'
+                ]);
+            }
+
+            // Check if already verified
+            if ($user->active) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Email sudah terverifikasi. Silakan login.'
+                ]);
+            }
+
+            // Send verification email
+            $emailService = new \App\Services\Communication\EmailService();
+            $result = $emailService->sendVerificationEmail($user);
+
+            if ($result['success']) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => 'Email verifikasi berhasil dikirim ulang. Silakan cek inbox Anda.'
+                ]);
+            } else {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Gagal mengirim email. Silakan coba lagi.'
+                ]);
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Resend verification error: ' . $e->getMessage());
+
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Terjadi kesalahan. Silakan coba lagi.'
+            ]);
+        }
+    }
 }
