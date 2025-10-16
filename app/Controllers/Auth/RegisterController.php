@@ -103,18 +103,22 @@ class RegisterController extends BaseController
      */
     public function register()
     {
-        // Validate CSRF token
-        if (!$this->validate(['csrf_token' => 'required'])) {
-            return redirect()->back()
-                ->withInput()
-                ->with('error', 'Invalid security token. Please try again.');
-        }
+        // CSRF protection already handled by CSRF Filter in Config/Filters.php
 
         try {
             // Get form data
             $data = $this->request->getPost();
 
-            // Handle file uploads
+            // 1. Validate registration data (including file validation)
+            $validationResult = $this->validateRegistration($data);
+
+            if (!$validationResult['success']) {
+                return redirect()->back()
+                    ->withInput()
+                    ->with('errors', $validationResult['errors']);
+            }
+
+            // 2. Handle file uploads (validation already passed)
             $uploadResult = $this->handleFileUploads();
 
             if (!$uploadResult['success']) {
@@ -123,23 +127,11 @@ class RegisterController extends BaseController
                     ->with('errors', $uploadResult['errors']);
             }
 
-            // Add file paths to data
+            // 3. Add file paths to data
             $data['photo_path'] = $uploadResult['photo_path'];
             $data['payment_proof_path'] = $uploadResult['payment_proof_path'];
 
-            // Validate registration data
-            $validationResult = $this->validateRegistration($data);
-
-            if (!$validationResult['success']) {
-                // Delete uploaded files if validation fails
-                $this->deleteUploadedFiles($uploadResult);
-
-                return redirect()->back()
-                    ->withInput()
-                    ->with('errors', $validationResult['errors']);
-            }
-
-            // Process registration through service
+            // 4. Process registration through service
             $result = $this->registerService->register($data);
 
             if ($result['success']) {
@@ -174,6 +166,8 @@ class RegisterController extends BaseController
 
     /**
      * Handle file uploads (photo and payment proof)
+     * Validation is already done in validateRegistration()
+     * This method only handles the upload logic
      * 
      * @return array
      */
@@ -183,71 +177,64 @@ class RegisterController extends BaseController
         $photoPath = null;
         $paymentProofPath = null;
 
-        // Create upload directories if not exists
-        $photoDir = WRITEPATH . 'uploads/photos';
-        $paymentDir = WRITEPATH . 'uploads/payments';
+        try {
+            // Handle photo upload
+            $photo = $this->request->getFile('photo');
+            if ($photo && $photo->isValid() && !$photo->hasMoved()) {
+                // Generate temporary secure path
+                $tempDir = WRITEPATH . 'uploads/temp/photos/';
+                if (!is_dir($tempDir)) {
+                    mkdir($tempDir, 0755, true);
+                }
 
-        if (!is_dir($photoDir)) {
-            mkdir($photoDir, 0755, true);
-        }
-        if (!is_dir($paymentDir)) {
-            mkdir($paymentDir, 0755, true);
-        }
+                // Generate unique filename with hash for security
+                $photoNewName = 'photo_' . time() . '_' . bin2hex(random_bytes(16)) . '.' . $photo->getExtension();
 
-        // Handle photo upload
-        $photo = $this->request->getFile('photo');
-        if ($photo && $photo->isValid() && !$photo->hasMoved()) {
-            // Validate file
-            if ($photo->getSize() > 2048000) { // 2MB
-                $errors[] = 'Ukuran foto maksimal 2MB';
-            } elseif (!in_array($photo->getMimeType(), ['image/jpeg', 'image/jpg', 'image/png'])) {
-                $errors[] = 'Format foto harus JPG, JPEG, atau PNG';
-            } else {
-                // Generate unique filename
-                $photoNewName = 'photo_' . time() . '_' . uniqid() . '.' . $photo->getExtension();
-
-                try {
-                    $photo->move($photoDir, $photoNewName);
-                    $photoPath = 'photos/' . $photoNewName;
-                } catch (\Exception $e) {
-                    log_message('error', 'Photo upload error: ' . $e->getMessage());
+                if ($photo->move($tempDir, $photoNewName)) {
+                    $photoPath = 'temp/photos/' . $photoNewName;
+                    log_message('info', 'Photo uploaded successfully: ' . $photoPath);
+                } else {
                     $errors[] = 'Gagal mengupload foto';
+                    log_message('error', 'Failed to move photo file');
                 }
             }
-        } else {
-            $errors[] = 'Foto harus diupload';
-        }
 
-        // Handle payment proof upload
-        $paymentProof = $this->request->getFile('payment_proof');
-        if ($paymentProof && $paymentProof->isValid() && !$paymentProof->hasMoved()) {
-            // Validate file
-            if ($paymentProof->getSize() > 2048000) { // 2MB
-                $errors[] = 'Ukuran bukti pembayaran maksimal 2MB';
-            } elseif (!in_array($paymentProof->getMimeType(), ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'])) {
-                $errors[] = 'Format bukti pembayaran harus JPG, PNG, atau PDF';
-            } else {
-                // Generate unique filename
-                $proofNewName = 'payment_' . time() . '_' . uniqid() . '.' . $paymentProof->getExtension();
+            // Handle payment proof upload
+            $paymentProof = $this->request->getFile('payment_proof');
+            if ($paymentProof && $paymentProof->isValid() && !$paymentProof->hasMoved()) {
+                // Generate temporary secure path
+                $tempDir = WRITEPATH . 'uploads/temp/payments/';
+                if (!is_dir($tempDir)) {
+                    mkdir($tempDir, 0755, true);
+                }
 
-                try {
-                    $paymentProof->move($paymentDir, $proofNewName);
-                    $paymentProofPath = 'payments/' . $proofNewName;
-                } catch (\Exception $e) {
-                    log_message('error', 'Payment proof upload error: ' . $e->getMessage());
+                // Generate unique filename with hash for security
+                $proofNewName = 'payment_' . time() . '_' . bin2hex(random_bytes(16)) . '.' . $paymentProof->getExtension();
+
+                if ($paymentProof->move($tempDir, $proofNewName)) {
+                    $paymentProofPath = 'temp/payments/' . $proofNewName;
+                    log_message('info', 'Payment proof uploaded successfully: ' . $paymentProofPath);
+                } else {
                     $errors[] = 'Gagal mengupload bukti pembayaran';
+                    log_message('error', 'Failed to move payment proof file');
                 }
             }
-        } else {
-            $errors[] = 'Bukti pembayaran harus diupload';
-        }
 
-        return [
-            'success' => empty($errors),
-            'errors' => $errors,
-            'photo_path' => $photoPath,
-            'payment_proof_path' => $paymentProofPath
-        ];
+            return [
+                'success' => empty($errors),
+                'errors' => $errors,
+                'photo_path' => $photoPath,
+                'payment_proof_path' => $paymentProofPath
+            ];
+        } catch (\Exception $e) {
+            log_message('error', 'File upload error: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'errors' => ['Terjadi kesalahan saat mengupload file: ' . $e->getMessage()],
+                'photo_path' => null,
+                'payment_proof_path' => null
+            ];
+        }
     }
 
     /**
@@ -282,11 +269,12 @@ class RegisterController extends BaseController
             ],
             'password' => [
                 'label' => 'Password',
-                'rules' => 'required|min_length[8]|max_length[255]',
+                'rules' => 'required|min_length[8]|max_length[255]|strong_password',
                 'errors' => [
                     'required' => 'Password harus diisi',
                     'min_length' => 'Password minimal 8 karakter',
-                    'max_length' => 'Password maksimal 255 karakter'
+                    'max_length' => 'Password maksimal 255 karakter',
+                    'strong_password' => 'Password harus mengandung huruf besar, huruf kecil, angka, dan karakter khusus'
                 ]
             ],
             'password_confirm' => [
@@ -320,22 +308,18 @@ class RegisterController extends BaseController
             // Contact Information
             'phone' => [
                 'label' => 'No. Telepon',
-                'rules' => 'required|min_length[10]|max_length[15]|numeric',
+                'rules' => 'required|valid_phone',
                 'errors' => [
                     'required' => 'No. telepon harus diisi',
-                    'min_length' => 'No. telepon minimal 10 digit',
-                    'max_length' => 'No. telepon maksimal 15 digit',
-                    'numeric' => 'No. telepon hanya boleh angka'
+                    'valid_phone' => 'Format nomor telepon tidak valid (gunakan: 08xxxxxxxxxx)'
                 ]
             ],
             'whatsapp' => [
                 'label' => 'No. WhatsApp',
-                'rules' => 'required|min_length[10]|max_length[15]|numeric',
+                'rules' => 'required|valid_phone',
                 'errors' => [
                     'required' => 'No. WhatsApp harus diisi',
-                    'min_length' => 'No. WhatsApp minimal 10 digit',
-                    'max_length' => 'No. WhatsApp maksimal 15 digit',
-                    'numeric' => 'No. WhatsApp hanya boleh angka'
+                    'valid_phone' => 'Format nomor WhatsApp tidak valid (gunakan: 08xxxxxxxxxx)'
                 ]
             ],
             'address' => [
@@ -402,10 +386,33 @@ class RegisterController extends BaseController
             // Additional Information
             'motivation' => [
                 'label' => 'Motivasi',
-                'rules' => 'required|min_length[20]',
+                'rules' => 'required|min_length[50]|max_length[1000]',
                 'errors' => [
                     'required' => 'Motivasi harus diisi',
-                    'min_length' => 'Motivasi minimal 20 karakter'
+                    'min_length' => 'Motivasi minimal 50 karakter',
+                    'max_length' => 'Motivasi maksimal 1000 karakter'
+                ]
+            ],
+
+            // File Uploads
+            'photo' => [
+                'label' => 'Foto',
+                'rules' => 'uploaded[photo]|max_file_size[photo,2048]|valid_image_mime[photo,image/jpeg,image/jpg,image/png]|min_image_dimensions[photo,300,400]|max_image_dimensions[photo,4000,4000]',
+                'errors' => [
+                    'uploaded' => 'Foto harus diupload',
+                    'max_file_size' => 'Ukuran foto maksimal 2MB',
+                    'valid_image_mime' => 'Format foto harus JPG, JPEG, atau PNG',
+                    'min_image_dimensions' => 'Resolusi foto minimal 300x400px',
+                    'max_image_dimensions' => 'Resolusi foto maksimal 4000x4000px'
+                ]
+            ],
+            'payment_proof' => [
+                'label' => 'Bukti Pembayaran',
+                'rules' => 'uploaded[payment_proof]|max_file_size[payment_proof,5120]|ext_in[payment_proof,jpg,jpeg,png,pdf]',
+                'errors' => [
+                    'uploaded' => 'Bukti pembayaran harus diupload',
+                    'max_file_size' => 'Ukuran bukti pembayaran maksimal 5MB',
+                    'ext_in' => 'Format bukti pembayaran harus JPG, PNG, atau PDF'
                 ]
             ],
 

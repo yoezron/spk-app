@@ -76,12 +76,12 @@ class Filters extends BaseFilters
     public array $globals = [
         'before' => [
             // 'honeypot',
-            // 'csrf',
+            'csrf', // ✅ CSRF Protection enabled for all POST/PUT/DELETE requests
             // 'invalidchars',
         ],
         'after' => [
             // 'honeypot',
-            // 'secureheaders',
+            'secureheaders', // ✅ Secure headers enabled
         ],
     ];
 

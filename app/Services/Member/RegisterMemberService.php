@@ -284,7 +284,7 @@ class RegisterMemberService
      */
     protected function prepareMemberData(array $data, int $userId): array
     {
-        return [
+        $memberData = [
             'user_id'              => $userId,
             'member_number'        => $this->generateMemberNumber(),
             'full_name'            => $data['full_name'],
@@ -315,6 +315,67 @@ class RegisterMemberService
             'join_date'            => date('Y-m-d'),
             'membership_status'    => 'pending',
         ];
+
+        // Move uploaded files from temp to secure user directory
+        if (isset($data['photo_path']) && $data['photo_path']) {
+            $memberData['photo_path'] = $this->moveFileToSecureLocation($data['photo_path'], $userId, 'photo');
+        }
+
+        if (isset($data['payment_proof_path']) && $data['payment_proof_path']) {
+            $memberData['payment_proof_path'] = $this->moveFileToSecureLocation($data['payment_proof_path'], $userId, 'payment_proof');
+        }
+
+        return $memberData;
+    }
+
+    /**
+     * Move file from temp directory to secure user-specific directory
+     * 
+     * @param string $tempPath Temporary file path (relative to writable/uploads/)
+     * @param int $userId User ID
+     * @param string $type File type (photo, payment_proof)
+     * @return string|null Secure file path or null on failure
+     */
+    protected function moveFileToSecureLocation(string $tempPath, int $userId, string $type): ?string
+    {
+        try {
+            $fileService = new \App\Services\FileUploadService();
+
+            // Build full temp path
+            $fullTempPath = WRITEPATH . 'uploads/' . $tempPath;
+
+            if (!file_exists($fullTempPath)) {
+                log_message('error', "Temp file not found: {$fullTempPath}");
+                return null;
+            }
+
+            // Get secure upload path for this user
+            $secureDir = $fileService->getSecureUploadPath($userId, $type);
+
+            // Ensure directory exists
+            if (!is_dir($secureDir)) {
+                mkdir($secureDir, 0755, true);
+            }
+
+            // Generate secure filename
+            $extension = pathinfo($tempPath, PATHINFO_EXTENSION);
+            $secureFilename = $type . '_' . time() . '_' . bin2hex(random_bytes(16)) . '.' . $extension;
+            $securePath = $secureDir . $secureFilename;
+
+            // Move file
+            if (rename($fullTempPath, $securePath)) {
+                // Return relative path for database storage
+                $relativePath = str_replace(WRITEPATH . 'uploads/', '', $securePath);
+                log_message('info', "File moved successfully: {$tempPath} -> {$relativePath}");
+                return $relativePath;
+            } else {
+                log_message('error', "Failed to move file: {$tempPath} -> {$securePath}");
+                return null;
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error moving file to secure location: ' . $e->getMessage());
+            return null;
+        }
     }
 
     /**

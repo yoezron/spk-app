@@ -542,18 +542,42 @@ class FileUploadService
      * Returns the upload directory path for specific file type
      * 
      * @param string $type File type
+     * @param int|null $userId User ID for subdirectory (for better security)
      * @return string Upload directory path
      */
-    public function getUploadPath(string $type): string
+    public function getUploadPath(string $type, ?int $userId = null): string
     {
         $paths = [
             'photo' => $this->uploadBasePath . 'photos/',
             'cv' => $this->uploadBasePath . 'cv/',
             'id_card' => $this->uploadBasePath . 'id_cards/',
-            'document' => $this->uploadBasePath . 'documents/'
+            'document' => $this->uploadBasePath . 'documents/',
+            'payment_proof' => $this->uploadBasePath . 'payments/'
         ];
 
-        return $paths[$type] ?? $this->uploadBasePath . 'misc/';
+        $basePath = $paths[$type] ?? $this->uploadBasePath . 'misc/';
+
+        // Add user-based subdirectory for better security and organization
+        if ($userId) {
+            // Create subdirectory based on user ID hash to prevent path guessing
+            $subDir = substr(md5($userId), 0, 2) . '/' . $userId . '/';
+            $basePath .= $subDir;
+        }
+
+        return $basePath;
+    }
+
+    /**
+     * Get secure upload path for user files
+     * Creates a secure, user-specific upload path
+     * 
+     * @param int $userId User ID
+     * @param string $type File type (photo, payment_proof, etc)
+     * @return string Secure upload path
+     */
+    public function getSecureUploadPath(int $userId, string $type): string
+    {
+        return $this->getUploadPath($type, $userId);
     }
 
     /**

@@ -307,22 +307,13 @@ $routes->group('super', ['namespace' => 'App\Controllers\Super', 'filter' => 'ro
     $routes->get('audit-logs', 'AuditLogController::index', ['filter' => 'permission:audit.view']);
     $routes->get('audit-logs/(:num)', 'AuditLogController::show/$1', ['filter' => 'permission:audit.view']);
     $routes->get('audit-logs/export', 'AuditLogController::export', ['filter' => 'permission:audit.export']);
-});
 
-// Super Admin Routes
-$routes->group('super', ['filter' => 'group:superadmin'], function ($routes) {
-    $routes->get('dashboard', 'Super\DashboardController::index');
-    $routes->post('dashboard/refresh', 'Super\DashboardController::refresh');
+    // Dashboard Actions (from second group)
+    $routes->post('dashboard/refresh', 'DashboardController::refresh');
 
-    // Roles Management
-    $routes->get('roles', 'Super\RoleController::index');
-    $routes->get('roles/create', 'Super\RoleController::create');
-    $routes->post('roles', 'Super\RoleController::store');
-    $routes->get('roles/(:num)/edit', 'Super\RoleController::edit/$1');
-    $routes->post('roles/(:num)', 'Super\RoleController::update/$1');
-    $routes->delete('roles/(:num)', 'Super\RoleController::delete/$1');
-    $routes->get('roles/(:num)/members', 'Super\RoleController::members/$1');
-    $routes->get('roles/matrix', 'Super\RoleController::matrix');
+    // Role Management - Additional Routes (from second group)
+    $routes->get('roles/(:num)/members', 'RoleController::members/$1', ['filter' => 'permission:role.manage']);
+    $routes->get('roles/matrix', 'RoleController::matrix', ['filter' => 'permission:role.manage']);
 });
 
 /*
