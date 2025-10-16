@@ -55,23 +55,34 @@ class RoleController extends BaseController
     public function index()
     {
         // CRITICAL: Check Super Admin permission
+        if (!auth()->loggedIn()) {
+            return redirect()->to('/login')->with('error', 'Silakan login terlebih dahulu.');
+        }
+
         if (!auth()->user()->inGroup('superadmin')) {
             return redirect()->back()->with('error', 'Akses ditolak. Hanya Super Admin yang dapat mengakses halaman ini.');
         }
 
-        // Get all roles with permission count and member count
-        $roles = $this->groupModel
+        $db = \Config\Database::connect();
+
+        // Get all roles with statistics
+        $builder = $db->table('auth_groups')
             ->select('auth_groups.*, 
                       COUNT(DISTINCT auth_groups_permissions.permission_id) as permission_count,
                       COUNT(DISTINCT auth_groups_users.user_id) as member_count')
             ->join('auth_groups_permissions', 'auth_groups_permissions.group_id = auth_groups.id', 'left')
             ->join('auth_groups_users', 'auth_groups_users.group = auth_groups.title', 'left')
             ->groupBy('auth_groups.id')
-            ->orderBy('auth_groups.title', 'ASC')
-            ->findAll();
+            ->orderBy('auth_groups.title', 'ASC');
+
+        $roles = $builder->get()->getResult();
 
         $data = [
             'title' => 'Manajemen Role',
+            'breadcrumbs' => [
+                ['title' => 'Super Admin'],
+                ['title' => 'Roles']
+            ],
             'roles' => $roles
         ];
 
@@ -86,50 +97,46 @@ class RoleController extends BaseController
     public function create()
     {
         // CRITICAL: Check Super Admin permission
+        if (!auth()->loggedIn()) {
+            return redirect()->to('/login')->with('error', 'Silakan login terlebih dahulu.');
+        }
+
         if (!auth()->user()->inGroup('superadmin')) {
             return redirect()->back()->with('error', 'Akses ditolak. Hanya Super Admin yang dapat mengakses halaman ini.');
         }
 
+        // Get all permissions grouped by module
+        $permissions = $this->getPermissionsGrouped();
+
         $data = [
             'title' => 'Tambah Role Baru',
-            'validation' => \Config\Services::validation()
+            'breadcrumbs' => [
+                ['title' => 'Super Admin'],
+                ['title' => 'Roles', 'url' => base_url('super/roles')],
+                ['title' => 'Tambah Baru']
+            ],
+            'permissions' => $permissions
         ];
 
-        return view('super/roles/create', $data);
+        return view('super/roles/form', $data);
     }
 
     /**
-     * Store new role to database
+     * Store new role
      * 
      * @return RedirectResponse
      */
-    public function store(): RedirectResponse
+    public function store()
     {
         // CRITICAL: Check Super Admin permission
         if (!auth()->user()->inGroup('superadmin')) {
-            return redirect()->back()->with('error', 'Akses ditolak. Hanya Super Admin yang dapat melakukan aksi ini.');
+            return redirect()->back()->with('error', 'Akses ditolak.');
         }
 
         // Validation rules
         $rules = [
-            'title' => [
-                'rules' => 'required|min_length[3]|max_length[100]|is_unique[auth_groups.title]|alpha_dash',
-                'errors' => [
-                    'required' => 'Nama role wajib diisi',
-                    'min_length' => 'Nama role minimal 3 karakter',
-                    'max_length' => 'Nama role maksimal 100 karakter',
-                    'is_unique' => 'Nama role sudah digunakan',
-                    'alpha_dash' => 'Nama role hanya boleh berisi huruf, angka, underscore, dan dash'
-                ]
-            ],
-            'description' => [
-                'rules' => 'required|min_length[10]|max_length[255]',
-                'errors' => [
-                    'required' => 'Deskripsi role wajib diisi',
-                    'min_length' => 'Deskripsi minimal 10 karakter',
-                    'max_length' => 'Deskripsi maksimal 255 karakter'
-                ]
-            ]
+            'title' => 'required|min_length[3]|max_length[100]|is_unique[auth_groups.title]',
+            'description' => 'permit_empty|max_length[500]'
         ];
 
         if (!$this->validate($rules)) {
@@ -138,106 +145,152 @@ class RoleController extends BaseController
                 ->with('errors', $this->validator->getErrors());
         }
 
-        $data = [
-            'title' => strtolower($this->request->getPost('title')),
-            'description' => $this->request->getPost('description')
-        ];
+        $db = \Config\Database::connect();
+        $db->transStart();
 
         try {
-            $this->groupModel->insert($data);
+            // Insert role
+            $roleData = [
+                'title' => $this->request->getPost('title'),
+                'description' => $this->request->getPost('description')
+            ];
 
-            return redirect()->to('/super/roles')
-                ->with('success', 'Role berhasil ditambahkan.');
+            $db->table('auth_groups')->insert($roleData);
+            $roleId = $db->insertID();
+
+            // Assign permissions to role
+            $permissions = $this->request->getPost('permissions') ?? [];
+            if (!empty($permissions)) {
+                foreach ($permissions as $permissionId) {
+                    $db->table('auth_groups_permissions')->insert([
+                        'group_id' => $roleId,
+                        'permission_id' => $permissionId
+                    ]);
+                }
+            }
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                throw new \Exception('Failed to create role');
+            }
+
+            // Log activity
+            $this->logActivity('CREATE_ROLE', 'Created new role: ' . $roleData['title']);
+
+            return redirect()->to(base_url('super/roles'))
+                ->with('success', 'Role berhasil dibuat!');
         } catch (\Exception $e) {
-            log_message('error', 'Error creating role: ' . $e->getMessage());
-
+            $db->transRollback();
+            log_message('error', 'Role Creation Error: ' . $e->getMessage());
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'Gagal menambahkan role. Silakan coba lagi.');
+                ->with('error', 'Gagal membuat role: ' . $e->getMessage());
         }
     }
 
     /**
      * Show edit role form
      * 
-     * @param int $id Role ID
+     * @param int $id
      * @return string|RedirectResponse
      */
-    public function edit(int $id)
+    public function edit($id)
     {
         // CRITICAL: Check Super Admin permission
-        if (!auth()->user()->inGroup('superadmin')) {
-            return redirect()->back()->with('error', 'Akses ditolak. Hanya Super Admin yang dapat mengakses halaman ini.');
+        if (!auth()->loggedIn()) {
+            return redirect()->to('/login')->with('error', 'Silakan login terlebih dahulu.');
         }
 
-        $role = $this->groupModel->find($id);
+        if (!auth()->user()->inGroup('superadmin')) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        $db = \Config\Database::connect();
+
+        // Get role
+        $role = $db->table('auth_groups')
+            ->where('id', $id)
+            ->get()
+            ->getRow();
 
         if (!$role) {
-            return redirect()->to('/super/roles')
+            return redirect()->to(base_url('super/roles'))
                 ->with('error', 'Role tidak ditemukan.');
         }
 
         // Prevent editing superadmin role
         if ($role->title === 'superadmin') {
-            return redirect()->to('/super/roles')
-                ->with('error', 'Role Super Admin tidak dapat diedit.');
+            return redirect()->to(base_url('super/roles'))
+                ->with('error', 'Role Super Admin tidak dapat diubah.');
         }
+
+        // Get role permissions
+        $rolePermissions = $db->table('auth_groups_permissions')
+            ->select('permission_id')
+            ->where('group_id', $id)
+            ->get()
+            ->getResultArray();
+
+        $rolePermissionIds = array_column($rolePermissions, 'permission_id');
+
+        // Get all permissions grouped
+        $permissions = $this->getPermissionsGrouped();
+
+        // Get member count
+        $memberCount = $db->table('auth_groups_users')
+            ->where('group', $role->title)
+            ->countAllResults();
 
         $data = [
             'title' => 'Edit Role',
+            'breadcrumbs' => [
+                ['title' => 'Super Admin'],
+                ['title' => 'Roles', 'url' => base_url('super/roles')],
+                ['title' => 'Edit']
+            ],
             'role' => $role,
-            'validation' => \Config\Services::validation()
+            'permissions' => $permissions,
+            'rolePermissionIds' => $rolePermissionIds,
+            'memberCount' => $memberCount
         ];
 
-        return view('super/roles/edit', $data);
+        return view('super/roles/form', $data);
     }
 
     /**
-     * Update role in database
+     * Update existing role
      * 
-     * @param int $id Role ID
+     * @param int $id
      * @return RedirectResponse
      */
-    public function update(int $id): RedirectResponse
+    public function update($id)
     {
         // CRITICAL: Check Super Admin permission
         if (!auth()->user()->inGroup('superadmin')) {
-            return redirect()->back()->with('error', 'Akses ditolak. Hanya Super Admin yang dapat melakukan aksi ini.');
+            return redirect()->back()->with('error', 'Akses ditolak.');
         }
 
-        $role = $this->groupModel->find($id);
+        $db = \Config\Database::connect();
+
+        // Get role
+        $role = $db->table('auth_groups')->where('id', $id)->get()->getRow();
 
         if (!$role) {
-            return redirect()->to('/super/roles')
+            return redirect()->to(base_url('super/roles'))
                 ->with('error', 'Role tidak ditemukan.');
         }
 
         // Prevent editing superadmin role
         if ($role->title === 'superadmin') {
-            return redirect()->to('/super/roles')
-                ->with('error', 'Role Super Admin tidak dapat diedit.');
+            return redirect()->to(base_url('super/roles'))
+                ->with('error', 'Role Super Admin tidak dapat diubah.');
         }
 
         // Validation rules
         $rules = [
-            'title' => [
-                'rules' => "required|min_length[3]|max_length[100]|is_unique[auth_groups.title,id,{$id}]|alpha_dash",
-                'errors' => [
-                    'required' => 'Nama role wajib diisi',
-                    'min_length' => 'Nama role minimal 3 karakter',
-                    'max_length' => 'Nama role maksimal 100 karakter',
-                    'is_unique' => 'Nama role sudah digunakan',
-                    'alpha_dash' => 'Nama role hanya boleh berisi huruf, angka, underscore, dan dash'
-                ]
-            ],
-            'description' => [
-                'rules' => 'required|min_length[10]|max_length[255]',
-                'errors' => [
-                    'required' => 'Deskripsi role wajib diisi',
-                    'min_length' => 'Deskripsi minimal 10 karakter',
-                    'max_length' => 'Deskripsi maksimal 255 karakter'
-                ]
-            ]
+            'title' => "required|min_length[3]|max_length[100]|is_unique[auth_groups.title,id,{$id}]",
+            'description' => 'permit_empty|max_length[500]'
         ];
 
         if (!$this->validate($rules)) {
@@ -246,246 +299,291 @@ class RoleController extends BaseController
                 ->with('errors', $this->validator->getErrors());
         }
 
-        $data = [
-            'title' => strtolower($this->request->getPost('title')),
-            'description' => $this->request->getPost('description')
-        ];
+        $db->transStart();
 
         try {
-            $this->groupModel->update($id, $data);
+            // Update role
+            $roleData = [
+                'title' => $this->request->getPost('title'),
+                'description' => $this->request->getPost('description')
+            ];
 
-            return redirect()->to('/super/roles')
-                ->with('success', 'Role berhasil diupdate.');
+            $db->table('auth_groups')
+                ->where('id', $id)
+                ->update($roleData);
+
+            // Update permissions
+            // First, delete existing permissions
+            $db->table('auth_groups_permissions')
+                ->where('group_id', $id)
+                ->delete();
+
+            // Then, insert new permissions
+            $permissions = $this->request->getPost('permissions') ?? [];
+            if (!empty($permissions)) {
+                foreach ($permissions as $permissionId) {
+                    $db->table('auth_groups_permissions')->insert([
+                        'group_id' => $id,
+                        'permission_id' => $permissionId
+                    ]);
+                }
+            }
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                throw new \Exception('Failed to update role');
+            }
+
+            // Log activity
+            $this->logActivity('UPDATE_ROLE', 'Updated role: ' . $roleData['title']);
+
+            return redirect()->to(base_url('super/roles'))
+                ->with('success', 'Role berhasil diupdate!');
         } catch (\Exception $e) {
-            log_message('error', 'Error updating role: ' . $e->getMessage());
-
+            $db->transRollback();
+            log_message('error', 'Role Update Error: ' . $e->getMessage());
             return redirect()->back()
                 ->withInput()
-                ->with('error', 'Gagal mengupdate role. Silakan coba lagi.');
+                ->with('error', 'Gagal mengupdate role: ' . $e->getMessage());
         }
     }
 
     /**
-     * Delete role from database
-     * Validates that role is not assigned to any users
+     * Delete role
      * 
-     * @param int $id Role ID
+     * @param int $id
      * @return RedirectResponse
      */
-    public function delete(int $id): RedirectResponse
+    public function delete($id)
     {
         // CRITICAL: Check Super Admin permission
         if (!auth()->user()->inGroup('superadmin')) {
-            return redirect()->back()->with('error', 'Akses ditolak. Hanya Super Admin yang dapat melakukan aksi ini.');
+            return redirect()->back()->with('error', 'Akses ditolak.');
         }
 
-        $role = $this->groupModel->find($id);
+        $db = \Config\Database::connect();
+
+        // Get role
+        $role = $db->table('auth_groups')->where('id', $id)->get()->getRow();
 
         if (!$role) {
-            return redirect()->to('/super/roles')
+            return redirect()->to(base_url('super/roles'))
                 ->with('error', 'Role tidak ditemukan.');
         }
 
         // Prevent deleting superadmin role
         if ($role->title === 'superadmin') {
-            return redirect()->to('/super/roles')
+            return redirect()->to(base_url('super/roles'))
                 ->with('error', 'Role Super Admin tidak dapat dihapus.');
         }
 
-        // Check if role is assigned to any users
-        $userCount = $this->groupModel->db->table('auth_groups_users')
+        // Check if role is in use
+        $memberCount = $db->table('auth_groups_users')
             ->where('group', $role->title)
             ->countAllResults();
 
-        if ($userCount > 0) {
-            return redirect()->to('/super/roles')
-                ->with('error', "Role tidak dapat dihapus karena masih digunakan oleh {$userCount} user. Hapus atau pindahkan user tersebut terlebih dahulu.");
+        if ($memberCount > 0) {
+            return redirect()->to(base_url('super/roles'))
+                ->with('error', "Role tidak dapat dihapus karena masih digunakan oleh {$memberCount} user.");
         }
 
+        $db->transStart();
+
         try {
-            // Delete role permissions first
-            $this->groupModel->db->table('auth_groups_permissions')
+            // Delete role permissions
+            $db->table('auth_groups_permissions')
                 ->where('group_id', $id)
                 ->delete();
 
             // Delete role
-            $this->groupModel->delete($id);
+            $db->table('auth_groups')
+                ->where('id', $id)
+                ->delete();
 
-            return redirect()->to('/super/roles')
-                ->with('success', 'Role berhasil dihapus.');
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                throw new \Exception('Failed to delete role');
+            }
+
+            // Log activity
+            $this->logActivity('DELETE_ROLE', 'Deleted role: ' . $role->title);
+
+            return redirect()->to(base_url('super/roles'))
+                ->with('success', 'Role berhasil dihapus!');
         } catch (\Exception $e) {
-            log_message('error', 'Error deleting role: ' . $e->getMessage());
-
+            $db->transRollback();
+            log_message('error', 'Role Deletion Error: ' . $e->getMessage());
             return redirect()->back()
-                ->with('error', 'Gagal menghapus role. Silakan coba lagi.');
+                ->with('error', 'Gagal menghapus role: ' . $e->getMessage());
         }
     }
 
     /**
-     * Show role permissions management page
-     * Display current permissions and available permissions
+     * Show role members
      * 
-     * @param int $id Role ID
+     * @param int $id
      * @return string|RedirectResponse
      */
-    public function permissions(int $id)
+    public function members($id)
     {
         // CRITICAL: Check Super Admin permission
         if (!auth()->user()->inGroup('superadmin')) {
-            return redirect()->back()->with('error', 'Akses ditolak. Hanya Super Admin yang dapat mengakses halaman ini.');
+            return redirect()->back()->with('error', 'Akses ditolak.');
         }
 
-        $role = $this->groupModel->find($id);
+        $db = \Config\Database::connect();
+
+        // Get role
+        $role = $db->table('auth_groups')->where('id', $id)->get()->getRow();
 
         if (!$role) {
-            return redirect()->to('/super/roles')
+            return redirect()->to(base_url('super/roles'))
                 ->with('error', 'Role tidak ditemukan.');
         }
 
-        // Get current permissions for this role
-        $currentPermissions = $this->groupModel->db->table('auth_groups_permissions')
-            ->select('auth_permissions.id, auth_permissions.name, auth_permissions.description')
-            ->join('auth_permissions', 'auth_permissions.id = auth_groups_permissions.permission_id')
-            ->where('auth_groups_permissions.group_id', $id)
+        // Get members
+        $members = $db->table('users')
+            ->select('users.id, users.username, auth_identities.secret as email, users.active, users.created_at')
+            ->join('auth_groups_users', 'auth_groups_users.user_id = users.id')
+            ->join('auth_identities', 'auth_identities.user_id = users.id', 'left')
+            ->where('auth_groups_users.group', $role->title)
+            ->where('auth_identities.type', 'email_password')
+            ->orderBy('users.username', 'ASC')
             ->get()
             ->getResult();
 
-        $currentPermissionIds = array_column($currentPermissions, 'id');
-
-        // Get all permissions grouped by module
-        $allPermissions = $this->permissionModel
-            ->orderBy('name', 'ASC')
-            ->findAll();
-
-        // Group permissions by module (extract module from permission name)
-        $groupedPermissions = [];
-        foreach ($allPermissions as $permission) {
-            $parts = explode('.', $permission->name);
-            $module = $parts[0] ?? 'other';
-
-            if (!isset($groupedPermissions[$module])) {
-                $groupedPermissions[$module] = [];
-            }
-
-            $permission->is_assigned = in_array($permission->id, $currentPermissionIds);
-            $groupedPermissions[$module][] = $permission;
-        }
-
-        // Sort modules alphabetically
-        ksort($groupedPermissions);
-
         $data = [
-            'title' => 'Kelola Permissions - ' . ucfirst($role->title),
+            'title' => 'Members - ' . $role->title,
+            'breadcrumbs' => [
+                ['title' => 'Super Admin'],
+                ['title' => 'Roles', 'url' => base_url('super/roles')],
+                ['title' => $role->title]
+            ],
             'role' => $role,
-            'currentPermissions' => $currentPermissions,
-            'groupedPermissions' => $groupedPermissions
-        ];
-
-        return view('super/roles/permissions', $data);
-    }
-
-    /**
-     * Assign or remove permissions to/from role
-     * 
-     * @param int $id Role ID
-     * @return RedirectResponse
-     */
-    public function assignPermissions(int $id): RedirectResponse
-    {
-        // CRITICAL: Check Super Admin permission
-        if (!auth()->user()->inGroup('superadmin')) {
-            return redirect()->back()->with('error', 'Akses ditolak. Hanya Super Admin yang dapat melakukan aksi ini.');
-        }
-
-        $role = $this->groupModel->find($id);
-
-        if (!$role) {
-            return redirect()->to('/super/roles')
-                ->with('error', 'Role tidak ditemukan.');
-        }
-
-        // Get selected permissions from POST
-        $selectedPermissions = $this->request->getPost('permissions') ?? [];
-
-        try {
-            // Start transaction
-            $this->groupModel->db->transStart();
-
-            // Delete all current permissions for this role
-            $this->groupModel->db->table('auth_groups_permissions')
-                ->where('group_id', $id)
-                ->delete();
-
-            // Insert selected permissions
-            if (!empty($selectedPermissions)) {
-                $insertData = [];
-                foreach ($selectedPermissions as $permissionId) {
-                    $insertData[] = [
-                        'group_id' => $id,
-                        'permission_id' => $permissionId
-                    ];
-                }
-
-                $this->groupModel->db->table('auth_groups_permissions')
-                    ->insertBatch($insertData);
-            }
-
-            // Complete transaction
-            $this->groupModel->db->transComplete();
-
-            if ($this->groupModel->db->transStatus() === false) {
-                throw new \Exception('Transaction failed');
-            }
-
-            $permissionCount = count($selectedPermissions);
-            return redirect()->to("/super/roles/permissions/{$id}")
-                ->with('success', "{$permissionCount} permission berhasil di-assign ke role {$role->title}.");
-        } catch (\Exception $e) {
-            log_message('error', 'Error assigning permissions: ' . $e->getMessage());
-
-            return redirect()->back()
-                ->with('error', 'Gagal meng-assign permissions. Silakan coba lagi.');
-        }
-    }
-
-    /**
-     * Show members who have this role
-     * 
-     * @param int $id Role ID
-     * @return string|RedirectResponse
-     */
-    public function members(int $id)
-    {
-        // CRITICAL: Check Super Admin permission
-        if (!auth()->user()->inGroup('superadmin')) {
-            return redirect()->back()->with('error', 'Akses ditolak. Hanya Super Admin yang dapat mengakses halaman ini.');
-        }
-
-        $role = $this->groupModel->find($id);
-
-        if (!$role) {
-            return redirect()->to('/super/roles')
-                ->with('error', 'Role tidak ditemukan.');
-        }
-
-        // Get users with this role
-        $members = $this->userModel
-            ->select('users.id, users.username, users.email, users.active, 
-                      member_profiles.full_name, member_profiles.no_wa,
-                      auth_groups_users.created_at as assigned_at')
-            ->join('auth_groups_users', 'auth_groups_users.user_id = users.id')
-            ->join('member_profiles', 'member_profiles.user_id = users.id', 'left')
-            ->where('auth_groups_users.group', $role->title)
-            ->orderBy('auth_groups_users.created_at', 'DESC')
-            ->findAll();
-
-        $data = [
-            'title' => 'Anggota Role - ' . ucfirst($role->title),
-            'role' => $role,
-            'members' => $members,
-            'member_count' => count($members)
+            'members' => $members
         ];
 
         return view('super/roles/members', $data);
+    }
+
+    /**
+     * Get permissions grouped by module
+     * 
+     * @return array
+     */
+    private function getPermissionsGrouped(): array
+    {
+        $db = \Config\Database::connect();
+
+        $permissions = $db->table('auth_permissions')
+            ->orderBy('name', 'ASC')
+            ->get()
+            ->getResult();
+
+        $grouped = [];
+
+        foreach ($permissions as $permission) {
+            // Extract module from permission name (e.g., 'members.view' -> 'members')
+            $parts = explode('.', $permission->name);
+            $module = $parts[0] ?? 'general';
+
+            if (!isset($grouped[$module])) {
+                $grouped[$module] = [];
+            }
+
+            $grouped[$module][] = $permission;
+        }
+
+        return $grouped;
+    }
+
+    /**
+     * Log activity
+     * 
+     * @param string $action
+     * @param string $description
+     * @return void
+     */
+    private function logActivity(string $action, string $description): void
+    {
+        $db = \Config\Database::connect();
+
+        // Check if audit_logs table exists
+        if (!$db->tableExists('audit_logs')) {
+            return;
+        }
+
+        try {
+            $db->table('audit_logs')->insert([
+                'user_id' => auth()->id(),
+                'action' => $action,
+                'description' => $description,
+                'ip_address' => $this->request->getIPAddress(),
+                'user_agent' => $this->request->getUserAgent()->getAgentString(),
+                'created_at' => date('Y-m-d H:i:s')
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Failed to log activity: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get role matrix (AJAX)
+     * Returns role-permission matrix for visualization
+     * 
+     * @return \CodeIgniter\HTTP\ResponseInterface
+     */
+    public function matrix()
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid request'
+            ]);
+        }
+
+        if (!auth()->user()->inGroup('superadmin')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Access denied'
+            ]);
+        }
+
+        $db = \Config\Database::connect();
+
+        // Get all roles
+        $roles = $db->table('auth_groups')
+            ->orderBy('title', 'ASC')
+            ->get()
+            ->getResult();
+
+        // Get all permissions
+        $permissions = $db->table('auth_permissions')
+            ->orderBy('name', 'ASC')
+            ->get()
+            ->getResult();
+
+        // Get role-permission relationships
+        $relationships = $db->table('auth_groups_permissions')
+            ->get()
+            ->getResult();
+
+        // Build matrix
+        $matrix = [];
+        foreach ($relationships as $rel) {
+            $key = $rel->group_id . '-' . $rel->permission_id;
+            $matrix[$key] = true;
+        }
+
+        return $this->response->setJSON([
+            'success' => true,
+            'data' => [
+                'roles' => $roles,
+                'permissions' => $permissions,
+                'matrix' => $matrix
+            ]
+        ]);
     }
 }

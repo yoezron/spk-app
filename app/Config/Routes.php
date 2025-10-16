@@ -313,6 +313,16 @@ $routes->group('super', ['namespace' => 'App\Controllers\Super', 'filter' => 'ro
 $routes->group('super', ['filter' => 'group:superadmin'], function ($routes) {
     $routes->get('dashboard', 'Super\DashboardController::index');
     $routes->post('dashboard/refresh', 'Super\DashboardController::refresh');
+
+    // Roles Management
+    $routes->get('roles', 'Super\RoleController::index');
+    $routes->get('roles/create', 'Super\RoleController::create');
+    $routes->post('roles', 'Super\RoleController::store');
+    $routes->get('roles/(:num)/edit', 'Super\RoleController::edit/$1');
+    $routes->post('roles/(:num)', 'Super\RoleController::update/$1');
+    $routes->delete('roles/(:num)', 'Super\RoleController::delete/$1');
+    $routes->get('roles/(:num)/members', 'Super\RoleController::members/$1');
+    $routes->get('roles/matrix', 'Super\RoleController::matrix');
 });
 
 /*
@@ -361,9 +371,9 @@ $routes->get('manifest.json', function () {
  * --------------------------------------------------------------------
  * Error Routes
  * --------------------------------------------------------------------
- */
-$routes->set404Override(function () {
-    return view('errors/html/error_404');
+*/
+$routes->set404Override(function (string $message) {
+    return view('errors/html/error_404', ['message' => $message]);
 });
 
 /*
