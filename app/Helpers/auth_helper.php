@@ -220,6 +220,34 @@ if (!function_exists('user_dashboard_url')) {
     }
 }
 
+if (!function_exists('user_dashboard_path')) {
+    /**
+     * Get user's dashboard path (without base_url)
+     * 
+     * @return string
+     */
+    function user_dashboard_path(): string
+    {
+        if (!is_logged_in()) {
+            return '/';
+        }
+
+        $user = current_user();
+
+        // Return dashboard path based on role
+        if ($user->inGroup('superadmin')) {
+            return '/super/dashboard';
+        }
+
+        if ($user->inGroup('pengurus') || $user->inGroup('koordinator')) {
+            return '/admin/dashboard';
+        }
+
+        // Anggota or Calon Anggota
+        return '/member/dashboard';
+    }
+}
+
 if (!function_exists('can_access')) {
     /**
      * Check if user can access specific module

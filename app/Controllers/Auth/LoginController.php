@@ -217,15 +217,23 @@ class LoginController extends BaseController
     protected function logLogoutActivity($user): void
     {
         try {
+            // TEMPORARY FIX: Check if model exists before using
+            if (!file_exists(APPPATH . 'Models/LoginLogModel.php')) {
+                log_message('info', 'LoginLogModel not found, skipping logout log');
+                return;
+            }
+
             $loginLogModel = model('App\Models\LoginLogModel');
 
-            $loginLogModel->insert([
-                'user_id' => $user->id,
-                'ip_address' => $this->request->getIPAddress(),
-                'user_agent' => $this->request->getUserAgent()->getAgentString(),
-                'logout_at' => date('Y-m-d H:i:s'),
-                'status' => 'logout',
-            ]);
+            if ($loginLogModel) {
+                $loginLogModel->insert([
+                    'user_id' => $user->id,
+                    'ip_address' => $this->request->getIPAddress(),
+                    'user_agent' => $this->request->getUserAgent()->getAgentString(),
+                    'logout_at' => date('Y-m-d H:i:s'),
+                    'status' => 'logout',
+                ]);
+            }
         } catch (\Exception $e) {
             log_message('error', 'Failed to log logout activity: ' . $e->getMessage());
         }
