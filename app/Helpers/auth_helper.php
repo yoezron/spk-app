@@ -1,26 +1,47 @@
 <?php
 
 /**
- * Auth Helper
+ * Auth Helper Functions
  * 
  * Helper functions untuk authentication dan authorization
+ * Mempermudah checking user permissions, roles, dan redirects
+ * 
+ * 🔧 v2.0.0 - FIXED: Dashboard URL helper with proper role names
  * 
  * @package App\Helpers
  * @author  SPK Development Team
- * @version 1.0.0
  */
 
 if (!function_exists('current_user')) {
+    /**
+     * Get current authenticated user
+     * 
+     * @return object|null
+     */
     function current_user()
     {
-        if (!auth()->loggedIn()) {
-            return null;
-        }
         return auth()->user();
     }
 }
 
+if (!function_exists('is_logged_in')) {
+    /**
+     * Check if user is logged in
+     * 
+     * @return bool
+     */
+    function is_logged_in(): bool
+    {
+        return auth()->loggedIn();
+    }
+}
+
 if (!function_exists('user_id')) {
+    /**
+     * Get current user ID
+     * 
+     * @return int|null
+     */
     function user_id(): ?int
     {
         $user = current_user();
@@ -28,213 +49,12 @@ if (!function_exists('user_id')) {
     }
 }
 
-if (!function_exists('is_logged_in')) {
-    function is_logged_in(): bool
-    {
-        return auth()->loggedIn();
-    }
-}
-
-if (!function_exists('has_permission')) {
-    function has_permission(string $permission): bool
-    {
-        if (!is_logged_in()) {
-            return false;
-        }
-        $user = current_user();
-        if ($user->inGroup('superadmin') || $user->inGroup('Super Admin')) {
-            return true;
-        }
-        return $user->can($permission);
-    }
-}
-
-if (!function_exists('has_any_permission')) {
-    function has_any_permission(array $permissions): bool
-    {
-        foreach ($permissions as $permission) {
-            if (has_permission($permission)) {
-                return true;
-            }
-        }
-        return false;
-    }
-}
-
-if (!function_exists('has_all_permissions')) {
-    function has_all_permissions(array $permissions): bool
-    {
-        foreach ($permissions as $permission) {
-            if (!has_permission($permission)) {
-                return false;
-            }
-        }
-        return true;
-    }
-}
-
-if (!function_exists('normalize_role_key')) {
-    function normalize_role_key(string $roleName): string
-    {
-        $normalized = strtolower($roleName);
-        $normalized = preg_replace('/[^a-z0-9]+/u', '', $normalized ?? '');
-        return $normalized ?? '';
-    }
-}
-
-if (!function_exists('has_role')) {
-    function has_role(string $role): bool
-    {
-        if (!is_logged_in()) {
-            return false;
-        }
-        $user = current_user();
-        if ($user->inGroup($role)) {
-            return true;
-        }
-        $roleVariants = array_unique([
-            $role,
-            str_replace(['_', '-'], ' ', $role),
-            str_replace([' ', '-'], '_', $role),
-            str_replace([' ', '_'], '-', $role)
-        ]);
-        foreach ($roleVariants as $variant) {
-            if ($user->inGroup($variant)) {
-                return true;
-            }
-        }
-        $targetKey = normalize_role_key($role);
-        foreach (user_roles() as $userRole) {
-            if (normalize_role_key($userRole) === $targetKey) {
-                return true;
-            }
-        }
-        return false;
-    }
-}
-
-if (!function_exists('has_any_role')) {
-    function has_any_role(array $roles): bool
-    {
-        foreach ($roles as $role) {
-            if (has_role($role)) {
-                return true;
-            }
-        }
-        return false;
-    }
-}
-
-if (!function_exists('is_superadmin')) {
-    function is_superadmin(): bool
-    {
-        return has_role('superadmin') || has_role('Super Admin');
-    }
-}
-
-if (!function_exists('is_pengurus')) {
-    function is_pengurus(): bool
-    {
-        return has_role('pengurus') || has_role('Pengurus');
-    }
-}
-
-if (!function_exists('is_koordinator')) {
-    function is_koordinator(): bool
-    {
-        return has_role('koordinator_wilayah') || has_role('Koordinator Wilayah');
-    }
-}
-
-if (!function_exists('is_anggota')) {
-    function is_anggota(): bool
-    {
-        return has_role('anggota') || has_role('Anggota');
-    }
-}
-
-if (!function_exists('user_dashboard_path')) {
-    function user_dashboard_path(): string
-    {
-        if (!is_logged_in()) {
-            return '/';
-        }
-        if (has_role('superadmin') || has_role('Super Admin')) {
-            return 'super/dashboard';
-        }
-        if (has_role('pengurus') || has_role('Pengurus') || has_role('koordinator_wilayah') || has_role('Koordinator Wilayah')) {
-            return 'admin/dashboard';
-        }
-        if (has_role('anggota') || has_role('Anggota')) {
-            return 'member/dashboard';
-        }
-        if (has_role('calon_anggota') || has_role('Calon Anggota')) {
-            return 'member/dashboard';
-        }
-        return '/';
-    }
-}
-
-if (!function_exists('user_dashboard_url')) {
-    function user_dashboard_url(): string
-    {
-        $path = user_dashboard_path();
-        if ($path === '/' || $path === '') {
-            return base_url();
-        }
-        return base_url($path);
-    }
-}
-
-if (!function_exists('user_roles')) {
-    function user_roles(): array
-    {
-        if (!is_logged_in()) {
-            return [];
-        }
-        $user = current_user();
-        $groups = $user->getGroups();
-        return array_column($groups, 'group');
-    }
-}
-
-if (!function_exists('user_permissions')) {
-    function user_permissions(): array
-    {
-        if (!is_logged_in()) {
-            return [];
-        }
-        $user = current_user();
-        if ($user->inGroup('superadmin') || $user->inGroup('Super Admin')) {
-            $permissionModel = new \App\Models\PermissionModel();
-            return $permissionModel->findColumn('name');
-        }
-        return $user->getPermissions();
-    }
-}
-
-if (!function_exists('can_access_admin')) {
-    function can_access_admin(): bool
-    {
-        return has_any_role(['superadmin', 'Super Admin', 'pengurus', 'Pengurus', 'koordinator_wilayah', 'Koordinator Wilayah']);
-    }
-}
-
-if (!function_exists('user_full_name')) {
-    function user_full_name(): string
-    {
-        $user = current_user();
-        if (!$user) {
-            return 'Guest';
-        }
-        if (isset($user->member_profile) && !empty($user->member_profile->full_name)) {
-            return $user->member_profile->full_name;
-        }
-        return $user->username ?? 'User';
-    }
-}
-
 if (!function_exists('user_email')) {
+    /**
+     * Get current user email
+     * 
+     * @return string|null
+     */
     function user_email(): ?string
     {
         $user = current_user();
@@ -242,38 +62,302 @@ if (!function_exists('user_email')) {
     }
 }
 
-if (!function_exists('user_avatar')) {
-    function user_avatar(string $default = ''): string
+if (!function_exists('user_name')) {
+    /**
+     * Get current user display name
+     * 
+     * @return string
+     */
+    function user_name(): string
     {
         $user = current_user();
+
         if (!$user) {
-            return $default ?: base_url('assets/images/avatars/avatar.png');
+            return 'Guest';
         }
-        if (isset($user->member_profile) && !empty($user->member_profile->photo)) {
-            return base_url('uploads/photos/' . $user->member_profile->photo);
+
+        // Try to get name from profile
+        if (isset($user->name) && !empty($user->name)) {
+            return $user->name;
         }
-        return $default ?: base_url('assets/images/avatars/avatar.png');
+
+        // Fallback to username or email
+        return $user->username ?? $user->email ?? 'User';
     }
 }
 
-if (!function_exists('require_permission')) {
-    function require_permission(string $permission, string $message = '')
+if (!function_exists('has_permission')) {
+    /**
+     * Check if current user has specific permission
+     * 
+     * @param string $permission Permission key (e.g., 'member.view')
+     * @return bool
+     */
+    function has_permission(string $permission): bool
     {
-        if (!has_permission($permission)) {
-            throw new \CodeIgniter\Exceptions\PageNotFoundException(
-                $message ?: "Anda tidak memiliki izin '{$permission}' untuk mengakses resource ini."
-            );
+        $user = current_user();
+
+        if (!$user) {
+            return false;
         }
+
+        // Super Admin has all permissions
+        if ($user->inGroup('superadmin')) {
+            return true;
+        }
+
+        return $user->can($permission);
+    }
+}
+
+if (!function_exists('in_group')) {
+    /**
+     * Check if current user is in specific group/role
+     * 
+     * @param string $group Group name (e.g., 'superadmin', 'pengurus')
+     * @return bool
+     */
+    function in_group(string $group): bool
+    {
+        $user = current_user();
+
+        if (!$user) {
+            return false;
+        }
+
+        return $user->inGroup($group);
+    }
+}
+
+if (!function_exists('is_super_admin')) {
+    /**
+     * Check if current user is Super Admin
+     * 
+     * @return bool
+     */
+    function is_super_admin(): bool
+    {
+        return in_group('superadmin');
+    }
+}
+
+if (!function_exists('is_admin')) {
+    /**
+     * Check if current user is Admin (Pengurus or Super Admin)
+     * 
+     * @return bool
+     */
+    function is_admin(): bool
+    {
+        return in_group('superadmin') || in_group('pengurus') || in_group('koordinator');
+    }
+}
+
+if (!function_exists('is_member')) {
+    /**
+     * Check if current user is Member (Anggota)
+     * 
+     * @return bool
+     */
+    function is_member(): bool
+    {
+        return in_group('anggota') || in_group('calon_anggota');
+    }
+}
+
+if (!function_exists('user_role')) {
+    /**
+     * Get user's primary role name
+     * 
+     * @return string
+     */
+    function user_role(): string
+    {
+        $user = current_user();
+
+        if (!$user) {
+            return 'guest';
+        }
+
+        // Priority order
+        if ($user->inGroup('superadmin')) return 'Super Admin';
+        if ($user->inGroup('pengurus')) return 'Pengurus';
+        if ($user->inGroup('koordinator')) return 'Koordinator Wilayah';
+        if ($user->inGroup('anggota')) return 'Anggota';
+        if ($user->inGroup('calon_anggota')) return 'Calon Anggota';
+
+        return 'member';
+    }
+}
+
+if (!function_exists('user_dashboard_url')) {
+    /**
+     * Get user's dashboard URL based on role
+     * 
+     * 🔧 FIXED: Returns correct dashboard URL for each role
+     * 
+     * @return string
+     */
+    function user_dashboard_url(): string
+    {
+        if (!is_logged_in()) {
+            return base_url('/');
+        }
+
+        $user = current_user();
+
+        // Return dashboard URL based on role (FIXED: Proper role names)
+        if ($user->inGroup('superadmin')) {
+            return base_url('/super/dashboard');
+        }
+
+        if ($user->inGroup('pengurus') || $user->inGroup('koordinator')) {
+            return base_url('/admin/dashboard');
+        }
+
+        // Anggota or Calon Anggota
+        return base_url('/member/dashboard');
+    }
+}
+
+if (!function_exists('can_access')) {
+    /**
+     * Check if user can access specific module
+     * 
+     * @param string $module Module name (e.g., 'member', 'survey')
+     * @return bool
+     */
+    function can_access(string $module): bool
+    {
+        $user = current_user();
+
+        if (!$user) {
+            return false;
+        }
+
+        // Super Admin can access everything
+        if ($user->inGroup('superadmin')) {
+            return true;
+        }
+
+        // Check if user has at least one permission for the module
+        $permissions = [
+            "{$module}.view",
+            "{$module}.manage",
+            "{$module}.create",
+        ];
+
+        foreach ($permissions as $permission) {
+            if ($user->can($permission)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+
+if (!function_exists('redirect_to_dashboard')) {
+    /**
+     * Redirect to appropriate dashboard based on user role
+     * 
+     * 🔧 FIXED: Redirects to correct dashboard
+     * 
+     * @return \CodeIgniter\HTTP\RedirectResponse
+     */
+    function redirect_to_dashboard()
+    {
+        if (!is_logged_in()) {
+            return redirect()->to('/login');
+        }
+
+        return redirect()->to(user_dashboard_url());
+    }
+}
+
+if (!function_exists('require_auth')) {
+    /**
+     * Require authentication, redirect to login if not logged in
+     * 
+     * @param string|null $redirectUrl Optional redirect URL after login
+     * @return \CodeIgniter\HTTP\RedirectResponse|null
+     */
+    function require_auth(?string $redirectUrl = null)
+    {
+        if (!is_logged_in()) {
+            if ($redirectUrl) {
+                session()->set('redirect_url', $redirectUrl);
+            }
+            return redirect()->to('/login');
+        }
+
+        return null;
     }
 }
 
 if (!function_exists('require_role')) {
-    function require_role(string $role, string $message = '')
+    /**
+     * Require specific role, redirect with error if user doesn't have it
+     * 
+     * @param string|array $roles Required role(s)
+     * @return \CodeIgniter\HTTP\RedirectResponse|null
+     */
+    function require_role($roles)
     {
-        if (!has_role($role)) {
-            throw new \CodeIgniter\Exceptions\PageNotFoundException(
-                $message ?: "Halaman ini hanya dapat diakses oleh '{$role}'."
-            );
+        if (!is_logged_in()) {
+            return redirect()->to('/login');
         }
+
+        $user = current_user();
+        $roles = is_array($roles) ? $roles : [$roles];
+
+        foreach ($roles as $role) {
+            if ($user->inGroup($role)) {
+                return null;
+            }
+        }
+
+        return redirect()->back()->with('error', 'Anda tidak memiliki akses ke halaman ini.');
+    }
+}
+
+if (!function_exists('user_avatar')) {
+    /**
+     * Get user avatar URL
+     * 
+     * @param int|null $userId User ID (default: current user)
+     * @return string
+     */
+    function user_avatar(?int $userId = null): string
+    {
+        $user = $userId ? model('UserModel')->find($userId) : current_user();
+
+        if ($user && isset($user->avatar) && !empty($user->avatar)) {
+            return base_url('uploads/avatars/' . $user->avatar);
+        }
+
+        // Default avatar
+        return base_url('assets/img/avatar-default.png');
+    }
+}
+
+if (!function_exists('format_user_role')) {
+    /**
+     * Format role name for display
+     * 
+     * @param string $role Role key
+     * @return string
+     */
+    function format_user_role(string $role): string
+    {
+        $roles = [
+            'superadmin' => 'Super Admin',
+            'pengurus' => 'Pengurus',
+            'koordinator' => 'Koordinator Wilayah',
+            'anggota' => 'Anggota',
+            'calon_anggota' => 'Calon Anggota',
+        ];
+
+        return $roles[$role] ?? ucfirst($role);
     }
 }

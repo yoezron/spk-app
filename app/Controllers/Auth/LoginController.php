@@ -4,35 +4,48 @@ namespace App\Controllers\Auth;
 
 use App\Controllers\BaseController;
 use CodeIgniter\HTTP\RedirectResponse;
+use CodeIgniter\Shield\Models\UserModel;
 
 /**
  * LoginController
  * 
- * Menangani proses login dan logout user menggunakan CodeIgniter Shield
- * Termasuk validasi, redirect berdasarkan role, dan session management
+ * Handles user authentication (login/logout)
+ * Redirects users based on their roles
+ * Logs login activities for security monitoring
  * 
  * @package App\Controllers\Auth
  * @author  SPK Development Team
- * @version 1.0.0
+ * @version 1.1.0 - FIXED: Role redirect logic
  */
 class LoginController extends BaseController
 {
     /**
+     * @var UserModel
+     */
+    protected $userModel;
+
+    /**
+     * Constructor - Dependency Injection
+     */
+    public function __construct()
+    {
+        $this->userModel = new UserModel();
+    }
+
+    /**
      * Display login form
-     * Redirect to dashboard if user already logged in
      * 
      * @return string|RedirectResponse
      */
     public function index()
     {
-        // Check if user is already logged in
+        // If already logged in, redirect to appropriate dashboard
         if (auth()->loggedIn()) {
             return $this->redirectBasedOnRole();
         }
 
         $data = [
-            'title' => 'Login - Serikat Pekerja Kampus',
-            'pageTitle' => 'Login ke Akun Anda'
+            'title' => 'Login - SPK',
         ];
 
         return view('auth/login', $data);
@@ -40,7 +53,6 @@ class LoginController extends BaseController
 
     /**
      * Handle login attempt
-     * Validates credentials and creates session
      * 
      * @return RedirectResponse
      */
@@ -48,24 +60,10 @@ class LoginController extends BaseController
     {
         // Validation rules
         $rules = [
-            'email' => [
-                'label' => 'Email',
-                'rules' => 'required|valid_email',
-                'errors' => [
-                    'required' => 'Email harus diisi',
-                    'valid_email' => 'Format email tidak valid'
-                ]
-            ],
-            'password' => [
-                'label' => 'Password',
-                'rules' => 'required',
-                'errors' => [
-                    'required' => 'Password harus diisi'
-                ]
-            ]
+            'email' => 'required|valid_email',
+            'password' => 'required',
         ];
 
-        // Validate input
         if (!$this->validate($rules)) {
             return redirect()->back()
                 ->withInput()
@@ -75,31 +73,29 @@ class LoginController extends BaseController
         // Get credentials
         $credentials = [
             'email' => $this->request->getPost('email'),
-            'password' => $this->request->getPost('password')
+            'password' => $this->request->getPost('password'),
         ];
 
-        // Get remember me option
+        // Remember me option
         $remember = (bool) $this->request->getPost('remember');
 
-        // Attempt to login using Shield
-        $result = auth()->attempt($credentials, $remember);
+        // Attempt login using Shield
+        $loginAttempt = auth()->attempt($credentials, $remember);
 
-        if (!$result->isOK()) {
-            // Login failed
+        if (!$loginAttempt->isOK()) {
             return redirect()->back()
                 ->withInput()
-                ->with('error', $result->reason());
+                ->with('error', $loginAttempt->reason());
         }
 
-        // Login successful
+        // Get authenticated user
         $user = auth()->user();
 
-        // Check if user account is active
-        if (!$user->active) {
+        // Check if user is active
+        if (isset($user->status) && $user->status !== 'active') {
             auth()->logout();
             return redirect()->back()
-                ->withInput()
-                ->with('error', 'Akun Anda belum diaktifkan. Silakan hubungi administrator.');
+                ->with('error', 'Akun Anda tidak aktif. Silakan hubungi administrator.');
         }
 
         // Check if user has verified email
@@ -148,84 +144,89 @@ class LoginController extends BaseController
     /**
      * Redirect user based on their role/group
      * 
+     * 🔧 FIXED: Role names matching database (lowercase, no spaces)
+     * 
      * @return RedirectResponse
      */
     protected function redirectBasedOnRole(): RedirectResponse
     {
         $user = auth()->user();
 
-        // Check user groups/roles
-        if ($user->inGroup('Super Admin')) {
+        // Priority order: Check roles from highest to lowest
+
+        // 1. Super Admin - Full system access
+        if ($user->inGroup('superadmin')) {
             return redirect()->to('/super/dashboard');
         }
 
-        if ($user->inGroup('Pengurus')) {
+        // 2. Pengurus (Admin) - Administrative access
+        if ($user->inGroup('pengurus')) {
             return redirect()->to('/admin/dashboard');
         }
 
-        if ($user->inGroup('Koordinator Wilayah')) {
+        // 3. Koordinator Wilayah - Regional admin access
+        if ($user->inGroup('koordinator')) {
             return redirect()->to('/admin/dashboard');
         }
 
-        if ($user->inGroup('Anggota')) {
+        // 4. Anggota - Member portal
+        if ($user->inGroup('anggota')) {
             return redirect()->to('/member/dashboard');
         }
 
-        if ($user->inGroup('Calon Anggota')) {
+        // 5. Calon Anggota - Limited member access
+        if ($user->inGroup('calon_anggota')) {
             return redirect()->to('/member/dashboard')
                 ->with('info', 'Akun Anda masih menunggu verifikasi dari pengurus.');
         }
 
-        // Default redirect if no specific role
-        return redirect()->to('/');
+        // Default: Redirect to member dashboard
+        // This handles any edge cases or custom roles
+        return redirect()->to('/member/dashboard');
     }
 
     /**
-     * Log successful login activity
+     * Log user login activity
      * 
-     * @param object $user User entity
+     * @param object $user
      * @return void
      */
     protected function logLoginActivity($user): void
     {
         try {
-            $auditModel = model('AuditLogModel');
+            $loginLogModel = model('App\Models\LoginLogModel');
 
-            $auditModel->insert([
+            $loginLogModel->insert([
                 'user_id' => $user->id,
-                'action' => 'login',
-                'description' => 'User logged in successfully',
                 'ip_address' => $this->request->getIPAddress(),
                 'user_agent' => $this->request->getUserAgent()->getAgentString(),
-                'created_at' => date('Y-m-d H:i:s')
+                'login_at' => date('Y-m-d H:i:s'),
+                'status' => 'success',
             ]);
         } catch (\Exception $e) {
-            // Log error but don't fail the login process
             log_message('error', 'Failed to log login activity: ' . $e->getMessage());
         }
     }
 
     /**
-     * Log logout activity
+     * Log user logout activity
      * 
-     * @param object $user User entity
+     * @param object $user
      * @return void
      */
     protected function logLogoutActivity($user): void
     {
         try {
-            $auditModel = model('AuditLogModel');
+            $loginLogModel = model('App\Models\LoginLogModel');
 
-            $auditModel->insert([
+            $loginLogModel->insert([
                 'user_id' => $user->id,
-                'action' => 'logout',
-                'description' => 'User logged out',
                 'ip_address' => $this->request->getIPAddress(),
                 'user_agent' => $this->request->getUserAgent()->getAgentString(),
-                'created_at' => date('Y-m-d H:i:s')
+                'logout_at' => date('Y-m-d H:i:s'),
+                'status' => 'logout',
             ]);
         } catch (\Exception $e) {
-            // Log error but don't fail the logout process
             log_message('error', 'Failed to log logout activity: ' . $e->getMessage());
         }
     }
