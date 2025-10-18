@@ -5,7 +5,7 @@ namespace App\Controllers\Super;
 use App\Controllers\BaseController;
 use App\Models\MenuModel;
 use App\Services\MenuService;
-use CodeIgniter\Shield\Models\PermissionModel;
+use App\Models\PermissionModel;
 use CodeIgniter\HTTP\RedirectResponse;
 
 /**
@@ -105,8 +105,8 @@ class MenuController extends BaseController
 
         $data = [
             'title' => 'Tambah Menu Baru',
-            'allMenus' => $allMenus,
-            'groupedPermissions' => $groupedPermissions,
+            'parentMenus' => $allMenus,  // ← ganti key
+            'permissions' => $permissions,  // ← tambahkan ini
             'validation' => \Config\Services::validation()
         ];
 

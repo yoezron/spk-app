@@ -14,7 +14,7 @@
 
 // Get current user
 $currentUser = auth()->user();
-$hasMemberPortalAccess = has_role('anggota') || has_role('Anggota') || has_role('calon_anggota') || has_role('Calon Anggota');
+$hasMemberPortalAccess = $currentUser->inGroup('anggota') || $currentUser->inGroup('Anggota') || $currentUser->inGroup('calon_anggota') || $currentUser->inGroup('Calon Anggota');
 ?>
 <!DOCTYPE html>
 <html lang="id">
