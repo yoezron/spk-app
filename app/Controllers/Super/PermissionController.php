@@ -4,7 +4,7 @@ namespace App\Controllers\Super;
 
 use App\Controllers\BaseController;
 use CodeIgniter\Shield\Models\GroupModel;
-use CodeIgniter\Shield\Models\PermissionModel;
+use App\Models\PermissionModel;
 use CodeIgniter\HTTP\RedirectResponse;
 
 /**
@@ -331,32 +331,31 @@ class PermissionController extends BaseController
      */
     public function roles(int $id)
     {
-        // CRITICAL: Check Super Admin permission
         if (!auth()->user()->inGroup('superadmin')) {
-            return redirect()->back()->with('error', 'Akses ditolak. Hanya Super Admin yang dapat mengakses halaman ini.');
+            return redirect()->back()->with('error', 'Akses ditolak.');
         }
 
         $permission = $this->permissionModel->find($id);
-
         if (!$permission) {
-            return redirect()->to('/super/permissions')
-                ->with('error', 'Permission tidak ditemukan.');
+            return redirect()->to('/super/permissions')->with('error', 'Permission tidak ditemukan.');
         }
 
-        // Get roles that have this permission
-        $roles = $this->groupModel
+        // Query manual tanpa duplikasi
+        $db = \Config\Database::connect();
+        $roles = $db->table('auth_groups')
             ->select('auth_groups.*, 
-                      auth_groups_permissions.created_at as assigned_at,
-                      COUNT(DISTINCT auth_groups_users.user_id) as member_count')
+                  auth_groups_permissions.created_at as assigned_at,
+                  COUNT(DISTINCT agu.user_id) as member_count')
             ->join('auth_groups_permissions', 'auth_groups_permissions.group_id = auth_groups.id')
-            ->join('auth_groups_users', 'auth_groups_users.group = auth_groups.title', 'left')
+            ->join('auth_groups_users agu', 'agu.group = auth_groups.title', 'left')
             ->where('auth_groups_permissions.permission_id', $id)
             ->groupBy('auth_groups.id')
             ->orderBy('auth_groups.title', 'ASC')
-            ->findAll();
+            ->get()
+            ->getResult();
 
         $data = [
-            'title' => 'Role yang Memiliki Permission - ' . $permission->name,
+            'title' => 'Role dengan Permission - ' . $permission->name,
             'permission' => $permission,
             'roles' => $roles,
             'role_count' => count($roles)
