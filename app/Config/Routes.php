@@ -260,77 +260,78 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'ro
 $routes->group('super', ['namespace' => 'App\Controllers\Super', 'filter' => 'role:superadmin'], function ($routes) {
     // Dashboard
     $routes->get('dashboard', 'DashboardController::index', ['as' => 'super.dashboard']);
+    $routes->post('dashboard/refresh', 'DashboardController::refresh');
 
-    // Role Management
-    $routes->get('roles', 'RoleController::index', ['filter' => 'permission:role.manage']);
-    $routes->get('roles/create', 'RoleController::create', ['filter' => 'permission:role.create']);
-    $routes->post('roles/store', 'RoleController::store', ['filter' => 'permission:role.create']);
-    $routes->get('roles/(:num)/edit', 'RoleController::edit/$1', ['filter' => 'permission:role.edit']);
-    $routes->post('roles/(:num)/update', 'RoleController::update/$1', ['filter' => 'permission:role.edit']);
-    $routes->delete('roles/(:num)', 'RoleController::delete/$1', ['filter' => 'permission:role.delete']);
-    $routes->get('roles/(:num)/permissions', 'RoleController::permissions/$1', ['filter' => 'permission:role.manage']);
-    $routes->post('roles/(:num)/permissions/sync', 'RoleController::syncPermissions/$1', ['filter' => 'permission:role.manage']);
+    // Role Management - HAPUS semua filter permission
+    $routes->get('roles', 'RoleController::index');
+    $routes->get('roles/create', 'RoleController::create');
+    $routes->post('roles/store', 'RoleController::store');
+    $routes->get('roles/(:num)/edit', 'RoleController::edit/$1');
+    $routes->post('roles/(:num)/update', 'RoleController::update/$1');
+    $routes->post('roles/(:num)/delete', 'RoleController::delete/$1');
+    $routes->get('roles/(:num)/members', 'RoleController::members/$1');
+    $routes->get('roles/matrix', 'RoleController::matrix');
 
-    // Permission Management
-    $routes->get('permissions', 'PermissionController::index', ['filter' => 'permission:permission.manage']);
-    $routes->post('permissions/store', 'PermissionController::store', ['filter' => 'permission:permission.create']);
-    $routes->post('permissions/(:num)/update', 'PermissionController::update/$1', ['filter' => 'permission:permission.edit']);
-    $routes->delete('permissions/(:num)', 'PermissionController::delete/$1', ['filter' => 'permission:permission.delete']);
+    // Permission Management - HAPUS semua filter
+    $routes->get('permissions', 'PermissionController::index');
+    $routes->get('permissions/create', 'PermissionController::create');
+    $routes->post('permissions/store', 'PermissionController::store');
+    $routes->get('permissions/(:num)/edit', 'PermissionController::edit/$1');
+    $routes->post('permissions/(:num)/update', 'PermissionController::update/$1');
+    $routes->post('permissions/(:num)/delete', 'PermissionController::delete/$1');
+    $routes->get('permissions/(:num)/roles', 'PermissionController::roles/$1');
+    $routes->get('permissions/sync', 'PermissionController::syncToShield'); // ← Ubah dari POST ke GET
 
-    // Menu Management
-    $routes->get('menus', 'MenuController::index', ['filter' => 'permission:menu.manage']);
-    $routes->post('menus/store', 'MenuController::store', ['filter' => 'permission:menu.create']);
-    $routes->post('menus/(:num)/update', 'MenuController::update/$1', ['filter' => 'permission:menu.edit']);
-    $routes->delete('menus/(:num)', 'MenuController::delete/$1', ['filter' => 'permission:menu.delete']);
-    $routes->post('menus/reorder', 'MenuController::reorder', ['filter' => 'permission:menu.manage']);
+    // Menu Management - HAPUS semua filter
+    $routes->get('menus', 'MenuController::index');
+    $routes->get('menus/create', 'MenuController::create');
+    $routes->post('menus/store', 'MenuController::store');
+    $routes->get('menus/(:num)/edit', 'MenuController::edit/$1');
+    $routes->post('menus/(:num)/update', 'MenuController::update/$1');
+    $routes->post('menus/(:num)/delete', 'MenuController::delete/$1');
+    $routes->post('menus/reorder', 'MenuController::reorder');
+    $routes->get('menus/preview', 'MenuController::preview');
+    $routes->get('menus/preview/(:segment)', 'MenuController::preview/$1');
 
-    // Master Data Management
-    $routes->group('master-data', ['filter' => 'permission:master.manage'], function ($routes) {
+    // Master Data Management - HAPUS semua filter
+    $routes->group('master-data', function ($routes) {
         // Provinces
         $routes->get('provinces', 'MasterDataController::provinces');
         $routes->post('provinces/store', 'MasterDataController::storeProvince');
         $routes->post('provinces/(:num)/update', 'MasterDataController::updateProvince/$1');
+        $routes->post('provinces/(:num)/delete', 'MasterDataController::deleteProvince/$1');
+
+        // Regencies
+        $routes->get('regencies', 'MasterDataController::regencies');
+        $routes->post('regencies/store', 'MasterDataController::storeRegency');
+        $routes->post('regencies/(:num)/update', 'MasterDataController::updateRegency/$1');
+        $routes->post('regencies/(:num)/delete', 'MasterDataController::deleteRegency/$1');
 
         // Universities
         $routes->get('universities', 'MasterDataController::universities');
         $routes->post('universities/store', 'MasterDataController::storeUniversity');
         $routes->post('universities/(:num)/update', 'MasterDataController::updateUniversity/$1');
-        $routes->delete('universities/(:num)', 'MasterDataController::deleteUniversity/$1');
-        $routes->post('universities/bulk-upload', 'MasterDataController::bulkUploadUniversities');
+        $routes->post('universities/(:num)/delete', 'MasterDataController::deleteUniversity/$1');
 
         // Study Programs
         $routes->get('study-programs', 'MasterDataController::studyPrograms');
         $routes->post('study-programs/store', 'MasterDataController::storeStudyProgram');
         $routes->post('study-programs/(:num)/update', 'MasterDataController::updateStudyProgram/$1');
-        $routes->delete('study-programs/(:num)', 'MasterDataController::deleteStudyProgram/$1');
+        $routes->post('study-programs/(:num)/delete', 'MasterDataController::deleteStudyProgram/$1');
 
-        // Employment Status
-        $routes->get('employment-statuses', 'MasterDataController::employmentStatuses');
-        $routes->post('employment-statuses/store', 'MasterDataController::storeEmploymentStatus');
-        $routes->post('employment-statuses/(:num)/update', 'MasterDataController::updateEmploymentStatus/$1');
-
-        // Salary Ranges
-        $routes->get('salary-ranges', 'MasterDataController::salaryRanges');
-        $routes->post('salary-ranges/store', 'MasterDataController::storeSalaryRange');
-        $routes->post('salary-ranges/(:num)/update', 'MasterDataController::updateSalaryRange/$1');
+        // Export
+        $routes->get('export/(:segment)', 'MasterDataController::export/$1');
     });
 
     // System Settings
-    $routes->get('settings', 'SettingsController::index', ['filter' => 'permission:settings.manage']);
-    $routes->post('settings/update', 'SettingsController::update', ['filter' => 'permission:settings.manage']);
-    $routes->get('settings/cache/clear', 'SettingsController::clearCache', ['filter' => 'permission:settings.manage']);
+    $routes->get('settings', 'SettingsController::index');
+    $routes->post('settings/update', 'SettingsController::update');
+    $routes->get('settings/cache/clear', 'SettingsController::clearCache');
 
     // Audit Logs
-    $routes->get('audit-logs', 'AuditLogController::index', ['filter' => 'permission:audit.view']);
-    $routes->get('audit-logs/(:num)', 'AuditLogController::show/$1', ['filter' => 'permission:audit.view']);
-    $routes->get('audit-logs/export', 'AuditLogController::export', ['filter' => 'permission:audit.export']);
-
-    // Dashboard Actions (from second group)
-    $routes->post('dashboard/refresh', 'DashboardController::refresh');
-
-    // Role Management - Additional Routes (from second group)
-    $routes->get('roles/(:num)/members', 'RoleController::members/$1', ['filter' => 'permission:role.manage']);
-    $routes->get('roles/matrix', 'RoleController::matrix', ['filter' => 'permission:role.manage']);
+    $routes->get('audit-logs', 'AuditLogController::index');
+    $routes->get('audit-logs/(:num)', 'AuditLogController::show/$1');
+    $routes->get('audit-logs/export', 'AuditLogController::export');
 });
 
 /*

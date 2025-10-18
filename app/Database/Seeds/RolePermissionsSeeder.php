@@ -46,7 +46,7 @@ class RolePermissionsSeeder extends Seeder
             // ==========================================
             // SUPER ADMIN - FULL ACCESS
             // ==========================================
-            'Super Admin' => [
+            'superadmin' => [
                 // Dashboard
                 'dashboard.view',
                 'dashboard.admin',
@@ -68,13 +68,18 @@ class RolePermissionsSeeder extends Seeder
                 'role.edit',
                 'role.delete',
                 'role.assign',
+                'role.manage',
                 'permission.manage',
+                'permission.create',
+                'permission.edit',
+                'permission.delete',
 
                 // Menu Management - EXCLUSIVE
                 'menu.view',
                 'menu.create',
                 'menu.edit',
                 'menu.delete',
+                'menu.manage',
 
                 // Forum - FULL
                 'forum.view',
@@ -91,6 +96,7 @@ class RolePermissionsSeeder extends Seeder
                 'survey.respond',
                 'survey.view_results',
                 'survey.export',
+                'survey.manage',
 
                 // Ticket - FULL
                 'ticket.view',
@@ -98,6 +104,9 @@ class RolePermissionsSeeder extends Seeder
                 'ticket.respond',
                 'ticket.close',
                 'ticket.assign',
+                'complaint.view',
+                'complaint.manage',
+                'complaint.reply',
 
                 // Content - FULL
                 'content.view',
@@ -105,6 +114,7 @@ class RolePermissionsSeeder extends Seeder
                 'content.edit',
                 'content.delete',
                 'content.publish',
+                'content.manage',
 
                 // Master Data - FULL
                 'master.view',
@@ -115,22 +125,43 @@ class RolePermissionsSeeder extends Seeder
                 'finance.view',
                 'finance.manage',
 
+                // Payment - FULL
+                'payment.view',
+                'payment.manage',
+                'payment.verify',
+                'payment.export',
+
                 // Organization - FULL
                 'org.view',
                 'org.manage',
+                'org.create',
+                'org.assign',
 
                 // WhatsApp Group - FULL
-                'wa_group.view',
-                'wa_group.manage',
+                'wagroup.view',
+                'wagroup.manage',
+                'wagroup.create',
+                'wagroup.edit',
+                'wagroup.delete',
+
+                // Statistics - FULL
+                'stats.view',
+                'stats.export',
+
+                // Settings - EXCLUSIVE
+                'settings.view',
+                'settings.edit',
+                'settings.manage',
 
                 // Audit Log
                 'audit.view',
+                'audit.export',
             ],
 
             // ==========================================
             // PENGURUS - OPERATIONAL ADMIN
             // ==========================================
-            'Pengurus' => [
+            'pengurus' => [
                 // Dashboard
                 'dashboard.view',
                 'dashboard.admin',
@@ -160,6 +191,7 @@ class RolePermissionsSeeder extends Seeder
                 'survey.respond',
                 'survey.view_results',
                 'survey.export',
+                'survey.manage',
 
                 // Ticket - FULL
                 'ticket.view',
@@ -167,6 +199,9 @@ class RolePermissionsSeeder extends Seeder
                 'ticket.respond',
                 'ticket.close',
                 'ticket.assign',
+                'complaint.view',
+                'complaint.manage',
+                'complaint.reply',
 
                 // Content - FULL
                 'content.view',
@@ -174,112 +209,122 @@ class RolePermissionsSeeder extends Seeder
                 'content.edit',
                 'content.delete',
                 'content.publish',
+                'content.manage',
 
-                // Master Data - VIEW ONLY
+                // Master Data - READ ONLY
                 'master.view',
 
                 // Finance - VIEW ONLY
                 'finance.view',
 
-                // Organization - FULL
-                'org.view',
-                'org.manage',
+                // Payment - VERIFICATION
+                'payment.view',
+                'payment.verify',
+                'payment.export',
 
-                // WhatsApp Group - FULL
-                'wa_group.view',
-                'wa_group.manage',
+                // Organization - VIEW & ASSIGN
+                'org.view',
+                'org.assign',
+
+                // WhatsApp Group - MANAGE
+                'wagroup.view',
+                'wagroup.manage',
+                'wagroup.create',
+                'wagroup.edit',
+
+                // Statistics
+                'stats.view',
+                'stats.export',
             ],
 
             // ==========================================
-            // KOORDINATOR WILAYAH - REGIONAL SCOPE
+            // KOORDINATOR WILAYAH - REGIONAL ADMIN
             // ==========================================
-            'Koordinator Wilayah' => [
+            'koordinator' => [
                 // Dashboard
                 'dashboard.view',
 
-                // Member Management - LIMITED TO REGION
+                // Member Management - REGIONAL SCOPE
                 'member.view',
                 'member.view_detail',
-                'member.edit',
+                'member.approve',
+                'member.suspend',
                 'member.export',
 
-                // Forum - FULL ACCESS
+                // Forum - FULL
                 'forum.view',
                 'forum.create_thread',
                 'forum.reply',
                 'forum.edit_own',
+                'forum.moderate',
 
-                // Survey - RESPOND & VIEW
+                // Survey - PARTICIPATE
                 'survey.view',
                 'survey.respond',
-                'survey.view_results',
 
-                // Ticket - CREATE & VIEW
+                // Ticket - HANDLE
                 'ticket.view',
                 'ticket.create',
+                'ticket.respond',
 
-                // Content - VIEW ONLY
+                // Content - VIEW
                 'content.view',
 
-                // WhatsApp Group - VIEW & MANAGE (for their region)
-                'wa_group.view',
-                'wa_group.manage',
+                // Payment - VIEW REGIONAL
+                'payment.view',
+
+                // WhatsApp Group - VIEW
+                'wagroup.view',
+
+                // Statistics - REGIONAL
+                'stats.view',
             ],
 
             // ==========================================
             // ANGGOTA - ACTIVE MEMBER
             // ==========================================
-            'Anggota' => [
+            'anggota' => [
                 // Dashboard
                 'dashboard.view',
 
-                // Member - VIEW OWN PROFILE
-                'member.view_detail',
-
-                // Forum - FULL PARTICIPATION
+                // Forum - PARTICIPATE
                 'forum.view',
                 'forum.create_thread',
                 'forum.reply',
                 'forum.edit_own',
 
-                // Survey - RESPOND
+                // Survey - PARTICIPATE
                 'survey.view',
                 'survey.respond',
 
-                // Ticket - CREATE & VIEW OWN
+                // Ticket - CREATE
                 'ticket.view',
                 'ticket.create',
 
-                // Content - VIEW ONLY
+                // Content - READ
                 'content.view',
 
-                // Organization - VIEW
-                'org.view',
+                // Payment - OWN ONLY
+                'payment.view',
 
                 // WhatsApp Group - VIEW
-                'wa_group.view',
+                'wagroup.view',
             ],
 
             // ==========================================
             // CALON ANGGOTA - PENDING MEMBER
             // ==========================================
-            'Calon Anggota' => [
-                // Dashboard - LIMITED
+            'calon_anggota' => [
+                // Dashboard
                 'dashboard.view',
 
-                // Member - VIEW OWN PROFILE ONLY
-                'member.view_detail',
-
-                // Content - VIEW PUBLIC ONLY
+                // Content - READ ONLY
                 'content.view',
-
-                // Organization - VIEW
-                'org.view',
             ],
         ];
 
         // ==========================================
-        // INSERT ROLE-PERMISSION MAPPINGS
+        // INSERT MAPPINGS
         // ==========================================
 
         $totalInserted = 0;
@@ -332,11 +377,19 @@ class RolePermissionsSeeder extends Seeder
         echo "→ Mappings Skipped: {$totalSkipped}\n";
         echo "==========================================\n";
         echo "\nAccess Matrix Summary:\n";
-        echo "- Super Admin: " . count($rolePermissions['Super Admin']) . " permissions (FULL ACCESS)\n";
-        echo "- Pengurus: " . count($rolePermissions['Pengurus']) . " permissions (OPERATIONAL)\n";
-        echo "- Koordinator Wilayah: " . count($rolePermissions['Koordinator Wilayah']) . " permissions (REGIONAL)\n";
-        echo "- Anggota: " . count($rolePermissions['Anggota']) . " permissions (MEMBER)\n";
-        echo "- Calon Anggota: " . count($rolePermissions['Calon Anggota']) . " permissions (LIMITED)\n";
+
+        // Count permissions safely
+        $superadminCount = isset($rolePermissions['superadmin']) ? count($rolePermissions['superadmin']) : 0;
+        $pengurusCount = isset($rolePermissions['pengurus']) ? count($rolePermissions['pengurus']) : 0;
+        $koordinatorCount = isset($rolePermissions['koordinator']) ? count($rolePermissions['koordinator']) : 0;
+        $anggotaCount = isset($rolePermissions['anggota']) ? count($rolePermissions['anggota']) : 0;
+        $calonCount = isset($rolePermissions['calon_anggota']) ? count($rolePermissions['calon_anggota']) : 0;
+
+        echo "- superadmin: {$superadminCount} permissions (FULL ACCESS)\n";
+        echo "- pengurus: {$pengurusCount} permissions (OPERATIONAL)\n";
+        echo "- koordinator: {$koordinatorCount} permissions (REGIONAL)\n";
+        echo "- anggota: {$anggotaCount} permissions (MEMBER)\n";
+        echo "- calon_anggota: {$calonCount} permissions (LIMITED)\n";
         echo "==========================================\n\n";
     }
 }

@@ -54,13 +54,17 @@ class RoleController extends BaseController
      */
     public function index()
     {
-        // CRITICAL: Check Super Admin permission
-        if (!auth()->loggedIn()) {
-            return redirect()->to('/login')->with('error', 'Silakan login terlebih dahulu.');
-        }
+        // Simplified permission check for superadmin
+        $user = auth()->user();
+        $groups = $user->getGroups();
 
-        if (!auth()->user()->inGroup('superadmin')) {
-            return redirect()->back()->with('error', 'Akses ditolak. Hanya Super Admin yang dapat mengakses halaman ini.');
+        // Superadmin bypass all checks
+        if (!in_array('superadmin', $groups)) {
+            // For non-superadmin, check permission properly
+            if (!$user->can('role.view')) {
+                return redirect()->to(base_url('/'))
+                    ->with('error', 'Akses ditolak.');
+            }
         }
 
         $db = \Config\Database::connect();
@@ -96,15 +100,6 @@ class RoleController extends BaseController
      */
     public function create()
     {
-        // CRITICAL: Check Super Admin permission
-        if (!auth()->loggedIn()) {
-            return redirect()->to('/login')->with('error', 'Silakan login terlebih dahulu.');
-        }
-
-        if (!auth()->user()->inGroup('superadmin')) {
-            return redirect()->back()->with('error', 'Akses ditolak. Hanya Super Admin yang dapat mengakses halaman ini.');
-        }
-
         // Get all permissions grouped by module
         $permissions = $this->getPermissionsGrouped();
 
@@ -128,11 +123,6 @@ class RoleController extends BaseController
      */
     public function store()
     {
-        // CRITICAL: Check Super Admin permission
-        if (!auth()->user()->inGroup('superadmin')) {
-            return redirect()->back()->with('error', 'Akses ditolak.');
-        }
-
         // Validation rules
         $rules = [
             'title' => 'required|min_length[3]|max_length[100]|is_unique[auth_groups.title]',
@@ -197,15 +187,6 @@ class RoleController extends BaseController
      */
     public function edit($id)
     {
-        // CRITICAL: Check Super Admin permission
-        if (!auth()->loggedIn()) {
-            return redirect()->to('/login')->with('error', 'Silakan login terlebih dahulu.');
-        }
-
-        if (!auth()->user()->inGroup('superadmin')) {
-            return redirect()->back()->with('error', 'Akses ditolak.');
-        }
-
         $db = \Config\Database::connect();
 
         // Get role
@@ -266,11 +247,6 @@ class RoleController extends BaseController
      */
     public function update($id)
     {
-        // CRITICAL: Check Super Admin permission
-        if (!auth()->user()->inGroup('superadmin')) {
-            return redirect()->back()->with('error', 'Akses ditolak.');
-        }
-
         $db = \Config\Database::connect();
 
         // Get role
@@ -357,11 +333,6 @@ class RoleController extends BaseController
      */
     public function delete($id)
     {
-        // CRITICAL: Check Super Admin permission
-        if (!auth()->user()->inGroup('superadmin')) {
-            return redirect()->back()->with('error', 'Akses ditolak.');
-        }
-
         $db = \Config\Database::connect();
 
         // Get role
@@ -428,11 +399,6 @@ class RoleController extends BaseController
      */
     public function members($id)
     {
-        // CRITICAL: Check Super Admin permission
-        if (!auth()->user()->inGroup('superadmin')) {
-            return redirect()->back()->with('error', 'Akses ditolak.');
-        }
-
         $db = \Config\Database::connect();
 
         // Get role
@@ -544,7 +510,8 @@ class RoleController extends BaseController
             ]);
         }
 
-        if (!auth()->user()->inGroup('superadmin')) {
+        $groups = auth()->user()->getGroups();
+        if (!in_array('superadmin', $groups)) {
             return $this->response->setJSON([
                 'success' => false,
                 'message' => 'Access denied'

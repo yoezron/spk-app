@@ -43,7 +43,9 @@ class PermissionFilter implements FilterInterface
         $user = auth()->user();
 
         // Super Admin bypass all permission checks
-        if ($user->inGroup('superadmin')) {
+        // Use getGroups() instead of inGroup() for more reliable check
+        $groups = $user->getGroups();
+        if (in_array('superadmin', $groups)) {
             return $request;
         }
 

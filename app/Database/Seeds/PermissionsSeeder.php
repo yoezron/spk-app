@@ -101,8 +101,24 @@ class PermissionsSeeder extends Seeder
                 'description' => 'Assign role ke user',
             ],
             [
+                'name'        => 'role.manage',
+                'description' => 'Mengelola role dan permission mapping',
+            ],
+            [
                 'name'        => 'permission.manage',
-                'description' => 'Mengelola permissions (assign ke role)',
+                'description' => 'Mengelola permissions (CRUD)',
+            ],
+            [
+                'name'        => 'permission.create',
+                'description' => 'Membuat permission baru',
+            ],
+            [
+                'name'        => 'permission.edit',
+                'description' => 'Mengedit permission',
+            ],
+            [
+                'name'        => 'permission.delete',
+                'description' => 'Menghapus permission',
             ],
 
             // ==========================================
@@ -123,6 +139,10 @@ class PermissionsSeeder extends Seeder
             [
                 'name'        => 'menu.delete',
                 'description' => 'Menghapus menu',
+            ],
+            [
+                'name'        => 'menu.manage',
+                'description' => 'Mengelola menu dan reordering',
             ],
 
             // ==========================================
@@ -180,6 +200,10 @@ class PermissionsSeeder extends Seeder
                 'name'        => 'survey.export',
                 'description' => 'Export hasil survei',
             ],
+            [
+                'name'        => 'survey.manage',
+                'description' => 'Mengelola survei (publish, close)',
+            ],
 
             // ==========================================
             // COMPLAINT/TICKET PERMISSIONS
@@ -204,6 +228,18 @@ class PermissionsSeeder extends Seeder
                 'name'        => 'ticket.assign',
                 'description' => 'Assign pengaduan ke petugas',
             ],
+            [
+                'name'        => 'complaint.view',
+                'description' => 'Melihat daftar komplain',
+            ],
+            [
+                'name'        => 'complaint.manage',
+                'description' => 'Mengelola komplain',
+            ],
+            [
+                'name'        => 'complaint.reply',
+                'description' => 'Membalas komplain',
+            ],
 
             // ==========================================
             // CONTENT MANAGEMENT (CMS)
@@ -227,6 +263,10 @@ class PermissionsSeeder extends Seeder
             [
                 'name'        => 'content.publish',
                 'description' => 'Publish konten ke publik',
+            ],
+            [
+                'name'        => 'content.manage',
+                'description' => 'Mengelola konten dan kategori',
             ],
 
             // ==========================================
@@ -258,6 +298,26 @@ class PermissionsSeeder extends Seeder
             ],
 
             // ==========================================
+            // PAYMENT PERMISSIONS
+            // ==========================================
+            [
+                'name'        => 'payment.view',
+                'description' => 'Melihat data pembayaran',
+            ],
+            [
+                'name'        => 'payment.manage',
+                'description' => 'Mengelola pembayaran',
+            ],
+            [
+                'name'        => 'payment.verify',
+                'description' => 'Verifikasi bukti pembayaran',
+            ],
+            [
+                'name'        => 'payment.export',
+                'description' => 'Export data pembayaran',
+            ],
+
+            // ==========================================
             // ORGANIZATION STRUCTURE PERMISSIONS
             // ==========================================
             [
@@ -268,17 +328,65 @@ class PermissionsSeeder extends Seeder
                 'name'        => 'org.manage',
                 'description' => 'Mengelola struktur organisasi',
             ],
+            [
+                'name'        => 'org.create',
+                'description' => 'Membuat unit/posisi organisasi',
+            ],
+            [
+                'name'        => 'org.assign',
+                'description' => 'Assign anggota ke posisi',
+            ],
 
             // ==========================================
             // WHATSAPP GROUP PERMISSIONS
             // ==========================================
             [
-                'name'        => 'wa_group.view',
+                'name'        => 'wagroup.view',
                 'description' => 'Melihat daftar grup WhatsApp',
             ],
             [
-                'name'        => 'wa_group.manage',
+                'name'        => 'wagroup.manage',
                 'description' => 'Mengelola link grup WhatsApp',
+            ],
+            [
+                'name'        => 'wagroup.create',
+                'description' => 'Membuat grup WhatsApp baru',
+            ],
+            [
+                'name'        => 'wagroup.edit',
+                'description' => 'Mengedit grup WhatsApp',
+            ],
+            [
+                'name'        => 'wagroup.delete',
+                'description' => 'Menghapus grup WhatsApp',
+            ],
+
+            // ==========================================
+            // STATISTICS PERMISSIONS
+            // ==========================================
+            [
+                'name'        => 'stats.view',
+                'description' => 'Melihat statistik',
+            ],
+            [
+                'name'        => 'stats.export',
+                'description' => 'Export statistik',
+            ],
+
+            // ==========================================
+            // SETTINGS PERMISSIONS
+            // ==========================================
+            [
+                'name'        => 'settings.view',
+                'description' => 'Melihat pengaturan sistem',
+            ],
+            [
+                'name'        => 'settings.edit',
+                'description' => 'Mengedit pengaturan sistem',
+            ],
+            [
+                'name'        => 'settings.manage',
+                'description' => 'Mengelola pengaturan sistem',
             ],
 
             // ==========================================
@@ -287,6 +395,10 @@ class PermissionsSeeder extends Seeder
             [
                 'name'        => 'audit.view',
                 'description' => 'Melihat audit log sistem',
+            ],
+            [
+                'name'        => 'audit.export',
+                'description' => 'Export audit log',
             ],
         ];
 
@@ -325,17 +437,20 @@ class PermissionsSeeder extends Seeder
         echo "\nPermissions Modules:\n";
         echo "- Dashboard (2)\n";
         echo "- Member Management (11)\n";
-        echo "- Role & Permission (6)\n";
-        echo "- Menu Management (4)\n";
+        echo "- Role & Permission (10)\n";
+        echo "- Menu Management (5)\n";
         echo "- Forum (5)\n";
-        echo "- Survey (7)\n";
-        echo "- Ticket/Complaint (5)\n";
-        echo "- Content/CMS (5)\n";
+        echo "- Survey (8)\n";
+        echo "- Ticket/Complaint (8)\n";
+        echo "- Content/CMS (6)\n";
         echo "- Master Data (3)\n";
         echo "- Finance (2)\n";
-        echo "- Organization (2)\n";
-        echo "- WhatsApp Group (2)\n";
-        echo "- Audit Log (1)\n";
+        echo "- Payment (4)\n";
+        echo "- Organization (4)\n";
+        echo "- WhatsApp Group (5)\n";
+        echo "- Statistics (2)\n";
+        echo "- Settings (3)\n";
+        echo "- Audit Log (2)\n";
         echo "==========================================\n\n";
     }
 }

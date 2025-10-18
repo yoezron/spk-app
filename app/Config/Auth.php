@@ -517,4 +517,9 @@ class Auth extends ShieldAuth
             default                                                               => rtrim(site_url($url), '/ '),
         };
     }
+
+    /**
+     * Should permissions be stored in database?
+     */
+    public bool $databasePermissions = true;
 }
