@@ -10,12 +10,80 @@
                         <i class="fas fa-university me-2"></i>
                         Master Data Perguruan Tinggi
                     </h5>
-                    <button type="button" class="btn btn-gradient-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
-                        <i class="fas fa-plus me-1"></i> Tambah Perguruan Tinggi
-                    </button>
+                    <div class="btn-group">
+                        <!-- Button Import -->
+                        <button type="button" class="btn btn-success btn-sm" data-bs-toggle="modal" data-bs-target="#importModal">
+                            <i class="fas fa-file-import me-1"></i> Import Excel
+                        </button>
+
+                        <!-- Button Download Template -->
+                        <a href="<?= base_url('super/master/universities/download-template') ?>" class="btn btn-info btn-sm">
+                            <i class="fas fa-download me-1"></i> Download Template
+                        </a>
+
+                        <!-- Button Tambah Manual -->
+                        <button type="button" class="btn btn-gradient-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addModal">
+                            <i class="fas fa-plus me-1"></i> Tambah Perguruan Tinggi
+                        </button>
+                    </div>
                 </div>
             </div>
             <div class="card-body">
+                <?php if (session()->has('import_stats')): ?>
+                    <?php $stats = session('import_stats'); ?>
+                    <div class="alert alert-success alert-dismissible fade show">
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        <h5><i class="fas fa-check-circle me-2"></i> Import Berhasil!</h5>
+                        <div class="row mt-3">
+                            <div class="col-md-3">
+                                <strong>Total Data:</strong> <?= $stats['total'] ?>
+                            </div>
+                            <div class="col-md-3">
+                                <strong class="text-success">Berhasil:</strong> <?= $stats['success'] ?>
+                            </div>
+                            <div class="col-md-3">
+                                <strong class="text-danger">Gagal:</strong> <?= $stats['failed'] ?>
+                            </div>
+                            <div class="col-md-3">
+                                <strong class="text-warning">Duplikat:</strong> <?= $stats['duplicates'] ?>
+                            </div>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (session()->has('import_errors')): ?>
+                    <?php $errors = session('import_errors'); ?>
+                    <div class="alert alert-warning alert-dismissible fade show">
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        <h5><i class="fas fa-exclamation-triangle me-2"></i> Detail Error Import</h5>
+                        <div class="table-responsive mt-3" style="max-height: 300px; overflow-y: auto;">
+                            <table class="table table-sm">
+                                <thead class="sticky-top bg-white">
+                                    <tr>
+                                        <th>Baris</th>
+                                        <th>Nama PT</th>
+                                        <th>Jenis</th>
+                                        <th>Error</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($errors as $error): ?>
+                                        <tr>
+                                            <td><?= $error['row'] ?></td>
+                                            <td><?= esc($error['name'] ?? '-') ?></td>
+                                            <td><?= esc($error['type'] ?? '-') ?></td>
+                                            <td>
+                                                <?php foreach ($error['errors'] as $err): ?>
+                                                    <span class="badge bg-danger"><?= esc($err) ?></span>
+                                                <?php endforeach; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                <?php endif; ?>
                 <!-- Stats & Filter -->
                 <div class="row mb-4">
                     <div class="col-md-3">
@@ -213,6 +281,54 @@
     </div>
 </div>
 
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="<?= base_url('super/master/universities/import') ?>" method="POST" enctype="multipart/form-data" id="importForm">
+                <?= csrf_field() ?>
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-file-import me-2"></i>
+                        Import Perguruan Tinggi dari Excel
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Petunjuk:</strong>
+                        <ol class="mb-0 mt-2">
+                            <li>Download template Excel terlebih dahulu</li>
+                            <li>Isi: Nama PT*, Jenis PT*, Kode, Alamat</li>
+                            <li><strong>Jenis PT:</strong> Negeri / Swasta / Kedinasan</li>
+                            <li>Upload file Excel yang sudah diisi</li>
+                        </ol>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">File Excel <span class="text-danger">*</span></label>
+                        <input type="file" name="file" class="form-control" accept=".xlsx,.xls" required id="fileInput">
+                        <small class="text-muted">Format: .xlsx atau .xls (Maksimal 5MB)</small>
+                    </div>
+
+                    <div id="fileInfo" class="alert alert-secondary d-none">
+                        <strong>File yang dipilih:</strong>
+                        <div id="fileName"></div>
+                        <div id="fileSize" class="text-muted small"></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="submit" class="btn btn-gradient-primary" id="btnImport">
+                        <i class="fas fa-upload me-1"></i> Import Data
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <?= $this->endSection() ?>
 
 <?= $this->section('scripts') ?>
@@ -265,5 +381,49 @@
             }
         });
     }
+
+    // File upload preview
+    document.getElementById('fileInput')?.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            const fileInfo = document.getElementById('fileInfo');
+            const fileName = document.getElementById('fileName');
+            const fileSize = document.getElementById('fileSize');
+
+            fileName.textContent = file.name;
+            fileSize.textContent = 'Ukuran: ' + (file.size / 1024).toFixed(2) + ' KB';
+            fileInfo.classList.remove('d-none');
+        }
+    });
+
+    // Import form validation
+    document.getElementById('importForm')?.addEventListener('submit', function(e) {
+        const fileInput = document.getElementById('fileInput');
+        const file = fileInput.files[0];
+
+        if (!file) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Silakan pilih file Excel terlebih dahulu'
+            });
+            return false;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+            e.preventDefault();
+            Swal.fire({
+                icon: 'error',
+                title: 'File Terlalu Besar',
+                text: 'Ukuran file maksimal 5MB'
+            });
+            return false;
+        }
+
+        const btnImport = document.getElementById('btnImport');
+        btnImport.disabled = true;
+        btnImport.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Mengimport...';
+    });
 </script>
 <?= $this->endSection() ?>

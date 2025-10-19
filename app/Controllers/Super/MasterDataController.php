@@ -27,6 +27,7 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
  */
 class MasterDataController extends BaseController
 {
+
     /**
      * @var ProvinceModel
      */
@@ -62,6 +63,13 @@ class MasterDataController extends BaseController
      */
     protected $salaryRangeModel;
 
+    protected $provinceImportService;
+    protected $regencyImportService;
+    protected $universityImportService;
+    protected $studyProgramImportService;
+
+
+
     /**
      * Constructor - Dependency Injection
      */
@@ -74,6 +82,10 @@ class MasterDataController extends BaseController
         $this->memberModel = new MemberProfileModel();
         $this->employmentStatusModel = new EmploymentStatusModel();
         $this->salaryRangeModel = new SalaryRangeModel();
+        $this->provinceImportService = new \App\Services\ProvinceImportService();
+        $this->regencyImportService = new \App\Services\RegencyImportService();
+        $this->universityImportService = new \App\Services\UniversityImportService();
+        $this->studyProgramImportService = new \App\Services\StudyProgramImportService();
     }
 
     // ========================================
@@ -264,6 +276,124 @@ class MasterDataController extends BaseController
     }
 
     // ========================================
+    // PROVINCE IMPORT METHODS
+    // ========================================
+
+    /**
+     * Download template Excel untuk import provinces
+     * 
+     * @return \CodeIgniter\HTTP\ResponseInterface
+     */
+    public function downloadProvinceTemplate()
+    {
+        // CRITICAL: Check Super Admin permission
+        if (!auth()->user()->inGroup('superadmin')) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        try {
+            $fileName = 'template_import_provinsi_' . date('YmdHis') . '.xlsx';
+            $filePath = WRITEPATH . 'uploads/temp/' . $fileName;
+
+            // Ensure directory exists
+            if (!is_dir(WRITEPATH . 'uploads/temp/')) {
+                mkdir(WRITEPATH . 'uploads/temp/', 0755, true);
+            }
+
+            // Generate template
+            $result = $this->provinceImportService->generateTemplate($filePath);
+
+            if (!$result['success']) {
+                return redirect()->back()->with('error', $result['message']);
+            }
+
+            // Download file
+            return $this->response->download($filePath, null)
+                ->setFileName($fileName);
+        } catch (\Exception $e) {
+            log_message('error', 'Error downloading province template: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal download template.');
+        }
+    }
+
+    /**
+     * Upload and import provinces from Excel
+     * 
+     * @return RedirectResponse
+     */
+    public function importProvinces(): RedirectResponse
+    {
+        // CRITICAL: Check Super Admin permission
+        if (!auth()->user()->inGroup('superadmin')) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        $file = $this->request->getFile('file');
+
+        // Validate file
+        if (!$file || !$file->isValid()) {
+            return redirect()->back()->with('error', 'File tidak valid atau tidak ada file yang diupload.');
+        }
+
+        // Check extension
+        $allowedExtensions = ['xlsx', 'xls'];
+        $extension = $file->getClientExtension();
+
+        if (!in_array($extension, $allowedExtensions)) {
+            return redirect()->back()->with('error', 'Format file tidak didukung. Gunakan Excel (.xlsx atau .xls)');
+        }
+
+        // Check file size (max 5MB)
+        $maxSize = 5 * 1024 * 1024; // 5MB
+        if ($file->getSize() > $maxSize) {
+            return redirect()->back()->with('error', 'Ukuran file terlalu besar. Maksimal 5MB.');
+        }
+
+        try {
+            // Move file to temp directory
+            $fileName = $file->getRandomName();
+            $tempPath = WRITEPATH . 'uploads/temp/';
+
+            if (!is_dir($tempPath)) {
+                mkdir($tempPath, 0755, true);
+            }
+
+            $file->move($tempPath, $fileName);
+            $filePath = $tempPath . $fileName;
+
+            // Import
+            $result = $this->provinceImportService->import($filePath);
+
+            // Delete temp file
+            @unlink($filePath);
+
+            if (!$result['success']) {
+                return redirect()->back()->with('error', $result['message']);
+            }
+
+            $data = $result['data'];
+
+            // Check if there are errors
+            if (!empty($data['errors'])) {
+                // Store errors in session for display
+                session()->set('import_errors', $data['errors']);
+            }
+
+            return redirect()->to('/super/master/provinces')
+                ->with('success', $result['message'])
+                ->with('import_stats', [
+                    'total' => $data['total'],
+                    'success' => $data['success'],
+                    'failed' => $data['failed'],
+                    'duplicates' => $data['duplicates']
+                ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error importing provinces: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal import data: ' . $e->getMessage());
+        }
+    }
+
+    // ========================================
     // REGENCIES MANAGEMENT
     // ========================================
 
@@ -436,6 +566,111 @@ class MasterDataController extends BaseController
         } catch (\Exception $e) {
             log_message('error', 'Error deleting regency: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal menghapus kabupaten/kota.');
+        }
+    }
+
+    // ========================================
+    // REGENCY IMPORT METHODS
+    // ========================================
+
+    /**
+     * Download template Excel untuk import regencies
+     * 
+     * @return \CodeIgniter\HTTP\ResponseInterface
+     */
+    public function downloadRegencyTemplate()
+    {
+        if (!auth()->user()->inGroup('superadmin')) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        try {
+            $fileName = 'template_import_kabkota_' . date('YmdHis') . '.xlsx';
+            $filePath = WRITEPATH . 'uploads/temp/' . $fileName;
+
+            if (!is_dir(WRITEPATH . 'uploads/temp/')) {
+                mkdir(WRITEPATH . 'uploads/temp/', 0755, true);
+            }
+
+            $result = $this->regencyImportService->generateTemplate($filePath);
+
+            if (!$result['success']) {
+                return redirect()->back()->with('error', $result['message']);
+            }
+
+            return $this->response->download($filePath, null)
+                ->setFileName($fileName);
+        } catch (\Exception $e) {
+            log_message('error', 'Error downloading regency template: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal download template.');
+        }
+    }
+
+    /**
+     * Upload and import regencies from Excel
+     * 
+     * @return RedirectResponse
+     */
+    public function importRegencies(): RedirectResponse
+    {
+        if (!auth()->user()->inGroup('superadmin')) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        $file = $this->request->getFile('file');
+
+        if (!$file || !$file->isValid()) {
+            return redirect()->back()->with('error', 'File tidak valid atau tidak ada file yang diupload.');
+        }
+
+        $allowedExtensions = ['xlsx', 'xls'];
+        $extension = $file->getClientExtension();
+
+        if (!in_array($extension, $allowedExtensions)) {
+            return redirect()->back()->with('error', 'Format file tidak didukung. Gunakan Excel (.xlsx atau .xls)');
+        }
+
+        $maxSize = 5 * 1024 * 1024; // 5MB
+        if ($file->getSize() > $maxSize) {
+            return redirect()->back()->with('error', 'Ukuran file terlalu besar. Maksimal 5MB.');
+        }
+
+        try {
+            $fileName = $file->getRandomName();
+            $tempPath = WRITEPATH . 'uploads/temp/';
+
+            if (!is_dir($tempPath)) {
+                mkdir($tempPath, 0755, true);
+            }
+
+            $file->move($tempPath, $fileName);
+            $filePath = $tempPath . $fileName;
+
+            $result = $this->regencyImportService->import($filePath);
+
+            @unlink($filePath);
+
+            if (!$result['success']) {
+                return redirect()->back()->with('error', $result['message']);
+            }
+
+            $data = $result['data'];
+
+            if (!empty($data['errors'])) {
+                session()->set('import_errors', $data['errors']);
+            }
+
+            return redirect()->to('/super/master/regencies')
+                ->with('success', $result['message'])
+                ->with('import_stats', [
+                    'total' => $data['total'],
+                    'success' => $data['success'],
+                    'failed' => $data['failed'],
+                    'duplicates' => $data['duplicates']
+                ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error importing regencies: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal import data: ' . $e->getMessage());
         }
     }
 
@@ -633,6 +868,112 @@ class MasterDataController extends BaseController
     }
 
     // ========================================
+    // UNIVERSITY IMPORT METHODS
+    // ========================================
+
+    /**
+     * Download template Excel untuk import universities
+     * 
+     * @return \CodeIgniter\HTTP\ResponseInterface
+     */
+    public function downloadUniversityTemplate()
+    {
+        if (!auth()->user()->inGroup('superadmin')) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        try {
+            $fileName = 'template_import_universitas_' . date('YmdHis') . '.xlsx';
+            $filePath = WRITEPATH . 'uploads/temp/' . $fileName;
+
+            if (!is_dir(WRITEPATH . 'uploads/temp/')) {
+                mkdir(WRITEPATH . 'uploads/temp/', 0755, true);
+            }
+
+            $result = $this->universityImportService->generateTemplate($filePath);
+
+            if (!$result['success']) {
+                return redirect()->back()->with('error', $result['message']);
+            }
+
+            return $this->response->download($filePath, null)
+                ->setFileName($fileName);
+        } catch (\Exception $e) {
+            log_message('error', 'Error downloading university template: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal download template.');
+        }
+    }
+
+    /**
+     * Upload and import universities from Excel
+     * 
+     * @return RedirectResponse
+     */
+    public function importUniversities(): RedirectResponse
+    {
+        if (!auth()->user()->inGroup('superadmin')) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        $file = $this->request->getFile('file');
+
+        if (!$file || !$file->isValid()) {
+            return redirect()->back()->with('error', 'File tidak valid atau tidak ada file yang diupload.');
+        }
+
+        $allowedExtensions = ['xlsx', 'xls'];
+        $extension = $file->getClientExtension();
+
+        if (!in_array($extension, $allowedExtensions)) {
+            return redirect()->back()->with('error', 'Format file tidak didukung. Gunakan Excel (.xlsx atau .xls)');
+        }
+
+        $maxSize = 5 * 1024 * 1024; // 5MB
+        if ($file->getSize() > $maxSize) {
+            return redirect()->back()->with('error', 'Ukuran file terlalu besar. Maksimal 5MB.');
+        }
+
+        try {
+            $fileName = $file->getRandomName();
+            $tempPath = WRITEPATH . 'uploads/temp/';
+
+            if (!is_dir($tempPath)) {
+                mkdir($tempPath, 0755, true);
+            }
+
+            $file->move($tempPath, $fileName);
+            $filePath = $tempPath . $fileName;
+
+            $result = $this->universityImportService->import($filePath);
+
+            @unlink($filePath);
+
+            if (!$result['success']) {
+                return redirect()->back()->with('error', $result['message']);
+            }
+
+            $data = $result['data'];
+
+            if (!empty($data['errors'])) {
+                session()->set('import_errors', $data['errors']);
+            }
+
+            return redirect()->to('/super/master/universities')
+                ->with('success', $result['message'])
+                ->with('import_stats', [
+                    'total' => $data['total'],
+                    'success' => $data['success'],
+                    'failed' => $data['failed'],
+                    'duplicates' => $data['duplicates']
+                ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error importing universities: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal import data: ' . $e->getMessage());
+        }
+    }
+
+
+    // ========================================
     // STUDY PROGRAMS MANAGEMENT
     // ========================================
 
@@ -812,6 +1153,107 @@ class MasterDataController extends BaseController
         } catch (\Exception $e) {
             log_message('error', 'Error deleting study program: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal menghapus program studi.');
+        }
+    }
+
+    /**
+     * Download template Excel untuk import study programs
+     * 
+     * @return \CodeIgniter\HTTP\ResponseInterface
+     */
+    public function downloadStudyProgramTemplate()
+    {
+        if (!auth()->user()->inGroup('superadmin')) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        try {
+            $fileName = 'template_import_prodi_' . date('YmdHis') . '.xlsx';
+            $filePath = WRITEPATH . 'uploads/temp/' . $fileName;
+
+            if (!is_dir(WRITEPATH . 'uploads/temp/')) {
+                mkdir(WRITEPATH . 'uploads/temp/', 0755, true);
+            }
+
+            $result = $this->studyProgramImportService->generateTemplate($filePath);
+
+            if (!$result['success']) {
+                return redirect()->back()->with('error', $result['message']);
+            }
+
+            return $this->response->download($filePath, null)
+                ->setFileName($fileName);
+        } catch (\Exception $e) {
+            log_message('error', 'Error downloading study program template: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal download template.');
+        }
+    }
+
+    /**
+     * Upload and import study programs from Excel
+     * 
+     * @return RedirectResponse
+     */
+    public function importStudyPrograms(): RedirectResponse
+    {
+        if (!auth()->user()->inGroup('superadmin')) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        $file = $this->request->getFile('file');
+
+        if (!$file || !$file->isValid()) {
+            return redirect()->back()->with('error', 'File tidak valid atau tidak ada file yang diupload.');
+        }
+
+        $allowedExtensions = ['xlsx', 'xls'];
+        $extension = $file->getClientExtension();
+
+        if (!in_array($extension, $allowedExtensions)) {
+            return redirect()->back()->with('error', 'Format file tidak didukung. Gunakan Excel (.xlsx atau .xls)');
+        }
+
+        $maxSize = 5 * 1024 * 1024; // 5MB
+        if ($file->getSize() > $maxSize) {
+            return redirect()->back()->with('error', 'Ukuran file terlalu besar. Maksimal 5MB.');
+        }
+
+        try {
+            $fileName = $file->getRandomName();
+            $tempPath = WRITEPATH . 'uploads/temp/';
+
+            if (!is_dir($tempPath)) {
+                mkdir($tempPath, 0755, true);
+            }
+
+            $file->move($tempPath, $fileName);
+            $filePath = $tempPath . $fileName;
+
+            $result = $this->studyProgramImportService->import($filePath);
+
+            @unlink($filePath);
+
+            if (!$result['success']) {
+                return redirect()->back()->with('error', $result['message']);
+            }
+
+            $data = $result['data'];
+
+            if (!empty($data['errors'])) {
+                session()->set('import_errors', $data['errors']);
+            }
+
+            return redirect()->to('/super/master/study-programs')
+                ->with('success', $result['message'])
+                ->with('import_stats', [
+                    'total' => $data['total'],
+                    'success' => $data['success'],
+                    'failed' => $data['failed'],
+                    'duplicates' => $data['duplicates']
+                ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error importing study programs: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal import data: ' . $e->getMessage());
         }
     }
 

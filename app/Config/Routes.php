@@ -301,23 +301,35 @@ $routes->group('super', ['namespace' => 'App\Controllers\Super', 'filter' => 'ro
         $routes->post('provinces/(:num)/update', 'MasterDataController::updateProvince/$1');
         $routes->post('provinces/(:num)/delete', 'MasterDataController::deleteProvince/$1');
 
-        // Regencies
+        // Province Import - PERBAIKAN
+        $routes->get('provinces/download-template', 'MasterDataController::downloadProvinceTemplate');
+        $routes->post('provinces/import', 'MasterDataController::importProvinces');
+
+        // Regencies - TAMBAHKAN INI
         $routes->get('regencies', 'MasterDataController::regencies');
         $routes->post('regencies/store', 'MasterDataController::storeRegency');
         $routes->post('regencies/(:num)/update', 'MasterDataController::updateRegency/$1');
         $routes->post('regencies/(:num)/delete', 'MasterDataController::deleteRegency/$1');
+        $routes->get('regencies/download-template', 'MasterDataController::downloadRegencyTemplate');
+        $routes->post('regencies/import', 'MasterDataController::importRegencies');
 
-        // Universities
+        // Universities - TAMBAHKAN INI
         $routes->get('universities', 'MasterDataController::universities');
         $routes->post('universities/store', 'MasterDataController::storeUniversity');
         $routes->post('universities/(:num)/update', 'MasterDataController::updateUniversity/$1');
         $routes->post('universities/(:num)/delete', 'MasterDataController::deleteUniversity/$1');
+        $routes->get('universities/download-template', 'MasterDataController::downloadUniversityTemplate');
+        $routes->post('universities/import', 'MasterDataController::importUniversities');
 
-        // Study Programs
+
+        // Study Programs - TAMBAHKAN INI
         $routes->get('study-programs', 'MasterDataController::studyPrograms');
         $routes->post('study-programs/store', 'MasterDataController::storeStudyProgram');
         $routes->post('study-programs/(:num)/update', 'MasterDataController::updateStudyProgram/$1');
         $routes->post('study-programs/(:num)/delete', 'MasterDataController::deleteStudyProgram/$1');
+        $routes->get('study-programs/download-template', 'MasterDataController::downloadStudyProgramTemplate');
+        $routes->post('study-programs/import', 'MasterDataController::importStudyPrograms');
+
 
         // Employment Status (BARU)
         $routes->get('employment-status', 'MasterDataController::employmentStatus');
