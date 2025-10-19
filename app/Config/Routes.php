@@ -388,6 +388,63 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('dashboard/charts', 'DashboardController::getCharts', ['filter' => 'role:pengurus,superadmin']);
 });
 
+// ===================================
+// SUPER ADMIN - SETTINGS ROUTES
+// ===================================
+$routes->group('super/settings', ['filter' => 'group:superadmin'], function ($routes) {
+    // Main settings page
+    $routes->get('/', 'Super\SettingsController::index');
+
+    // Update settings by section
+    $routes->post('update/general', 'Super\SettingsController::updateGeneral');
+    $routes->post('update/email', 'Super\SettingsController::updateEmail');
+    $routes->post('update/whatsapp', 'Super\SettingsController::updateWhatsApp');
+    $routes->post('update/notification', 'Super\SettingsController::updateNotification');
+    $routes->post('update/security', 'Super\SettingsController::updateSecurity');
+
+    // Upload logo
+    $routes->post('upload/logo', 'Super\SettingsController::uploadLogo');
+
+    // Test email
+    $routes->post('test-email', 'Super\SettingsController::testEmail');
+
+    // Cache management
+    $routes->get('clear-cache', 'Super\SettingsController::clearCache');
+
+    // Reset to default
+    $routes->get('reset/(:segment)', 'Super\SettingsController::resetToDefault/$1');
+
+    // Import/Export
+    $routes->get('export', 'Super\SettingsController::export');
+    $routes->post('import', 'Super\SettingsController::import');
+});
+
+// ===================================
+// SUPER ADMIN - AUDIT LOGS ROUTES
+// ===================================
+$routes->group('super/audit-logs', ['filter' => 'group:superadmin'], function ($routes) {
+    // Main audit logs page with filters
+    $routes->get('/', 'Super\AuditLogController::index');
+
+    // View single audit log detail
+    $routes->get('view/(:num)', 'Super\AuditLogController::view/$1');
+
+    // Statistics dashboard
+    $routes->get('statistics', 'Super\AuditLogController::statistics');
+
+    // Export to Excel
+    $routes->get('export', 'Super\AuditLogController::export');
+
+    // Clean old logs
+    $routes->post('clean', 'Super\AuditLogController::clean');
+
+    // Delete single log
+    $routes->get('delete/(:num)', 'Super\AuditLogController::delete/$1');
+
+    // AJAX: Get logs by entity
+    $routes->get('get-by-entity', 'Super\AuditLogController::getByEntity');
+});
+
 /*
  * --------------------------------------------------------------------
  * Service Worker & PWA Routes

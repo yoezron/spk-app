@@ -80,8 +80,9 @@ class AuditLogModel extends Model
      */
     public function withUser()
     {
-        return $this->select('audit_logs.*, users.username, users.email as user_email')
-            ->join('users', 'users.id = audit_logs.user_id', 'left');
+        return $this->select('audit_logs.*, users.username, auth_identities.secret as user_email')
+            ->join('users', 'users.id = audit_logs.user_id', 'left')
+            ->join('auth_identities', 'auth_identities.user_id = audit_logs.user_id AND auth_identities.type = "email_password"', 'left');
     }
 
     /**
@@ -96,6 +97,143 @@ class AuditLogModel extends Model
             ->select('member_profiles.full_name, member_profiles.membership_number')
             ->join('users', 'users.id = audit_logs.user_id', 'left')
             ->join('member_profiles', 'member_profiles.user_id = audit_logs.user_id', 'left');
+    }
+
+    /**
+     * Get logs with users and apply filters
+     * 
+     * @param array $filters
+     * @param int $limit
+     * @param int $offset
+     * @return array
+     */
+    public function getLogsWithUsers(array $filters = [], int $limit = 50, int $offset = 0): array
+    {
+        $builder = $this->withUser();
+
+        // Apply filters
+        if (!empty($filters['user_id'])) {
+            $builder->where('audit_logs.user_id', $filters['user_id']);
+        }
+
+        if (!empty($filters['action'])) {
+            $builder->where('audit_logs.action', $filters['action']);
+        }
+
+        if (!empty($filters['module'])) {
+            $builder->where('audit_logs.module', $filters['module']);
+        }
+
+        if (!empty($filters['status'])) {
+            $builder->where('audit_logs.status', $filters['status']);
+        }
+
+        if (!empty($filters['date_from'])) {
+            $builder->where('audit_logs.created_at >=', $filters['date_from'] . ' 00:00:00');
+        }
+
+        if (!empty($filters['date_to'])) {
+            $builder->where('audit_logs.created_at <=', $filters['date_to'] . ' 23:59:59');
+        }
+
+        if (!empty($filters['search'])) {
+            $builder->groupStart()
+                ->like('audit_logs.description', $filters['search'])
+                ->orLike('audit_logs.module', $filters['search'])
+                ->orLike('audit_logs.action', $filters['search'])
+                ->groupEnd();
+        }
+
+        return $builder->orderBy('audit_logs.created_at', 'DESC')
+            ->limit($limit, $offset)
+            ->findAll();
+    }
+
+    /**
+     * Count filtered logs
+     * 
+     * @param array $filters
+     * @return int
+     */
+    public function countFiltered(array $filters = []): int
+    {
+        $builder = $this->builder();
+
+        // Apply same filters as getLogsWithUsers
+        if (!empty($filters['user_id'])) {
+            $builder->where('user_id', $filters['user_id']);
+        }
+
+        if (!empty($filters['action'])) {
+            $builder->where('action', $filters['action']);
+        }
+
+        if (!empty($filters['module'])) {
+            $builder->where('module', $filters['module']);
+        }
+
+        if (!empty($filters['status'])) {
+            $builder->where('status', $filters['status']);
+        }
+
+        if (!empty($filters['date_from'])) {
+            $builder->where('created_at >=', $filters['date_from'] . ' 00:00:00');
+        }
+
+        if (!empty($filters['date_to'])) {
+            $builder->where('created_at <=', $filters['date_to'] . ' 23:59:59');
+        }
+
+        if (!empty($filters['search'])) {
+            $builder->groupStart()
+                ->like('description', $filters['search'])
+                ->orLike('module', $filters['search'])
+                ->orLike('action', $filters['search'])
+                ->groupEnd();
+        }
+
+        return $builder->countAllResults();
+    }
+
+    /**
+     * Get distinct actions
+     * 
+     * @return array
+     */
+    public function getActions(): array
+    {
+        return $this->select('action')
+            ->distinct()
+            ->where('action IS NOT NULL')
+            ->orderBy('action', 'ASC')
+            ->findColumn('action');
+    }
+
+    /**
+     * Get distinct modules
+     * 
+     * @return array
+     */
+    public function getModules(): array
+    {
+        return $this->select('module')
+            ->distinct()
+            ->where('module IS NOT NULL')
+            ->orderBy('module', 'ASC')
+            ->findColumn('module');
+    }
+    /**
+     * Get distinct entity types
+     * 
+     * @return array
+     */
+    public function getEntityTypes(): array
+    {
+        return $this->select('entity_type')
+            ->distinct()
+            ->where('entity_type IS NOT NULL')
+            ->orderBy('entity_type', 'ASC')
+            ->findColumn('entity_type');
     }
 
     // ========================================
@@ -565,6 +703,95 @@ class AuditLogModel extends Model
             'unique_users' => $uniqueUsers,
             'success_rate' => $total > 0 ? round(($success / $total) * 100, 2) : 0,
             'period_days' => $days,
+        ];
+    }
+    /**
+     * Get activity statistics
+     * 
+     * @param int $days
+     * @return array
+     */
+    public function getActivityStats(int $days = 30): array
+    {
+        $since = date('Y-m-d', strtotime("-{$days} days"));
+
+        // Total events
+        $total = $this->where('created_at >=', $since)->countAllResults(false);
+
+        // By status
+        $byStatus = $this->select('status, COUNT(*) as count')
+            ->where('created_at >=', $since)
+            ->groupBy('status')
+            ->findAll();
+
+        $statusStats = [
+            'success' => 0,
+            'failed' => 0,
+            'warning' => 0
+        ];
+
+        foreach ($byStatus as $stat) {
+            $statusStats[$stat->status] = (int)$stat->count;
+        }
+
+        // By severity (jika ada kolom severity di tabel)
+        $bySeverity = $this->select('severity, COUNT(*) as count')
+            ->where('created_at >=', $since)
+            ->groupBy('severity')
+            ->findAll();
+
+        $severityStats = [
+            'low' => 0,
+            'medium' => 0,
+            'high' => 0,
+            'critical' => 0
+        ];
+
+        foreach ($bySeverity as $stat) {
+            $severityStats[$stat->severity] = (int)$stat->count;
+        }
+
+        // By action
+        $byAction = $this->select('action, COUNT(*) as count')
+            ->where('created_at >=', $since)
+            ->groupBy('action')
+            ->orderBy('count', 'DESC')
+            ->limit(10)
+            ->findAll();
+
+        // By module
+        $byModule = $this->select('module, COUNT(*) as count')
+            ->where('created_at >=', $since)
+            ->where('module IS NOT NULL')
+            ->groupBy('module')
+            ->orderBy('count', 'DESC')
+            ->limit(10)
+            ->findAll();
+
+        // By day (trend)
+        $byDay = $this->select('DATE(created_at) as date, COUNT(*) as count')
+            ->where('created_at >=', $since)
+            ->groupBy('DATE(created_at)')
+            ->orderBy('date', 'ASC')
+            ->findAll();
+
+        // Format by_day for chart
+        $dailyStats = [];
+        foreach ($byDay as $day) {
+            $dailyStats[] = [
+                'date' => $day->date,
+                'count' => (int)$day->count
+            ];
+        }
+
+        return [
+            'total' => $total,
+            'by_status' => $statusStats,
+            'by_severity' => $severityStats,
+            'by_action' => $byAction,
+            'by_module' => $byModule,
+            'by_day' => $dailyStats,
+            'period_days' => $days
         ];
     }
 
