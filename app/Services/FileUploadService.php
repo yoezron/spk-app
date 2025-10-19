@@ -40,6 +40,11 @@ class FileUploadService
             'allowed' => ['pdf', 'doc', 'docx', 'xls', 'xlsx'],
             'max_size' => 10240, // KB (10MB)
             'resize' => null
+        ],
+        'import' => [
+            'allowed' => ['xls', 'xlsx', 'csv'],
+            'max_size' => 10240, // KB (10MB)
+            'resize' => null
         ]
     ];
 

@@ -50,6 +50,16 @@ class BulkImportService
     protected $prodiModel;
 
     /**
+     * @var \App\Services\Communication\EmailService
+     */
+    protected $emailService;
+
+    /**
+     * @var \App\Models\ImportLogModel
+     */
+    protected $importLogModel;
+
+    /**
      * Import results tracking
      */
     protected $results = [
@@ -70,6 +80,8 @@ class BulkImportService
         $this->provinceModel = new ProvinceModel();
         $this->universityModel = new UniversityModel();
         $this->prodiModel = new StudyProgramModel();
+        $this->emailService = new \App\Services\Communication\EmailService();
+        $this->importLogModel = model('ImportLogModel');
     }
 
     /**
@@ -710,6 +722,426 @@ class BulkImportService
             'duplicates' => 0,
             'errors' => []
         ];
+    }
+
+    /**
+     * Process import with activation flow
+     * Import members, generate activation token, and send email
+     * 
+     * @param string $filePath Path to uploaded file
+     * @param int $importedBy User ID who imports
+     * @param array $options Import options
+     * @return array ['success' => bool, 'message' => string, 'data' => array]
+     */
+    public function importWithActivation(string $filePath, int $importedBy, array $options = []): array
+    {
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        try {
+            // Create import log
+            $importLogId = $this->importLogModel->insert([
+                'imported_by' => $importedBy,
+                'filename' => basename($filePath),
+                'status' => 'processing',
+                'created_at' => date('Y-m-d H:i:s'),
+            ]);
+
+            // Read and validate file
+            $extension = pathinfo($filePath, PATHINFO_EXTENSION);
+
+            if (in_array(strtolower($extension), ['xlsx', 'xls'])) {
+                $data = $this->readExcel($filePath);
+            } elseif (strtolower($extension) === 'csv') {
+                $data = $this->readCSV($filePath);
+            } else {
+                throw new \Exception('Format file tidak didukung');
+            }
+
+            if (empty($data)) {
+                throw new \Exception('File kosong atau tidak dapat dibaca');
+            }
+
+            // Validate headers
+            $headerValidation = $this->validateHeaders($data[0]);
+            if (!$headerValidation['success']) {
+                throw new \Exception($headerValidation['message']);
+            }
+
+            // Remove header row
+            $headers = array_shift($data);
+            $this->results['total'] = count($data);
+
+            $importedUserIds = [];
+            $errorDetails = [];
+
+            // Process each row
+            foreach ($data as $index => $row) {
+                $rowNumber = $index + 2;
+                $rowData = $this->mapRowData($headers, $row);
+
+                if ($this->isEmptyRow($rowData)) {
+                    continue;
+                }
+
+                // Validate and import
+                $result = $this->processRowWithActivation($rowData, $rowNumber, $importLogId);
+
+                if (!$result['success']) {
+                    $this->results['failed']++;
+                    $errorDetails[] = [
+                        'row' => $rowNumber,
+                        'data' => $rowData,
+                        'error' => $result['message']
+                    ];
+                } else {
+                    if ($result['duplicate']) {
+                        $this->results['duplicates']++;
+                    } else {
+                        $this->results['success']++;
+                        if (isset($result['user_id'])) {
+                            $importedUserIds[] = $result['user_id'];
+                        }
+                    }
+                }
+            }
+
+            // Update import log
+            $this->importLogModel->update($importLogId, [
+                'total_rows' => $this->results['total'],
+                'success_count' => $this->results['success'],
+                'failed_count' => $this->results['failed'],
+                'duplicate_count' => $this->results['duplicates'],
+                'error_details' => json_encode($errorDetails),
+                'status' => 'completed',
+                'updated_at' => date('Y-m-d H:i:s'),
+            ]);
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                throw new \Exception('Transaction failed');
+            }
+
+            // Send activation emails
+            $emailResults = $this->sendActivationEmails($importedUserIds);
+
+            return [
+                'success' => true,
+                'message' => sprintf(
+                    'Import selesai: %d berhasil, %d gagal, %d duplikat dari %d data',
+                    $this->results['success'],
+                    $this->results['failed'],
+                    $this->results['duplicates'],
+                    $this->results['total']
+                ),
+                'data' => [
+                    'results' => $this->results,
+                    'import_log_id' => $importLogId,
+                    'email_results' => $emailResults,
+                ]
+            ];
+        } catch (\Exception $e) {
+            $db->transRollback();
+
+            // Update import log as failed
+            if (isset($importLogId)) {
+                $this->importLogModel->update($importLogId, [
+                    'status' => 'failed',
+                    'error_details' => json_encode(['error' => $e->getMessage()]),
+                    'updated_at' => date('Y-m-d H:i:s'),
+                ]);
+            }
+
+            log_message('error', 'Error in importWithActivation: ' . $e->getMessage());
+
+            return [
+                'success' => false,
+                'message' => 'Error import: ' . $e->getMessage(),
+                'data' => null
+            ];
+        }
+    }
+
+    /**
+     * Process single row with activation flow
+     * 
+     * @param array $rowData Row data
+     * @param int $rowNumber Row number
+     * @param int $importLogId Import log ID
+     * @return array
+     */
+    protected function processRowWithActivation(array $rowData, int $rowNumber, int $importLogId): array
+    {
+        try {
+            // Validate row
+            $validation = $this->validateRowData($rowData, $rowNumber);
+            if (!$validation['success']) {
+                return $validation;
+            }
+
+            // Check duplicate
+            $duplicate = $this->checkDuplicate($rowData);
+            if ($duplicate) {
+                return [
+                    'success' => false,
+                    'message' => 'Email atau username sudah terdaftar',
+                    'duplicate' => true
+                ];
+            }
+
+            // Create user with pending_activation status
+            $user = $this->createUserWithActivation($rowData);
+            if (!$user) {
+                throw new \Exception('Gagal membuat user account');
+            }
+
+            // Create member profile
+            $memberData = $this->prepareMemberDataFromRow($rowData, $user->id);
+            $memberData['imported_at'] = date('Y-m-d H:i:s');
+            $memberData['import_batch_id'] = $importLogId;
+            $memberData['membership_status'] = 'pending_activation';
+
+            $memberId = $this->memberModel->insert($memberData);
+
+            if (!$memberId) {
+                throw new \Exception('Gagal membuat member profile');
+            }
+
+            // Assign role 'anggota' (not calon_anggota)
+            $user->addGroup('anggota');
+
+            return [
+                'success' => true,
+                'message' => 'Data berhasil diimport',
+                'duplicate' => false,
+                'user_id' => $user->id
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+                'duplicate' => false
+            ];
+        }
+    }
+
+    /**
+     * Create user with activation token
+     * 
+     * @param array $rowData Row data
+     * @return object|null User entity
+     */
+    protected function createUserWithActivation(array $rowData): ?object
+    {
+        try {
+            $users = auth()->getProvider();
+
+            // Generate random password (will be changed on activation)
+            $tempPassword = $this->generateRandomPassword();
+
+            // Generate activation token
+            $activationToken = bin2hex(random_bytes(32));
+            $expiresAt = date('Y-m-d H:i:s', strtotime('+7 days'));
+
+            $user = new \CodeIgniter\Shield\Entities\User([
+                'username' => $rowData['username'],
+                'email'    => $rowData['email'],
+                'password' => $tempPassword,
+                'active'   => false, // Will be activated after email confirmation
+            ]);
+
+            $users->save($user);
+
+            // Create email identity
+            $user->createEmailIdentity([
+                'email' => $rowData['email'],
+                'password' => $tempPassword
+            ]);
+
+            // Update user with activation token
+            $this->userModel->update($user->id, [
+                'activation_token' => $activationToken,
+                'activation_token_expires_at' => $expiresAt,
+            ]);
+
+            // Reload user to get updated data
+            return $users->findById($user->id);
+        } catch (\Exception $e) {
+            log_message('error', 'Error creating user with activation: ' . $e->getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Send activation emails to imported members
+     * 
+     * @param array $userIds Array of user IDs
+     * @return array ['sent' => int, 'failed' => int, 'errors' => array]
+     */
+    public function sendActivationEmails(array $userIds): array
+    {
+        $results = [
+            'sent' => 0,
+            'failed' => 0,
+            'errors' => []
+        ];
+
+        foreach ($userIds as $userId) {
+            $user = $this->userModel->find($userId);
+
+            if (!$user || empty($user->activation_token)) {
+                $results['failed']++;
+                $results['errors'][] = "User ID {$userId}: Token not found";
+                continue;
+            }
+
+            try {
+                // Generate activation link
+                $activationLink = base_url("auth/activate/{$user->activation_token}");
+
+                // Format expiry date using CI4 Time class
+                $expiresAt = \CodeIgniter\I18n\Time::parse($user->activation_token_expires_at)
+                    ->toLocalizedString('dd MMMM yyyy HH:mm');
+
+                // Get member name
+                $member = $this->memberModel->where('user_id', $userId)->first();
+                $memberName = $member ? $member->full_name : $user->username;
+
+                // Prepare email data
+                $data = [
+                    'subject' => 'Aktivasi Akun SPK Anda',
+                    'name' => $memberName,
+                    'activation_link' => $activationLink,
+                    'expires_at' => $expiresAt,
+                ];
+
+                // Send email using sendTemplate method
+                $emailResult = $this->emailService->sendTemplate(
+                    $user->email,
+                    'emails/activation',
+                    $data
+                );
+
+                if ($emailResult['success']) {
+                    $results['sent']++;
+                } else {
+                    $results['failed']++;
+                    $results['errors'][] = "User ID {$userId}: " . $emailResult['message'];
+                }
+            } catch (\Exception $e) {
+                $results['failed']++;
+                $results['errors'][] = "User ID {$userId}: " . $e->getMessage();
+                log_message('error', "Failed to send activation email to user {$userId}: " . $e->getMessage());
+            }
+        }
+
+        return $results;
+    }
+
+    /**
+     * Re-send activation email to specific member
+     * 
+     * @param int $userId User ID
+     * @return array ['success' => bool, 'message' => string]
+     */
+    public function resendActivationEmail(int $userId): array
+    {
+        try {
+            $user = $this->userModel->find($userId);
+
+            if (!$user) {
+                return [
+                    'success' => false,
+                    'message' => 'User tidak ditemukan'
+                ];
+            }
+
+            // Check if already activated
+            if (!empty($user->activated_at)) {
+                return [
+                    'success' => false,
+                    'message' => 'Akun sudah diaktivasi'
+                ];
+            }
+
+            // Generate new token if expired
+            if (empty($user->activation_token) || strtotime($user->activation_token_expires_at) < time()) {
+                $activationToken = bin2hex(random_bytes(32));
+                $expiresAt = date('Y-m-d H:i:s', strtotime('+7 days'));
+
+                $this->userModel->update($userId, [
+                    'activation_token' => $activationToken,
+                    'activation_token_expires_at' => $expiresAt,
+                ]);
+
+                $user = $this->userModel->find($userId);
+            }
+
+            // Send email
+            $results = $this->sendActivationEmails([$userId]);
+
+            if ($results['sent'] > 0) {
+                return [
+                    'success' => true,
+                    'message' => 'Email aktivasi berhasil dikirim ulang'
+                ];
+            } else {
+                return [
+                    'success' => false,
+                    'message' => 'Gagal mengirim email: ' . implode(', ', $results['errors'])
+                ];
+            }
+        } catch (\Exception $e) {
+            log_message('error', 'Error resending activation email: ' . $e->getMessage());
+
+            return [
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Get activation statistics for import batch
+     * 
+     * @param int $importLogId Import log ID
+     * @return array
+     */
+    public function getActivationStats(int $importLogId): array
+    {
+        $members = $this->memberModel
+            ->select('member_profiles.*, users.activated_at, users.active')
+            ->join('users', 'users.id = member_profiles.user_id')
+            ->where('member_profiles.import_batch_id', $importLogId)
+            ->findAll();
+
+        $stats = [
+            'total' => count($members),
+            'activated' => 0,
+            'pending' => 0,
+            'expired' => 0,
+        ];
+
+        foreach ($members as $member) {
+            if (!empty($member->activated_at)) {
+                $stats['activated']++;
+            } else {
+                // Check if token expired
+                $user = $this->userModel->find($member->user_id);
+                if ($user && strtotime($user->activation_token_expires_at) < time()) {
+                    $stats['expired']++;
+                } else {
+                    $stats['pending']++;
+                }
+            }
+        }
+
+        $stats['activation_rate'] = $stats['total'] > 0
+            ? round(($stats['activated'] / $stats['total']) * 100, 2)
+            : 0;
+
+        return $stats;
     }
 
     /**

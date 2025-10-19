@@ -3,7 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
-use App\Services\BulkImportService;
+use App\Services\Member\BulkImportService;
 use App\Services\FileUploadService;
 use App\Models\ImportLogModel;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -335,7 +335,7 @@ class BulkImportController extends BaseController
             }
 
             // Upload file to temp directory
-            $result = $this->fileUploadService->uploadFile($file, 'imports');
+            $result = $this->fileUploadService->upload($file, 'import');
 
             if (!$result['success']) {
                 return $this->response->setJSON([
@@ -392,7 +392,7 @@ class BulkImportController extends BaseController
 
         try {
             // Parse and validate file
-            $result = $this->importService->parseFile($fileInfo['path']);
+            $result = $this->importService->import($fileInfo['path'], ['preview_only' => true]);
 
             if (!$result['success']) {
                 return redirect()->to('/admin/members/import')->with('error', $result['message']);
@@ -401,10 +401,10 @@ class BulkImportController extends BaseController
             $data = [
                 'title' => 'Preview Data Import',
                 'file_info' => $fileInfo,
-                'preview_data' => $result['data']['rows'],
-                'total_rows' => $result['data']['total_rows'],
-                'valid_rows' => $result['data']['valid_rows'],
-                'invalid_rows' => $result['data']['invalid_rows'],
+                'preview_data' => $result['data']['rows'] ?? [],
+                'total_rows' => $result['data']['total'] ?? 0,
+                'valid_rows' => $result['data']['success'] ?? 0,
+                'invalid_rows' => $result['data']['failed'] ?? 0,
                 'errors' => $result['data']['errors'] ?? []
             ];
 
@@ -439,15 +439,15 @@ class BulkImportController extends BaseController
             $user = auth()->user();
 
             // Process import using service
-            $result = $this->importService->importMembers($fileInfo['path'], $user->id);
+            $result = $this->importService->importWithActivation($fileInfo['path'], $user->id);
 
             // Log import activity
             $this->importLogModel->insert([
                 'user_id' => $user->id,
                 'filename' => $fileInfo['original_name'],
-                'total_rows' => $result['data']['total_rows'] ?? 0,
-                'success_rows' => $result['data']['success_count'] ?? 0,
-                'failed_rows' => $result['data']['failed_count'] ?? 0,
+                'total_rows' => $result['data']['total'] ?? 0,
+                'success_rows' => $result['data']['success'] ?? 0,
+                'failed_rows' => $result['data']['failed'] ?? 0,
                 'status' => $result['success'] ? 'completed' : 'failed',
                 'error_log' => !empty($result['data']['errors']) ? json_encode($result['data']['errors']) : null,
                 'created_at' => date('Y-m-d H:i:s')
@@ -582,5 +582,241 @@ class BulkImportController extends BaseController
         session()->remove('import_file');
 
         return redirect()->to('/admin/members/import')->with('info', 'Import dibatalkan');
+    }
+
+    /**
+     * Process import with activation flow
+     * Import members with pending_activation status and send activation emails
+     * 
+     * @return ResponseInterface
+     */
+    public function processWithActivation(): ResponseInterface
+    {
+        // Check permission
+        if (!auth()->user()->can('member.import')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Anda tidak memiliki izin untuk mengimpor data'
+            ])->setStatusCode(403);
+        }
+
+        // Get file info from session
+        $fileInfo = session()->get('import_file');
+
+        if (!$fileInfo || !file_exists($fileInfo['path'])) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'File tidak ditemukan. Silakan upload ulang.'
+            ])->setStatusCode(400);
+        }
+
+        try {
+            $userId = auth()->user()->id;
+
+            // Process import with activation flow
+            $result = $this->importService->importWithActivation($fileInfo['path'], $userId);
+
+            // Clean up temp file
+            if (file_exists($fileInfo['path'])) {
+                unlink($fileInfo['path']);
+            }
+
+            // Clear session
+            session()->remove('import_file');
+
+            if ($result['success']) {
+                return $this->response->setJSON([
+                    'success' => true,
+                    'message' => $result['message'],
+                    'data' => $result['data'],
+                    'redirect_url' => site_url('admin/bulk_import/result/' . $result['data']['import_log_id'])
+                ]);
+            }
+
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => $result['message']
+            ])->setStatusCode(400);
+        } catch (\Exception $e) {
+            log_message('error', 'Error in processWithActivation: ' . $e->getMessage());
+
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal memproses import: ' . $e->getMessage()
+            ])->setStatusCode(500);
+        }
+    }
+
+    /**
+     * Show import result with activation stats
+     * 
+     * @param int $importLogId Import log ID
+     * @return string|ResponseInterface
+     */
+    public function result(int $importLogId)
+    {
+        // Check permission
+        if (!auth()->user()->can('member.import')) {
+            return redirect()->back()->with('error', 'Anda tidak memiliki akses');
+        }
+
+        try {
+            $importLog = $this->importLogModel->find($importLogId);
+
+            if (!$importLog) {
+                return redirect()->to('admin/bulk_import')
+                    ->with('error', 'Import log tidak ditemukan');
+            }
+
+            // Get activation stats
+            $activationStats = $this->importService->getActivationStats($importLogId);
+
+            // Get error details
+            $errorDetails = $this->importLogModel->getErrorDetails($importLogId);
+
+            $data = [
+                'title' => 'Hasil Import',
+                'importLog' => $importLog,
+                'activationStats' => $activationStats,
+                'errorDetails' => $errorDetails,
+            ];
+
+            return view('admin/bulk_import/result', $data);
+        } catch (\Exception $e) {
+            log_message('error', 'Error showing result: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Resend activation email to specific member
+     * 
+     * @param int $userId User ID
+     * @return ResponseInterface
+     */
+    public function resendActivation(int $userId): ResponseInterface
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid request'
+            ])->setStatusCode(400);
+        }
+
+        // Check permission
+        if (!auth()->user()->can('member.import')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses'
+            ])->setStatusCode(403);
+        }
+
+        try {
+            $result = $this->importService->resendActivationEmail($userId);
+
+            return $this->response->setJSON($result);
+        } catch (\Exception $e) {
+            log_message('error', 'Error resending activation: ' . $e->getMessage());
+
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ])->setStatusCode(500);
+        }
+    }
+
+    /**
+     * Download error report as CSV
+     * 
+     * @param int $importLogId Import log ID
+     * @return ResponseInterface
+     */
+    public function downloadErrorReport(int $importLogId): ResponseInterface
+    {
+        // Check permission
+        if (!auth()->user()->can('member.import')) {
+            return redirect()->back()->with('error', 'Anda tidak memiliki akses');
+        }
+
+        try {
+            $importLog = $this->importLogModel->find($importLogId);
+
+            if (!$importLog) {
+                return redirect()->back()->with('error', 'Import log tidak ditemukan');
+            }
+
+            $errorDetails = $this->importLogModel->getErrorDetails($importLogId);
+
+            if (empty($errorDetails)) {
+                return redirect()->back()->with('error', 'Tidak ada error untuk diunduh');
+            }
+
+            // Generate CSV
+            $filename = 'error_report_' . $importLogId . '_' . date('YmdHis') . '.csv';
+            $filepath = WRITEPATH . 'uploads/' . $filename;
+
+            $fp = fopen($filepath, 'w');
+
+            // Header
+            fputcsv($fp, ['Row', 'Error', 'Email', 'Username', 'Full Name']);
+
+            // Data
+            foreach ($errorDetails as $error) {
+                fputcsv($fp, [
+                    $error['row'],
+                    $error['error'],
+                    $error['data']['email'] ?? '',
+                    $error['data']['username'] ?? '',
+                    $error['data']['full_name'] ?? '',
+                ]);
+            }
+
+            fclose($fp);
+
+            return $this->response->download($filepath, null)->setFileName($filename);
+        } catch (\Exception $e) {
+            log_message('error', 'Error downloading error report: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get activation statistics for AJAX
+     * 
+     * @param int $importLogId Import log ID
+     * @return ResponseInterface
+     */
+    public function getActivationStats(int $importLogId): ResponseInterface
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid request'
+            ])->setStatusCode(400);
+        }
+
+        // Check permission
+        if (!auth()->user()->can('member.import')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Anda tidak memiliki akses'
+            ])->setStatusCode(403);
+        }
+
+        try {
+            $stats = $this->importService->getActivationStats($importLogId);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $stats
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error getting activation stats: ' . $e->getMessage());
+
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ])->setStatusCode(500);
+        }
     }
 }
