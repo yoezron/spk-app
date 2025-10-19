@@ -22,19 +22,17 @@ class UniversityModel extends Model
     protected $returnType       = 'object';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
+
+    // FIX: Sesuaikan dengan database schema dari migration
     protected $allowedFields    = [
+        'code',
         'name',
         'short_name',
-        'university_type_id',
+        'type',              // Negeri, Swasta, Kedinasan
         'province_id',
         'regency_id',
         'address',
-        'phone',
-        'email',
         'website',
-        'accreditation',
-        'npsn',
-        'status',
         'is_active'
     ];
 
@@ -44,18 +42,16 @@ class UniversityModel extends Model
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
 
-    // Validation
+    // Validation - FIX: Sesuaikan dengan field yang ada di database
     protected $validationRules = [
-        'name'               => 'required|min_length[3]|max_length[255]',
-        'short_name'         => 'permit_empty|max_length[50]',
-        'university_type_id' => 'required|integer|is_not_unique[university_types.id]',
-        'province_id'        => 'permit_empty|integer|is_not_unique[provinces.id]',
-        'regency_id'         => 'permit_empty|integer|is_not_unique[regencies.id]',
-        'email'              => 'permit_empty|valid_email',
-        'website'            => 'permit_empty|valid_url_strict',
-        'accreditation'      => 'permit_empty|in_list[A,B,C,Unggul,Baik Sekali,Baik]',
-        'status'             => 'permit_empty|in_list[Aktif,Non-Aktif,Tutup]',
-        'is_active'          => 'permit_empty|in_list[0,1]',
+        'name'        => 'required|min_length[3]|max_length[255]',
+        'short_name'  => 'permit_empty|max_length[50]',
+        'type'        => 'required|in_list[Negeri,Swasta,Kedinasan]',
+        'province_id' => 'permit_empty|integer',
+        'regency_id'  => 'permit_empty|integer',
+        'code'        => 'permit_empty|max_length[20]',
+        'website'     => 'permit_empty|valid_url_strict',
+        'is_active'   => 'permit_empty|in_list[0,1]',
     ];
 
     protected $validationMessages = [
@@ -64,19 +60,12 @@ class UniversityModel extends Model
             'min_length' => 'Nama minimal 3 karakter',
             'max_length' => 'Nama maksimal 255 karakter',
         ],
-        'university_type_id' => [
-            'required'      => 'Jenis PT harus dipilih',
-            'integer'       => 'ID Jenis PT tidak valid',
-            'is_not_unique' => 'Jenis PT tidak ditemukan',
-        ],
-        'email' => [
-            'valid_email' => 'Format email tidak valid',
+        'type' => [
+            'required' => 'Jenis PT harus dipilih',
+            'in_list'  => 'Jenis PT tidak valid (Negeri/Swasta/Kedinasan)',
         ],
         'website' => [
             'valid_url_strict' => 'Format website tidak valid',
-        ],
-        'accreditation' => [
-            'in_list' => 'Akreditasi tidak valid',
         ],
     ];
 
@@ -88,17 +77,6 @@ class UniversityModel extends Model
     // ========================================
     // RELATIONSHIPS
     // ========================================
-
-    /**
-     * Get university with type data
-     * 
-     * @return object
-     */
-    public function withType()
-    {
-        return $this->select('universities.*, university_types.name as type_name, university_types.category as type_category')
-            ->join('university_types', 'university_types.id = universities.university_type_id', 'left');
-    }
 
     /**
      * Get university with province data
@@ -152,10 +130,8 @@ class UniversityModel extends Model
     public function withComplete()
     {
         return $this->select('universities.*')
-            ->select('university_types.name as type_name, university_types.category as type_category')
             ->select('provinces.name as province_name')
             ->select('regencies.name as regency_name, regencies.type as regency_type')
-            ->join('university_types', 'university_types.id = universities.university_type_id', 'left')
             ->join('provinces', 'provinces.id = universities.province_id', 'left')
             ->join('regencies', 'regencies.id = universities.regency_id', 'left');
     }
@@ -168,12 +144,10 @@ class UniversityModel extends Model
     public function withStats()
     {
         return $this->select('universities.*')
-            ->select('university_types.name as type_name, university_types.category as type_category')
             ->select('provinces.name as province_name')
             ->select('(SELECT COUNT(*) FROM study_programs WHERE study_programs.university_id = universities.id) as programs_count')
             ->select('(SELECT COUNT(*) FROM member_profiles WHERE member_profiles.university_id = universities.id) as members_count')
             ->select('(SELECT COUNT(*) FROM member_profiles WHERE member_profiles.university_id = universities.id AND member_profiles.membership_status = "active") as active_members_count')
-            ->join('university_types', 'university_types.id = universities.university_type_id', 'left')
             ->join('provinces', 'provinces.id = universities.province_id', 'left');
     }
 
@@ -182,27 +156,14 @@ class UniversityModel extends Model
     // ========================================
 
     /**
-     * Get universities by type ID
+     * Get universities by type (Negeri/Swasta/Kedinasan)
      * 
-     * @param int $typeId University type ID
+     * @param string $type Type: 'Negeri', 'Swasta', or 'Kedinasan'
      * @return object
      */
-    public function byType(int $typeId)
+    public function byType(string $type)
     {
-        return $this->where('university_type_id', $typeId);
-    }
-
-    /**
-     * Get universities by type category (Negeri/Swasta)
-     * 
-     * @param string $category Category: 'Negeri' or 'Swasta'
-     * @return object
-     */
-    public function byCategory(string $category)
-    {
-        return $this->select('universities.*')
-            ->join('university_types', 'university_types.id = universities.university_type_id', 'inner')
-            ->where('university_types.category', $category);
+        return $this->where('type', $type);
     }
 
     /**
@@ -212,7 +173,7 @@ class UniversityModel extends Model
      */
     public function negeri()
     {
-        return $this->byCategory('Negeri');
+        return $this->where('type', 'Negeri');
     }
 
     /**
@@ -222,7 +183,17 @@ class UniversityModel extends Model
      */
     public function swasta()
     {
-        return $this->byCategory('Swasta');
+        return $this->where('type', 'Swasta');
+    }
+
+    /**
+     * Get PTK (Perguruan Tinggi Kedinasan) only
+     * 
+     * @return object
+     */
+    public function kedinasan()
+    {
+        return $this->where('type', 'Kedinasan');
     }
 
     /**
@@ -248,25 +219,13 @@ class UniversityModel extends Model
     }
 
     /**
-     * Get universities by accreditation
-     * 
-     * @param string $accreditation Accreditation level
-     * @return object
-     */
-    public function byAccreditation(string $accreditation)
-    {
-        return $this->where('accreditation', $accreditation);
-    }
-
-    /**
      * Get active universities only
      * 
      * @return object
      */
     public function active()
     {
-        return $this->where('is_active', 1)
-            ->where('status', 'Aktif');
+        return $this->where('is_active', 1);
     }
 
     /**
@@ -292,7 +251,7 @@ class UniversityModel extends Model
         return $this->groupStart()
             ->like('name', $keyword)
             ->orLike('short_name', $keyword)
-            ->orLike('npsn', $keyword)
+            ->orLike('code', $keyword)
             ->groupEnd();
     }
 
@@ -332,14 +291,14 @@ class UniversityModel extends Model
     }
 
     /**
-     * Get university by NPSN
+     * Get university by code
      * 
-     * @param string $npsn NPSN code
+     * @param string $code University code
      * @return object|null
      */
-    public function getByNPSN(string $npsn)
+    public function getByCode(string $code)
     {
-        return $this->where('npsn', $npsn)->first();
+        return $this->where('code', $code)->first();
     }
 
     /**
@@ -359,27 +318,19 @@ class UniversityModel extends Model
     /**
      * Get universities with statistics
      * 
-     * @param array $filters Filters: type_id, province_id, category, accreditation
+     * @param array $filters Filters: type, province_id
      * @return array
      */
     public function getAllWithStats(array $filters = []): array
     {
         $builder = $this->withStats();
 
-        if (!empty($filters['type_id'])) {
-            $builder->where('universities.university_type_id', $filters['type_id']);
+        if (!empty($filters['type'])) {
+            $builder->where('universities.type', $filters['type']);
         }
 
         if (!empty($filters['province_id'])) {
             $builder->where('universities.province_id', $filters['province_id']);
-        }
-
-        if (!empty($filters['category'])) {
-            $builder->where('university_types.category', $filters['category']);
-        }
-
-        if (!empty($filters['accreditation'])) {
-            $builder->where('universities.accreditation', $filters['accreditation']);
         }
 
         if (isset($filters['is_active'])) {
@@ -404,8 +355,8 @@ class UniversityModel extends Model
             $builder->where('universities.province_id', $filters['province_id']);
         }
 
-        if (!empty($filters['category'])) {
-            $builder->where('university_types.category', $filters['category']);
+        if (!empty($filters['type'])) {
+            $builder->where('universities.type', $filters['type']);
         }
 
         return $builder->orderBy('members_count', 'DESC')
@@ -417,23 +368,19 @@ class UniversityModel extends Model
      * Get universities for dropdown
      * Format: ['id' => 'name (type)']
      * 
-     * @param array $filters Optional filters: province_id, type_id, category
+     * @param array $filters Optional filters: province_id, type
      * @return array
      */
     public function getDropdown(array $filters = []): array
     {
-        $builder = $this->withType()->active()->orderBy('universities.name', 'ASC');
+        $builder = $this->active()->orderBy('universities.name', 'ASC');
 
         if (!empty($filters['province_id'])) {
             $builder->where('universities.province_id', $filters['province_id']);
         }
 
-        if (!empty($filters['type_id'])) {
-            $builder->where('universities.university_type_id', $filters['type_id']);
-        }
-
-        if (!empty($filters['category'])) {
-            $builder->where('university_types.category', $filters['category']);
+        if (!empty($filters['type'])) {
+            $builder->where('universities.type', $filters['type']);
         }
 
         $universities = $builder->findAll();
@@ -441,8 +388,8 @@ class UniversityModel extends Model
         $dropdown = [];
         foreach ($universities as $university) {
             $label = $university->name;
-            if (!empty($university->type_name)) {
-                $label .= ' (' . $university->type_name . ')';
+            if (!empty($university->type)) {
+                $label .= ' (' . $university->type . ')';
             }
             $dropdown[$university->id] = $label;
         }
@@ -453,15 +400,15 @@ class UniversityModel extends Model
     /**
      * Get universities grouped by province
      * 
-     * @param string|null $category Filter by category (Negeri/Swasta)
+     * @param string|null $type Filter by type (Negeri/Swasta/Kedinasan)
      * @return array
      */
-    public function getGroupedByProvince(?string $category = null): array
+    public function getGroupedByProvince(?string $type = null): array
     {
         $builder = $this->withComplete()->active();
 
-        if ($category) {
-            $builder->where('university_types.category', $category);
+        if ($type) {
+            $builder->where('universities.type', $type);
         }
 
         $universities = $builder->orderBy('provinces.name', 'ASC')
@@ -532,10 +479,8 @@ class UniversityModel extends Model
         return [
             'university_name'      => $university->name,
             'short_name'           => $university->short_name,
-            'type_name'            => $university->type_name,
-            'type_category'        => $university->type_category,
+            'type'                 => $university->type,
             'province_name'        => $university->province_name,
-            'accreditation'        => $university->accreditation,
             'programs_count'       => $university->programs_count ?? 0,
             'members_count'        => $university->members_count ?? 0,
             'active_members_count' => $university->active_members_count ?? 0,
@@ -543,26 +488,25 @@ class UniversityModel extends Model
     }
 
     /**
-     * Get count by category (Negeri vs Swasta)
+     * Get count by type (Negeri vs Swasta vs Kedinasan)
      * 
      * @param int|null $provinceId Filter by province
      * @return array
      */
-    public function getCountByCategory(?int $provinceId = null): array
+    public function getCountByType(?int $provinceId = null): array
     {
-        $builder = $this->select('university_types.category, COUNT(*) as count')
-            ->join('university_types', 'university_types.id = universities.university_type_id', 'inner')
-            ->groupBy('university_types.category');
+        $builder = $this->select('type, COUNT(*) as count')
+            ->groupBy('type');
 
         if ($provinceId) {
-            $builder->where('universities.province_id', $provinceId);
+            $builder->where('province_id', $provinceId);
         }
 
         $results = $builder->findAll();
 
-        $counts = ['Negeri' => 0, 'Swasta' => 0];
+        $counts = ['Negeri' => 0, 'Swasta' => 0, 'Kedinasan' => 0];
         foreach ($results as $result) {
-            $counts[$result->category] = (int)$result->count;
+            $counts[$result->type] = (int)$result->count;
         }
 
         return $counts;
@@ -641,16 +585,11 @@ class UniversityModel extends Model
                 'ID'              => $university->id,
                 'Nama PT'         => $university->name,
                 'Singkatan'       => $university->short_name,
-                'Jenis PT'        => $university->type_name,
-                'Kategori'        => $university->type_category,
+                'Jenis PT'        => $university->type,
                 'Provinsi'        => $university->province_name,
                 'Alamat'          => $university->address,
-                'Telepon'         => $university->phone,
-                'Email'           => $university->email,
                 'Website'         => $university->website,
-                'Akreditasi'      => $university->accreditation,
-                'NPSN'            => $university->npsn,
-                'Status'          => $university->status,
+                'Kode'            => $university->code,
                 'Jumlah Prodi'    => $university->programs_count ?? 0,
                 'Jumlah Anggota'  => $university->members_count ?? 0,
                 'Anggota Aktif'   => $university->active_members_count ?? 0,

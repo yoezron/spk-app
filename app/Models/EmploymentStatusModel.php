@@ -24,9 +24,7 @@ class EmploymentStatusModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'name',
-        'code',
         'description',
-        'display_order',
         'is_active'
     ];
 

@@ -293,8 +293,8 @@ $routes->group('super', ['namespace' => 'App\Controllers\Super', 'filter' => 'ro
     $routes->get('menus/preview', 'MenuController::preview');
     $routes->get('menus/preview/(:segment)', 'MenuController::preview/$1');
 
-    // Master Data Management - HAPUS semua filter
-    $routes->group('master-data', function ($routes) {
+    // Master Data Management
+    $routes->group('master', function ($routes) {
         // Provinces
         $routes->get('provinces', 'MasterDataController::provinces');
         $routes->post('provinces/store', 'MasterDataController::storeProvince');
@@ -318,6 +318,18 @@ $routes->group('super', ['namespace' => 'App\Controllers\Super', 'filter' => 'ro
         $routes->post('study-programs/store', 'MasterDataController::storeStudyProgram');
         $routes->post('study-programs/(:num)/update', 'MasterDataController::updateStudyProgram/$1');
         $routes->post('study-programs/(:num)/delete', 'MasterDataController::deleteStudyProgram/$1');
+
+        // Employment Status (BARU)
+        $routes->get('employment-status', 'MasterDataController::employmentStatus');
+        $routes->post('employment-status/store', 'MasterDataController::storeEmploymentStatus');
+        $routes->post('employment-status/(:num)/update', 'MasterDataController::updateEmploymentStatus/$1');
+        $routes->post('employment-status/(:num)/delete', 'MasterDataController::deleteEmploymentStatus/$1');
+
+        // Salary Ranges (BARU)
+        $routes->get('salary-ranges', 'MasterDataController::salaryRanges');
+        $routes->post('salary-ranges/store', 'MasterDataController::storeSalaryRange');
+        $routes->post('salary-ranges/(:num)/update', 'MasterDataController::updateSalaryRange/$1');
+        $routes->post('salary-ranges/(:num)/delete', 'MasterDataController::deleteSalaryRange/$1');
 
         // Export
         $routes->get('export/(:segment)', 'MasterDataController::export/$1');

@@ -24,8 +24,8 @@ class SalaryRangeModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'name',
-        'min_salary',
-        'max_salary',
+        'min_amount',
+        'max_amount',
         'description',
         'display_order',
         'is_active'
@@ -40,8 +40,8 @@ class SalaryRangeModel extends Model
     // Validation
     protected $validationRules = [
         'name'          => 'required|min_length[3]|max_length[100]',
-        'min_salary'    => 'permit_empty|integer',
-        'max_salary'    => 'permit_empty|integer|greater_than_equal_to[min_salary]',
+        'min_amount'    => 'permit_empty|decimal',
+        'max_amount'    => 'permit_empty|decimal',
         'description'   => 'permit_empty|max_length[500]',
         'display_order' => 'permit_empty|integer',
         'is_active'     => 'permit_empty|in_list[0,1]',
@@ -53,7 +53,7 @@ class SalaryRangeModel extends Model
             'min_length' => 'Nama minimal 3 karakter',
             'max_length' => 'Nama maksimal 100 karakter',
         ],
-        'max_salary' => [
+        'max_amount' => [
             'greater_than_equal_to' => 'Gaji maksimal harus lebih besar atau sama dengan gaji minimal',
         ],
     ];
@@ -91,7 +91,7 @@ class SalaryRangeModel extends Model
     {
         return $this->where('is_active', 1)
             ->orderBy('display_order', 'ASC')
-            ->orderBy('min_salary', 'ASC')
+            ->orderBy('min_amount', 'ASC')
             ->findAll();
     }
 
@@ -103,7 +103,7 @@ class SalaryRangeModel extends Model
     public function getAllOrdered()
     {
         return $this->orderBy('display_order', 'ASC')
-            ->orderBy('min_salary', 'ASC')
+            ->orderBy('min_amount', 'ASC')
             ->findAll();
     }
 
@@ -118,7 +118,7 @@ class SalaryRangeModel extends Model
         return $this->like('name', $keyword)
             ->orLike('description', $keyword)
             ->where('is_active', 1)
-            ->orderBy('min_salary', 'ASC')
+            ->orderBy('min_amount', 'ASC')
             ->findAll();
     }
 
@@ -131,7 +131,7 @@ class SalaryRangeModel extends Model
     {
         $ranges = $this->where('is_active', 1)
             ->orderBy('display_order', 'ASC')
-            ->orderBy('min_salary', 'ASC')
+            ->orderBy('min_amount', 'ASC')
             ->findAll();
 
         $options = [];
@@ -162,8 +162,8 @@ class SalaryRangeModel extends Model
      */
     public function getByRange($minSalary, $maxSalary)
     {
-        return $this->where('min_salary', $minSalary)
-            ->where('max_salary', $maxSalary)
+        return $this->where('min_amount', $minSalary)
+            ->where('max_amount', $maxSalary)
             ->first();
     }
 
@@ -175,8 +175,8 @@ class SalaryRangeModel extends Model
      */
     public function findForSalary($salary)
     {
-        return $this->where('min_salary <=', $salary)
-            ->where('max_salary >=', $salary)
+        return $this->where('min_amount <=', $salary)
+            ->where('max_amount >=', $salary)
             ->where('is_active', 1)
             ->first();
     }
@@ -258,11 +258,11 @@ class SalaryRangeModel extends Model
      */
     public function getMembersDistribution()
     {
-        return $this->select('salary_ranges.name, salary_ranges.min_salary, salary_ranges.max_salary, COUNT(member_profiles.id) as total')
+        return $this->select('salary_ranges.name, salary_ranges.min_amount, salary_ranges.max_amount, COUNT(member_profiles.id) as total')
             ->join('member_profiles', 'member_profiles.salary_range_id = salary_ranges.id', 'left')
             ->where('salary_ranges.is_active', 1)
             ->groupBy('salary_ranges.id')
-            ->orderBy('salary_ranges.min_salary', 'ASC')
+            ->orderBy('salary_ranges.min_amount', 'ASC')
             ->findAll();
     }
 
@@ -306,12 +306,12 @@ class SalaryRangeModel extends Model
      */
     public function formatRange($range)
     {
-        if ($range->min_salary && $range->max_salary) {
-            return 'Rp ' . number_format($range->min_salary, 0, ',', '.') . ' - Rp ' . number_format($range->max_salary, 0, ',', '.');
-        } elseif ($range->min_salary) {
-            return '> Rp ' . number_format($range->min_salary, 0, ',', '.');
-        } elseif ($range->max_salary) {
-            return '< Rp ' . number_format($range->max_salary, 0, ',', '.');
+        if ($range->min_amount && $range->max_amount) {
+            return 'Rp ' . number_format($range->min_amount, 0, ',', '.') . ' - Rp ' . number_format($range->max_amount, 0, ',', '.');
+        } elseif ($range->min_amount) {
+            return '> Rp ' . number_format($range->min_amount, 0, ',', '.');
+        } elseif ($range->max_amount) {
+            return '< Rp ' . number_format($range->max_amount, 0, ',', '.');
         }
 
         return $range->name;

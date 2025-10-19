@@ -225,7 +225,7 @@ $session = session();
 
                     <!-- Master Data -->
                     <li class="sidebar-title">Data Management</li>
-                    <li class="<?= (strpos(uri_string(), 'super/master-data') !== false) ? 'active-page' : '' ?>">
+                    <li class="<?= (strpos(uri_string(), 'super/master') !== false) ? 'active-page' : '' ?>">
                         <a href="#" class="menu-item">
                             <i class="fas fa-database"></i>
                             <span>Master Data</span>
@@ -233,32 +233,32 @@ $session = session();
                         </a>
                         <ul class="sub-menu">
                             <li>
-                                <a href="<?= base_url('super/master-data/provinces') ?>">
+                                <a href="<?= base_url('super/master/provinces') ?>">
                                     <i class="fas fa-map-marked-alt"></i> Provinsi
                                 </a>
                             </li>
                             <li>
-                                <a href="<?= base_url('super/master-data/regencies') ?>">
+                                <a href="<?= base_url('super/master/regencies') ?>">
                                     <i class="fas fa-city"></i> Kabupaten/Kota
                                 </a>
                             </li>
                             <li>
-                                <a href="<?= base_url('super/master-data/universities') ?>">
+                                <a href="<?= base_url('super/master/universities') ?>">
                                     <i class="fas fa-university"></i> Perguruan Tinggi
                                 </a>
                             </li>
                             <li>
-                                <a href="<?= base_url('super/master-data/study-programs') ?>">
+                                <a href="<?= base_url('super/master/study-programs') ?>">
                                     <i class="fas fa-graduation-cap"></i> Program Studi
                                 </a>
                             </li>
                             <li>
-                                <a href="<?= base_url('super/master-data/employment-status') ?>">
+                                <a href="<?= base_url('super/master/employment-status') ?>">
                                     <i class="fas fa-id-badge"></i> Status Kepegawaian
                                 </a>
                             </li>
                             <li>
-                                <a href="<?= base_url('super/master-data/salary-ranges') ?>">
+                                <a href="<?= base_url('super/master/salary-ranges') ?>">
                                     <i class="fas fa-money-bill-wave"></i> Range Gaji
                                 </a>
                             </li>
@@ -561,15 +561,6 @@ $session = session();
                 });
             }, 5000);
 
-            // Initialize DataTables globally
-            if ($.fn.DataTable) {
-                $('.datatable').DataTable({
-                    responsive: true,
-                    language: {
-                        url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/id.json'
-                    }
-                });
-            }
 
             // CSRF Token Update for AJAX
             $.ajaxSetup({

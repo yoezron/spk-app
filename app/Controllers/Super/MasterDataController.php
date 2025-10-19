@@ -8,6 +8,8 @@ use App\Models\RegencyModel;
 use App\Models\UniversityModel;
 use App\Models\StudyProgramModel;
 use App\Models\MemberProfileModel;
+use App\Models\EmploymentStatusModel;
+use App\Models\SalaryRangeModel;
 use CodeIgniter\HTTP\RedirectResponse;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
@@ -51,6 +53,16 @@ class MasterDataController extends BaseController
     protected $memberModel;
 
     /**
+     * @var EmploymentStatusModel
+     */
+    protected $employmentStatusModel;
+
+    /**
+     * @var SalaryRangeModel
+     */
+    protected $salaryRangeModel;
+
+    /**
      * Constructor - Dependency Injection
      */
     public function __construct()
@@ -60,6 +72,8 @@ class MasterDataController extends BaseController
         $this->universityModel = new UniversityModel();
         $this->studyProgramModel = new StudyProgramModel();
         $this->memberModel = new MemberProfileModel();
+        $this->employmentStatusModel = new EmploymentStatusModel();
+        $this->salaryRangeModel = new SalaryRangeModel();
     }
 
     // ========================================
@@ -315,7 +329,7 @@ class MasterDataController extends BaseController
         $rules = [
             'province_id' => 'required|integer|is_not_unique[provinces.id]',
             'name' => 'required|min_length[3]|max_length[100]',
-            'code' => 'permit_empty|max_length[10]'
+            'code' => 'permit_empty|max_length[10]',
         ];
 
         if (!$this->validate($rules)) {
@@ -328,7 +342,8 @@ class MasterDataController extends BaseController
             $data = [
                 'province_id' => $this->request->getPost('province_id'),
                 'name' => $this->request->getPost('name'),
-                'code' => $this->request->getPost('code') ?: null
+                'code' => $this->request->getPost('code') ?: null,
+                'type' => 'Kabupaten'
             ];
 
             $this->regencyModel->insert($data);
@@ -375,7 +390,8 @@ class MasterDataController extends BaseController
             $data = [
                 'province_id' => $this->request->getPost('province_id'),
                 'name' => $this->request->getPost('name'),
-                'code' => $this->request->getPost('code') ?: null
+                'code' => $this->request->getPost('code') ?: null,
+                'type' => 'Kabupaten'
             ];
 
             $this->regencyModel->update($id, $data);
@@ -424,7 +440,7 @@ class MasterDataController extends BaseController
     }
 
     // ========================================
-    // UNIVERSITIES MANAGEMENT
+    // UNIVERSITIES MANAGEMENT - FIXED
     // ========================================
 
     /**
@@ -445,7 +461,7 @@ class MasterDataController extends BaseController
 
         $builder = $this->universityModel
             ->select('universities.*, 
-                      COUNT(DISTINCT member_profiles.id) as member_count')
+                  COUNT(DISTINCT member_profiles.id) as member_count')
             ->join('member_profiles', 'member_profiles.university_id = universities.id', 'left')
             ->groupBy('universities.id');
 
@@ -492,7 +508,7 @@ class MasterDataController extends BaseController
                 ]
             ],
             'type' => [
-                'rules' => 'required|in_list[Universitas,Institut,Sekolah Tinggi,Politeknik,Akademi]',
+                'rules' => 'required|in_list[Negeri,Swasta,Kedinasan]',
                 'errors' => [
                     'required' => 'Jenis PT wajib dipilih',
                     'in_list' => 'Jenis PT tidak valid'
@@ -512,7 +528,8 @@ class MasterDataController extends BaseController
                 'name' => $this->request->getPost('name'),
                 'type' => $this->request->getPost('type'),
                 'code' => $this->request->getPost('code') ?: null,
-                'address' => $this->request->getPost('address') ?: null
+                'address' => $this->request->getPost('address') ?: null,
+                'is_active' => 1
             ];
 
             $this->universityModel->insert($data);
@@ -521,7 +538,7 @@ class MasterDataController extends BaseController
                 ->with('success', 'Perguruan Tinggi berhasil ditambahkan.');
         } catch (\Exception $e) {
             log_message('error', 'Error creating university: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Gagal menambahkan perguruan tinggi.');
+            return redirect()->back()->with('error', 'Gagal menambahkan perguruan tinggi: ' . $e->getMessage());
         }
     }
 
@@ -545,7 +562,7 @@ class MasterDataController extends BaseController
 
         $rules = [
             'name' => 'required|min_length[3]|max_length[255]',
-            'type' => 'required|in_list[Universitas,Institut,Sekolah Tinggi,Politeknik,Akademi]',
+            'type' => 'required|in_list[Negeri,Swasta,Kedinasan]',
             'code' => 'permit_empty|max_length[20]'
         ];
 
@@ -569,7 +586,7 @@ class MasterDataController extends BaseController
                 ->with('success', 'Perguruan Tinggi berhasil diupdate.');
         } catch (\Exception $e) {
             log_message('error', 'Error updating university: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Gagal mengupdate perguruan tinggi.');
+            return redirect()->back()->with('error', 'Gagal mengupdate perguruan tinggi: ' . $e->getMessage());
         }
     }
 
@@ -889,6 +906,360 @@ class MasterDataController extends BaseController
         } catch (\Exception $e) {
             log_message('error', 'Error exporting master data: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal export data.');
+        }
+    }
+
+    // ========================================
+    // EMPLOYMENT STATUS MANAGEMENT
+    // ========================================
+
+    /**
+     * Display list of employment statuses
+     * 
+     * @return string|RedirectResponse
+     */
+    public function employmentStatus()
+    {
+        // CRITICAL: Check Super Admin permission
+        if (!auth()->user()->inGroup('superadmin')) {
+            return redirect()->back()->with('error', 'Akses ditolak. Hanya Super Admin yang dapat mengakses halaman ini.');
+        }
+
+        // Get all employment statuses with member count
+        $statuses = $this->employmentStatusModel
+            ->select('employment_statuses.*, 
+                  COUNT(DISTINCT member_profiles.id) as member_count')
+            ->join('member_profiles', 'member_profiles.employment_status_id = employment_statuses.id', 'left')
+            ->groupBy('employment_statuses.id')
+            ->findAll();
+
+        $data = [
+            'title' => 'Master Data - Status Kepegawaian',
+            'statuses' => $statuses,
+            'total' => count($statuses),
+            'validation' => \Config\Services::validation()
+        ];
+
+        return view('super/master/employment_status', $data);
+    }
+
+    /**
+     * Store new employment status
+     * 
+     * @return RedirectResponse
+     */
+    public function storeEmploymentStatus(): RedirectResponse
+    {
+        // CRITICAL: Check Super Admin permission
+        if (!auth()->user()->inGroup('superadmin')) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        $rules = [
+            'name' => [
+                'rules' => 'required|min_length[3]|max_length[100]|is_unique[employment_statuses.name]',
+                'errors' => [
+                    'required' => 'Nama status kepegawaian wajib diisi',
+                    'min_length' => 'Nama minimal 3 karakter',
+                    'is_unique' => 'Nama status kepegawaian sudah ada'
+                ]
+            ],
+            'is_active' => 'permit_empty|in_list[0,1]'
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('errors', $this->validator->getErrors());
+        }
+
+        try {
+            $data = [
+                'name' => $this->request->getPost('name'),
+                'description' => $this->request->getPost('description') ?: null,
+                'is_active' => $this->request->getPost('is_active') ?? 1
+            ];
+
+            $this->employmentStatusModel->insert($data);
+
+            return redirect()->to('/super/master/employment-status')
+                ->with('success', 'Status Kepegawaian berhasil ditambahkan.');
+        } catch (\Exception $e) {
+            log_message('error', 'Error creating employment status: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal menambahkan status kepegawaian.');
+        }
+    }
+
+    /**
+     * Update employment status
+     * 
+     * @param int $id Employment Status ID
+     * @return RedirectResponse
+     */
+    public function updateEmploymentStatus(int $id): RedirectResponse
+    {
+        // CRITICAL: Check Super Admin permission
+        if (!auth()->user()->inGroup('superadmin')) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        $status = $this->employmentStatusModel->find($id);
+        if (!$status) {
+            return redirect()->back()->with('error', 'Status Kepegawaian tidak ditemukan.');
+        }
+
+        $rules = [
+            'name' => [
+                'rules' => "required|min_length[3]|max_length[100]|is_unique[employment_statuses.name,id,{$id}]",
+                'errors' => [
+                    'required' => 'Nama status kepegawaian wajib diisi',
+                    'is_unique' => 'Nama status kepegawaian sudah ada'
+                ]
+            ],
+
+            'is_active' => 'permit_empty|in_list[0,1]'
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('errors', $this->validator->getErrors());
+        }
+
+        try {
+            $data = [
+                'name' => $this->request->getPost('name'),
+                'description' => $this->request->getPost('description') ?: null,
+                'is_active' => $this->request->getPost('is_active') ?? 1
+            ];
+
+            $this->employmentStatusModel->update($id, $data);
+
+            return redirect()->to('/super/master/employment-status')
+                ->with('success', 'Status Kepegawaian berhasil diupdate.');
+        } catch (\Exception $e) {
+            log_message('error', 'Error updating employment status: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal mengupdate status kepegawaian.');
+        }
+    }
+
+    /**
+     * Delete employment status
+     * 
+     * @param int $id Employment Status ID
+     * @return RedirectResponse
+     */
+    public function deleteEmploymentStatus(int $id): RedirectResponse
+    {
+        // CRITICAL: Check Super Admin permission
+        if (!auth()->user()->inGroup('superadmin')) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        $status = $this->employmentStatusModel->find($id);
+        if (!$status) {
+            return redirect()->back()->with('error', 'Status Kepegawaian tidak ditemukan.');
+        }
+
+        // Check if used by members
+        $memberCount = $this->memberModel->where('employment_status_id', $id)->countAllResults();
+        if ($memberCount > 0) {
+            return redirect()->back()
+                ->with('error', "Status Kepegawaian tidak dapat dihapus karena digunakan oleh {$memberCount} anggota.");
+        }
+
+        try {
+            $this->employmentStatusModel->delete($id);
+            return redirect()->to('/super/master/employment-status')
+                ->with('success', 'Status Kepegawaian berhasil dihapus.');
+        } catch (\Exception $e) {
+            log_message('error', 'Error deleting employment status: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal menghapus status kepegawaian.');
+        }
+    }
+
+    // ========================================
+    // SALARY RANGES MANAGEMENT
+    // ========================================
+
+    /**
+     * Display list of salary ranges
+     * 
+     * @return string|RedirectResponse
+     */
+    public function salaryRanges()
+    {
+        // CRITICAL: Check Super Admin permission
+        if (!auth()->user()->inGroup('superadmin')) {
+            return redirect()->back()->with('error', 'Akses ditolak. Hanya Super Admin yang dapat mengakses halaman ini.');
+        }
+
+        // Get all salary ranges with member count
+        $ranges = $this->salaryRangeModel
+            ->select('salary_ranges.*, 
+                  COUNT(DISTINCT member_profiles.id) as member_count')
+            ->join('member_profiles', 'member_profiles.salary_range_id = salary_ranges.id', 'left')
+            ->groupBy('salary_ranges.id')
+            ->findAll();
+
+        $data = [
+            'title' => 'Master Data - Range Gaji',
+            'ranges' => $ranges,
+            'total' => count($ranges),
+            'validation' => \Config\Services::validation()
+        ];
+
+        return view('super/master/salary_ranges', $data);
+    }
+
+    /**
+     * Store new salary range
+     * 
+     * @return RedirectResponse
+     */
+    public function storeSalaryRange(): RedirectResponse
+    {
+        if (!auth()->user()->inGroup('superadmin')) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        $rules = [
+            'name' => [
+                'rules' => 'required|min_length[3]|max_length[100]',
+                'errors' => [
+                    'required' => 'Nama range gaji wajib diisi',
+                    'min_length' => 'Nama minimal 3 karakter'
+                ]
+            ],
+            'min_amount' => 'permit_empty|decimal',
+            'max_amount' => 'permit_empty|decimal',
+            'is_active' => 'permit_empty|in_list[0,1]'
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('errors', $this->validator->getErrors());
+        }
+
+        // CUSTOM VALIDATION: Compare min vs max
+        $minAmount = $this->request->getPost('min_amount');
+        $maxAmount = $this->request->getPost('max_amount');
+
+        if ($minAmount && $maxAmount && (float)$maxAmount < (float)$minAmount) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gaji maksimal harus lebih besar atau sama dengan gaji minimal.');
+        }
+
+        try {
+            $data = [
+                'name' => $this->request->getPost('name'),
+                'min_amount' => $minAmount ?: null,
+                'max_amount' => $maxAmount ?: null,
+                'is_active' => $this->request->getPost('is_active') ?? 1
+            ];
+
+            $this->salaryRangeModel->insert($data);
+
+            return redirect()->to('/super/master/salary-ranges')
+                ->with('success', 'Range Gaji berhasil ditambahkan.');
+        } catch (\Exception $e) {
+            log_message('error', 'Error creating salary range: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal menambahkan range gaji: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Update salary range
+     * 
+     * @param int $id Salary Range ID
+     * @return RedirectResponse
+     */
+    public function updateSalaryRange(int $id): RedirectResponse
+    {
+        if (!auth()->user()->inGroup('superadmin')) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        $range = $this->salaryRangeModel->find($id);
+        if (!$range) {
+            return redirect()->back()->with('error', 'Range Gaji tidak ditemukan.');
+        }
+
+        $rules = [
+            'name' => 'required|min_length[3]|max_length[100]',
+            'min_amount' => 'permit_empty|decimal',
+            'max_amount' => 'permit_empty|decimal',
+            'is_active' => 'permit_empty|in_list[0,1]'
+        ];
+
+        if (!$this->validate($rules)) {
+            return redirect()->back()
+                ->withInput()
+                ->with('errors', $this->validator->getErrors());
+        }
+
+        // CUSTOM VALIDATION: Compare min vs max
+        $minAmount = $this->request->getPost('min_amount');
+        $maxAmount = $this->request->getPost('max_amount');
+
+        if ($minAmount && $maxAmount && (float)$maxAmount < (float)$minAmount) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Gaji maksimal harus lebih besar atau sama dengan gaji minimal.');
+        }
+
+        try {
+            $data = [
+                'name' => $this->request->getPost('name'),
+                'min_amount' => $minAmount ?: null,
+                'max_amount' => $maxAmount ?: null,
+                'is_active' => $this->request->getPost('is_active') ?? 1
+            ];
+
+            $this->salaryRangeModel->update($id, $data);
+
+            return redirect()->to('/super/master/salary-ranges')
+                ->with('success', 'Range Gaji berhasil diupdate.');
+        } catch (\Exception $e) {
+            log_message('error', 'Error updating salary range: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal mengupdate range gaji: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Delete salary range
+     * 
+     * @param int $id Salary Range ID
+     * @return RedirectResponse
+     */
+    public function deleteSalaryRange(int $id): RedirectResponse
+    {
+        // CRITICAL: Check Super Admin permission
+        if (!auth()->user()->inGroup('superadmin')) {
+            return redirect()->back()->with('error', 'Akses ditolak.');
+        }
+
+        $range = $this->salaryRangeModel->find($id);
+        if (!$range) {
+            return redirect()->back()->with('error', 'Range Gaji tidak ditemukan.');
+        }
+
+        // Check if used by members
+        $memberCount = $this->memberModel->where('salary_range_id', $id)->countAllResults();
+        if ($memberCount > 0) {
+            return redirect()->back()
+                ->with('error', "Range Gaji tidak dapat dihapus karena digunakan oleh {$memberCount} anggota.");
+        }
+
+        try {
+            $this->salaryRangeModel->delete($id);
+            return redirect()->to('/super/master/salary-ranges')
+                ->with('success', 'Range Gaji berhasil dihapus.');
+        } catch (\Exception $e) {
+            log_message('error', 'Error deleting salary range: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal menghapus range gaji.');
         }
     }
 }
