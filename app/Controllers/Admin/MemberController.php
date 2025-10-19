@@ -277,6 +277,167 @@ class MemberController extends BaseController
     }
 
     /**
+     * Edit member profile form
+     * Display form to edit member information
+     * 
+     * @param int $id Member profile ID
+     * @return string|ResponseInterface
+     */
+    public function edit(int $id)
+    {
+        // Check permission
+        if (!auth()->user()->can('member.edit')) {
+            return redirect()->back()->with('error', 'Anda tidak memiliki akses untuk mengedit anggota');
+        }
+
+        $user = auth()->user();
+        $isKoordinator = $user->inGroup('koordinator_wilayah');
+
+        // Check regional scope access
+        if ($isKoordinator && !$this->regionScope->canAccessMember($user->id, $id)) {
+            return redirect()->back()->with('error', 'Anda tidak memiliki akses ke anggota ini');
+        }
+
+        // Get member with relations
+        $member = $this->memberModel
+            ->select('member_profiles.*, users.email, users.active, users.created_at as registered_at')
+            ->join('users', 'users.id = member_profiles.user_id')
+            ->find($id);
+
+        if (!$member) {
+            return redirect()->back()->with('error', 'Anggota tidak ditemukan');
+        }
+
+        // Get master data for dropdowns
+        $provinces = $this->provinceModel->findAll();
+        $universities = $this->universityModel->findAll();
+
+        // Get user roles for role management (Super Admin only)
+        $roles = [];
+        if ($user->inGroup('superadmin')) {
+            $roles = model('GroupModel')->findAll();
+        }
+
+        $data = [
+            'title' => 'Edit Anggota',
+            'member' => $member,
+            'provinces' => $provinces,
+            'universities' => $universities,
+            'roles' => $roles,
+            'is_koordinator' => $isKoordinator
+        ];
+
+        return view('admin/members/edit', $data);
+    }
+
+    /**
+     * Update member profile
+     * Process member information update
+     * 
+     * @param int $id Member profile ID
+     * @return ResponseInterface
+     */
+    public function update(int $id): ResponseInterface
+    {
+        // Check permission
+        if (!auth()->user()->can('member.edit')) {
+            return redirect()->back()->with('error', 'Anda tidak memiliki izin untuk mengedit anggota');
+        }
+
+        $user = auth()->user();
+        $isKoordinator = $user->inGroup('koordinator_wilayah');
+
+        // Check regional scope access
+        if ($isKoordinator && !$this->regionScope->canAccessMember($user->id, $id)) {
+            return redirect()->back()->with('error', 'Anda tidak memiliki akses ke anggota ini');
+        }
+
+        try {
+            $member = $this->memberModel->find($id);
+
+            if (!$member) {
+                return redirect()->back()->with('error', 'Anggota tidak ditemukan');
+            }
+
+            // Validation rules
+            $rules = [
+                'full_name' => 'required|min_length[3]|max_length[255]',
+                'phone' => 'permit_empty|max_length[20]',
+                'whatsapp' => 'permit_empty|max_length[20]',
+                'address' => 'permit_empty',
+                'province_id' => 'permit_empty|integer',
+                'regency_id' => 'permit_empty|integer',
+                'university_id' => 'permit_empty|integer',
+                'study_program_id' => 'permit_empty|integer',
+                'nidn_nip' => 'permit_empty|max_length[50]',
+                'gender' => 'permit_empty|in_list[L,P]',
+                'birth_place' => 'permit_empty|max_length[100]',
+                'birth_date' => 'permit_empty|valid_date',
+            ];
+
+            if (!$this->validate($rules)) {
+                return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            }
+
+            // Get validated data
+            $updateData = [
+                'full_name' => $this->request->getPost('full_name'),
+                'phone' => $this->request->getPost('phone'),
+                'whatsapp' => $this->request->getPost('whatsapp'),
+                'address' => $this->request->getPost('address'),
+                'province_id' => $this->request->getPost('province_id') ?: null,
+                'regency_id' => $this->request->getPost('regency_id') ?: null,
+                'university_id' => $this->request->getPost('university_id') ?: null,
+                'study_program_id' => $this->request->getPost('study_program_id') ?: null,
+                'nidn_nip' => $this->request->getPost('nidn_nip'),
+                'gender' => $this->request->getPost('gender'),
+                'birth_place' => $this->request->getPost('birth_place'),
+                'birth_date' => $this->request->getPost('birth_date'),
+            ];
+
+            // Update member profile
+            $this->memberModel->update($id, $updateData);
+
+            // Update email if changed (Super Admin only)
+            if ($user->inGroup('superadmin')) {
+                $newEmail = $this->request->getPost('email');
+                if ($newEmail && $newEmail !== $member->email) {
+                    $emailRules = ['email' => 'required|valid_email|is_unique[users.email,id,' . $member->user_id . ']'];
+
+                    if ($this->validate($emailRules)) {
+                        $this->userModel->update($member->user_id, ['email' => $newEmail]);
+                    } else {
+                        return redirect()->back()->withInput()->with('warning', 'Profil diupdate, tetapi email gagal diubah (sudah digunakan)');
+                    }
+                }
+
+                // Update role if changed
+                $newRole = $this->request->getPost('role');
+                if ($newRole) {
+                    $userEntity = $this->userModel->find($member->user_id);
+                    $currentRoles = $userEntity->getGroups();
+
+                    // Remove all current roles
+                    foreach ($currentRoles as $role) {
+                        $userEntity->removeGroup($role);
+                    }
+
+                    // Add new role
+                    $userEntity->addGroup($newRole);
+                }
+            }
+
+            // Log activity
+            log_message('info', "Member {$member->full_name} (ID: {$id}) updated by user {$user->id}");
+
+            return redirect()->to('/admin/members/show/' . $id)->with('success', 'Data anggota berhasil diperbarui');
+        } catch (\Exception $e) {
+            log_message('error', 'Error in MemberController::update: ' . $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Gagal memperbarui data anggota: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Approve member (change status from Calon Anggota to Anggota)
      * Send approval notification
      * 
@@ -298,7 +459,8 @@ class MemberController extends BaseController
         }
 
         // Approve member using service
-        $result = $this->approveService->approveCandidate($id, $user->id);
+        $member = $this->memberModel->find($id);
+        $result = $this->approveService->approve($member->user_id, $user->id);
 
         if ($result['success']) {
             return redirect()->back()->with('success', $result['message']);
@@ -332,7 +494,8 @@ class MemberController extends BaseController
         $reason = $this->request->getPost('reason') ?? 'Tidak memenuhi persyaratan';
 
         // Reject member using service
-        $result = $this->approveService->rejectCandidate($id, $user->id, $reason);
+        $member = $this->memberModel->find($id);
+        $result = $this->approveService->reject($member->user_id, $user->id, $reason);
 
         if ($result['success']) {
             return redirect()->back()->with('success', $result['message']);
@@ -480,7 +643,13 @@ class MemberController extends BaseController
                 continue;
             }
 
-            $result = $this->approveService->approveCandidate($id, $user->id);
+            $member = $this->memberModel->find($id);
+            if ($member) {
+                $result = $this->approveService->approve($member->user_id, $user->id);
+            } else {
+                $failCount++;
+                continue;
+            }
 
             if ($result['success']) {
                 $successCount++;

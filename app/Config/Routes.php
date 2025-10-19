@@ -54,7 +54,6 @@ $routes->group('', ['namespace' => 'App\Controllers\Public'], function ($routes)
  */
 
 // Friendly root-level aliases for authentication pages
-// Friendly authentication endpoints without the /auth prefix
 $routes->group('', ['namespace' => 'App\Controllers\Auth'], function ($routes) {
     // Login shortcuts
     $routes->get('login', 'LoginController::index', ['as' => 'login.short']);
@@ -64,7 +63,6 @@ $routes->group('', ['namespace' => 'App\Controllers\Auth'], function ($routes) {
     $routes->get('register', 'RegisterController::index', ['as' => 'register.short']);
     $routes->post('register', 'RegisterController::register');
 });
-
 
 $routes->group('auth', ['namespace' => 'App\Controllers\Auth'], function ($routes) {
     // Login
@@ -94,7 +92,7 @@ $routes->group('auth', ['namespace' => 'App\Controllers\Auth'], function ($route
  * --------------------------------------------------------------------
  * Routes for authenticated members (role: anggota, calon anggota, pengurus, superadmin)
  */
-$routes->group('member', ['namespace' => 'App\Controllers\Member', 'filter' => 'role:anggota,calon anggota,pengurus,superadmin'], function ($routes) {
+$routes->group('member', ['namespace' => 'App\Controllers\Member', 'filter' => 'role:anggota,calon_anggota,pengurus,superadmin'], function ($routes) {
     // Dashboard
     $routes->get('dashboard', 'DashboardController::index', ['as' => 'member.dashboard']);
 
@@ -142,25 +140,97 @@ $routes->group('member', ['namespace' => 'App\Controllers\Member', 'filter' => '
  * --------------------------------------------------------------------
  * Admin Routes
  * --------------------------------------------------------------------
- * Routes for administrators (role: pengurus)
+ * Routes for administrators (role: pengurus, superadmin)
  */
 $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'role:pengurus,superadmin'], function ($routes) {
     // Dashboard
     $routes->get('dashboard', 'DashboardController::index', ['as' => 'admin.dashboard']);
 
-    // Member Management
-    $routes->get('members', 'MemberController::index', ['filter' => 'permission:member.view']);
-    $routes->get('members/pending', 'MemberController::pending', ['filter' => 'permission:member.approve']);
-    $routes->get('members/(:num)', 'MemberController::show/$1', ['filter' => 'permission:member.view']);
-    $routes->get('members/(:num)/edit', 'MemberController::edit/$1', ['filter' => 'permission:member.edit']);
-    $routes->post('members/(:num)/update', 'MemberController::update/$1', ['filter' => 'permission:member.edit']);
-    $routes->post('members/(:num)/approve', 'MemberController::approve/$1', ['filter' => 'permission:member.approve']);
-    $routes->post('members/(:num)/reject', 'MemberController::reject/$1', ['filter' => 'permission:member.approve']);
-    $routes->post('members/(:num)/suspend', 'MemberController::suspend/$1', ['filter' => 'permission:member.suspend']);
-    $routes->post('members/(:num)/activate', 'MemberController::activate/$1', ['filter' => 'permission:member.approve']);
-    $routes->delete('members/(:num)', 'MemberController::delete/$1', ['filter' => 'permission:member.delete']);
-    $routes->get('members/export/excel', 'MemberController::exportExcel', ['filter' => 'permission:member.export']);
-    $routes->get('members/export/pdf', 'MemberController::exportPdf', ['filter' => 'permission:member.export']);
+    // ===================================
+    // MEMBER MANAGEMENT ROUTES
+    // ===================================
+    $routes->group('members', ['filter' => 'permission:member.view'], function ($routes) {
+        // Main List & Search
+        $routes->get('/', 'MemberController::index', ['as' => 'member.list']);
+        $routes->get('search', 'MemberController::search'); // AJAX search
+
+        // Pending Members (for approval)
+        $routes->get('pending', 'MemberController::pending', [
+            'as' => 'member.pending',
+            'filter' => 'permission:member.approve'
+        ]);
+
+        // View Member Detail
+        $routes->get('show/(:num)', 'MemberController::show/$1', ['as' => 'member.show']);
+        $routes->get('(:num)', 'MemberController::show/$1'); // Alternative
+
+        // Edit Member
+        $routes->get('edit/(:num)', 'MemberController::edit/$1', [
+            'as' => 'member.edit',
+            'filter' => 'permission:member.edit'
+        ]);
+        $routes->post('update/(:num)', 'MemberController::update/$1', [
+            'filter' => 'permission:member.edit'
+        ]);
+
+        // Member Actions
+        $routes->post('approve/(:num)', 'MemberController::approve/$1', [
+            'filter' => 'permission:member.approve'
+        ]);
+        $routes->get('approve/(:num)', 'MemberController::approve/$1', [
+            'filter' => 'permission:member.approve'
+        ]); // Support GET for simple links
+
+        $routes->post('reject/(:num)', 'MemberController::reject/$1', [
+            'filter' => 'permission:member.approve'
+        ]);
+
+        $routes->post('suspend/(:num)', 'MemberController::suspend/$1', [
+            'filter' => 'permission:member.manage'
+        ]);
+        $routes->get('suspend/(:num)', 'MemberController::suspend/$1', [
+            'filter' => 'permission:member.manage'
+        ]); // Support GET
+
+        $routes->post('activate/(:num)', 'MemberController::activate/$1', [
+            'filter' => 'permission:member.manage'
+        ]);
+        $routes->get('activate/(:num)', 'MemberController::activate/$1', [
+            'filter' => 'permission:member.manage'
+        ]); // Support GET
+
+        $routes->delete('delete/(:num)', 'MemberController::delete/$1', [
+            'filter' => 'permission:member.delete'
+        ]);
+        $routes->post('delete/(:num)', 'MemberController::delete/$1', [
+            'filter' => 'permission:member.delete'
+        ]); // Support POST for forms without DELETE method
+
+        // Bulk Actions
+        $routes->post('bulk-approve', 'MemberController::bulkApprove', [
+            'filter' => 'permission:member.approve'
+        ]);
+        $routes->post('bulk-reject', 'MemberController::bulkReject', [
+            'filter' => 'permission:member.approve'
+        ]);
+        $routes->post('bulk-delete', 'MemberController::bulkDelete', [
+            'filter' => 'permission:member.delete'
+        ]);
+
+        // Export
+        $routes->get('export', 'MemberController::export', [
+            'filter' => 'permission:member.export'
+        ]);
+        $routes->post('export', 'MemberController::export', [
+            'filter' => 'permission:member.export'
+        ]); // Support POST for filtered export
+
+        // Statistics (AJAX)
+        $routes->get('statistics', 'MemberController::getStatistics');
+
+        // Regional Members (AJAX - for Koordinator Wilayah)
+        $routes->get('by-region', 'MemberController::getByRegion');
+    });
 
     // Bulk Import
     $routes->get('bulk-import', 'BulkImportController::index', ['filter' => 'permission:member.import']);
@@ -262,7 +332,19 @@ $routes->group('super', ['namespace' => 'App\Controllers\Super', 'filter' => 'ro
     $routes->get('dashboard', 'DashboardController::index', ['as' => 'super.dashboard']);
     $routes->post('dashboard/refresh', 'DashboardController::refresh');
 
-    // Role Management - HAPUS semua filter permission
+    // User Management
+    $routes->group('users', function ($routes) {
+        $routes->get('/', 'UserController::index');
+        $routes->get('(:num)', 'UserController::show/$1');
+        $routes->get('(:num)/edit', 'UserController::edit/$1');
+        $routes->post('(:num)/update', 'UserController::update/$1');
+        $routes->post('(:num)/toggle-status', 'UserController::toggleStatus/$1');
+        $routes->post('(:num)/force-reset-password', 'UserController::forceResetPassword/$1');
+        $routes->post('(:num)/delete', 'UserController::delete/$1');
+        $routes->delete('(:num)', 'UserController::delete/$1');
+    });
+
+    // Role Management
     $routes->get('roles', 'RoleController::index');
     $routes->get('roles/create', 'RoleController::create');
     $routes->post('roles/store', 'RoleController::store');
@@ -272,7 +354,7 @@ $routes->group('super', ['namespace' => 'App\Controllers\Super', 'filter' => 'ro
     $routes->get('roles/(:num)/members', 'RoleController::members/$1');
     $routes->get('roles/matrix', 'RoleController::matrix');
 
-    // Permission Management - HAPUS semua filter
+    // Permission Management
     $routes->get('permissions', 'PermissionController::index');
     $routes->get('permissions/create', 'PermissionController::create');
     $routes->post('permissions/store', 'PermissionController::store');
@@ -280,9 +362,9 @@ $routes->group('super', ['namespace' => 'App\Controllers\Super', 'filter' => 'ro
     $routes->post('permissions/(:num)/update', 'PermissionController::update/$1');
     $routes->post('permissions/(:num)/delete', 'PermissionController::delete/$1');
     $routes->get('permissions/(:num)/roles', 'PermissionController::roles/$1');
-    $routes->get('permissions/sync', 'PermissionController::syncToShield'); // ← Ubah dari POST ke GET
+    $routes->get('permissions/sync', 'PermissionController::syncToShield');
 
-    // Menu Management - HAPUS semua filter
+    // Menu Management
     $routes->get('menus', 'MenuController::index');
     $routes->get('menus/create', 'MenuController::create');
     $routes->post('menus/store', 'MenuController::store');
@@ -300,12 +382,10 @@ $routes->group('super', ['namespace' => 'App\Controllers\Super', 'filter' => 'ro
         $routes->post('provinces/store', 'MasterDataController::storeProvince');
         $routes->post('provinces/(:num)/update', 'MasterDataController::updateProvince/$1');
         $routes->post('provinces/(:num)/delete', 'MasterDataController::deleteProvince/$1');
-
-        // Province Import - PERBAIKAN
         $routes->get('provinces/download-template', 'MasterDataController::downloadProvinceTemplate');
         $routes->post('provinces/import', 'MasterDataController::importProvinces');
 
-        // Regencies - TAMBAHKAN INI
+        // Regencies
         $routes->get('regencies', 'MasterDataController::regencies');
         $routes->post('regencies/store', 'MasterDataController::storeRegency');
         $routes->post('regencies/(:num)/update', 'MasterDataController::updateRegency/$1');
@@ -313,7 +393,7 @@ $routes->group('super', ['namespace' => 'App\Controllers\Super', 'filter' => 'ro
         $routes->get('regencies/download-template', 'MasterDataController::downloadRegencyTemplate');
         $routes->post('regencies/import', 'MasterDataController::importRegencies');
 
-        // Universities - TAMBAHKAN INI
+        // Universities
         $routes->get('universities', 'MasterDataController::universities');
         $routes->post('universities/store', 'MasterDataController::storeUniversity');
         $routes->post('universities/(:num)/update', 'MasterDataController::updateUniversity/$1');
@@ -321,8 +401,7 @@ $routes->group('super', ['namespace' => 'App\Controllers\Super', 'filter' => 'ro
         $routes->get('universities/download-template', 'MasterDataController::downloadUniversityTemplate');
         $routes->post('universities/import', 'MasterDataController::importUniversities');
 
-
-        // Study Programs - TAMBAHKAN INI
+        // Study Programs
         $routes->get('study-programs', 'MasterDataController::studyPrograms');
         $routes->post('study-programs/store', 'MasterDataController::storeStudyProgram');
         $routes->post('study-programs/(:num)/update', 'MasterDataController::updateStudyProgram/$1');
@@ -330,14 +409,13 @@ $routes->group('super', ['namespace' => 'App\Controllers\Super', 'filter' => 'ro
         $routes->get('study-programs/download-template', 'MasterDataController::downloadStudyProgramTemplate');
         $routes->post('study-programs/import', 'MasterDataController::importStudyPrograms');
 
-
-        // Employment Status (BARU)
+        // Employment Status
         $routes->get('employment-status', 'MasterDataController::employmentStatus');
         $routes->post('employment-status/store', 'MasterDataController::storeEmploymentStatus');
         $routes->post('employment-status/(:num)/update', 'MasterDataController::updateEmploymentStatus/$1');
         $routes->post('employment-status/(:num)/delete', 'MasterDataController::deleteEmploymentStatus/$1');
 
-        // Salary Ranges (BARU)
+        // Salary Ranges
         $routes->get('salary-ranges', 'MasterDataController::salaryRanges');
         $routes->post('salary-ranges/store', 'MasterDataController::storeSalaryRange');
         $routes->post('salary-ranges/(:num)/update', 'MasterDataController::updateSalaryRange/$1');
@@ -348,14 +426,31 @@ $routes->group('super', ['namespace' => 'App\Controllers\Super', 'filter' => 'ro
     });
 
     // System Settings
-    $routes->get('settings', 'SettingsController::index');
-    $routes->post('settings/update', 'SettingsController::update');
-    $routes->get('settings/cache/clear', 'SettingsController::clearCache');
+    $routes->group('settings', function ($routes) {
+        $routes->get('/', 'SettingsController::index');
+        $routes->post('update/general', 'SettingsController::updateGeneral');
+        $routes->post('update/email', 'SettingsController::updateEmail');
+        $routes->post('update/whatsapp', 'SettingsController::updateWhatsApp');
+        $routes->post('update/notification', 'SettingsController::updateNotification');
+        $routes->post('update/security', 'SettingsController::updateSecurity');
+        $routes->post('upload/logo', 'SettingsController::uploadLogo');
+        $routes->post('test-email', 'SettingsController::testEmail');
+        $routes->get('clear-cache', 'SettingsController::clearCache');
+        $routes->get('reset/(:segment)', 'SettingsController::resetToDefault/$1');
+        $routes->get('export', 'SettingsController::export');
+        $routes->post('import', 'SettingsController::import');
+    });
 
     // Audit Logs
-    $routes->get('audit-logs', 'AuditLogController::index');
-    $routes->get('audit-logs/(:num)', 'AuditLogController::show/$1');
-    $routes->get('audit-logs/export', 'AuditLogController::export');
+    $routes->group('audit-logs', function ($routes) {
+        $routes->get('/', 'AuditLogController::index');
+        $routes->get('view/(:num)', 'AuditLogController::view/$1');
+        $routes->get('statistics', 'AuditLogController::statistics');
+        $routes->get('export', 'AuditLogController::export');
+        $routes->post('clean', 'AuditLogController::clean');
+        $routes->get('delete/(:num)', 'AuditLogController::delete/$1');
+        $routes->get('get-by-entity', 'AuditLogController::getByEntity');
+    });
 });
 
 /*
@@ -368,11 +463,13 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     // Master Data Endpoints
     $routes->get('provinces', 'MasterDataController::getProvinces');
     $routes->get('regencies', 'MasterDataController::getRegencies');
+    $routes->get('regencies/province/(:num)', 'MasterDataController::getRegenciesByProvince/$1');
     $routes->get('districts', 'MasterDataController::getDistricts');
     $routes->get('villages', 'MasterDataController::getVillages');
     $routes->get('universities', 'MasterDataController::getUniversities');
-    $routes->get('study-programs', 'MasterDataController::getStudyPrograms');
     $routes->get('universities/search', 'MasterDataController::searchUniversities');
+    $routes->get('study-programs', 'MasterDataController::getStudyPrograms');
+    $routes->get('study-programs/university/(:num)', 'MasterDataController::getStudyProgramsByUniversity/$1');
 
     // Cache Management (Admin only)
     $routes->get('cache/clear', 'MasterDataController::clearCache', ['filter' => 'permission:master.manage']);
@@ -388,71 +485,24 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('dashboard/charts', 'DashboardController::getCharts', ['filter' => 'role:pengurus,superadmin']);
 });
 
-// ===================================
-// SUPER ADMIN - SETTINGS ROUTES
-// ===================================
-$routes->group('super/settings', ['filter' => 'group:superadmin'], function ($routes) {
-    // Main settings page
-    $routes->get('/', 'Super\SettingsController::index');
-
-    // Update settings by section
-    $routes->post('update/general', 'Super\SettingsController::updateGeneral');
-    $routes->post('update/email', 'Super\SettingsController::updateEmail');
-    $routes->post('update/whatsapp', 'Super\SettingsController::updateWhatsApp');
-    $routes->post('update/notification', 'Super\SettingsController::updateNotification');
-    $routes->post('update/security', 'Super\SettingsController::updateSecurity');
-
-    // Upload logo
-    $routes->post('upload/logo', 'Super\SettingsController::uploadLogo');
-
-    // Test email
-    $routes->post('test-email', 'Super\SettingsController::testEmail');
-
-    // Cache management
-    $routes->get('clear-cache', 'Super\SettingsController::clearCache');
-
-    // Reset to default
-    $routes->get('reset/(:segment)', 'Super\SettingsController::resetToDefault/$1');
-
-    // Import/Export
-    $routes->get('export', 'Super\SettingsController::export');
-    $routes->post('import', 'Super\SettingsController::import');
-});
-
-// ===================================
-// SUPER ADMIN - AUDIT LOGS ROUTES
-// ===================================
-$routes->group('super/audit-logs', ['filter' => 'group:superadmin'], function ($routes) {
-    // Main audit logs page with filters
-    $routes->get('/', 'Super\AuditLogController::index');
-
-    // View single audit log detail
-    $routes->get('view/(:num)', 'Super\AuditLogController::view/$1');
-
-    // Statistics dashboard
-    $routes->get('statistics', 'Super\AuditLogController::statistics');
-
-    // Export to Excel
-    $routes->get('export', 'Super\AuditLogController::export');
-
-    // Clean old logs
-    $routes->post('clean', 'Super\AuditLogController::clean');
-
-    // Delete single log
-    $routes->get('delete/(:num)', 'Super\AuditLogController::delete/$1');
-
-    // AJAX: Get logs by entity
-    $routes->get('get-by-entity', 'Super\AuditLogController::getByEntity');
-});
+/*
+ * --------------------------------------------------------------------
+ * Shortcut Routes (Optional)
+ * --------------------------------------------------------------------
+ */
+$routes->get('admin/pending-members', 'Admin\MemberController::pending', [
+    'filter' => 'permission:member.approve'
+]);
 
 /*
  * --------------------------------------------------------------------
- * Service Worker & PWA Routes
+ * PWA Routes
  * --------------------------------------------------------------------
  */
 $routes->get('service-worker.js', function () {
     return view('pwa/service-worker');
 });
+
 $routes->get('manifest.json', function () {
     return view('pwa/manifest');
 });
@@ -461,23 +511,7 @@ $routes->get('manifest.json', function () {
  * --------------------------------------------------------------------
  * Error Routes
  * --------------------------------------------------------------------
-*/
-$routes->set404Override(function (string $message) {
-    return view('errors/html/error_404', ['message' => $message]);
+ */
+$routes->set404Override(function () {
+    return view('errors/html/error_404');
 });
-
-/*
- * --------------------------------------------------------------------
- * Additional Routing
- * --------------------------------------------------------------------
- */
-
-// If you have additional routes, add them here
-
-/*
- * --------------------------------------------------------------------
- * Route Priority
- * --------------------------------------------------------------------
- * Higher priority routes should be defined first
- * More specific routes before general ones
- */

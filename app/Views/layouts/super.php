@@ -223,6 +223,14 @@ $session = session();
                         </a>
                     </li>
 
+                    <!-- User Management ⭐ BARU -->
+                    <li class="<?= (strpos(uri_string(), 'super/users') !== false) ? 'active-page' : '' ?>">
+                        <a href="<?= base_url('super/users') ?>" class="menu-item">
+                            <i class="fas fa-users"></i>
+                            <span>User Management</span>
+                        </a>
+                    </li>
+
                     <!-- Master Data -->
                     <li class="sidebar-title">Data Management</li>
                     <li class="<?= (strpos(uri_string(), 'super/master') !== false) ? 'active-page' : '' ?>">
