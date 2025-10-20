@@ -92,7 +92,7 @@ class BulkImportController extends BaseController
             'allowed_extensions' => self::ALLOWED_EXTENSIONS
         ];
 
-        return view('admin/members/import/index', $data);
+        return view('admin/bulk_import/index', $data);
     }
 
     /**
@@ -388,7 +388,7 @@ class BulkImportController extends BaseController
         $fileInfo = session()->get('import_file');
 
         if (!$fileInfo || !file_exists($fileInfo['path'])) {
-            return redirect()->to('/admin/members/import')->with('error', 'File tidak ditemukan. Silakan upload ulang.');
+            return redirect()->to('/admin/bulk-import')->with('error', 'File tidak ditemukan. Silakan upload ulang.');
         }
 
         try {
@@ -396,7 +396,7 @@ class BulkImportController extends BaseController
             $result = $this->importService->import($fileInfo['path'], ['preview_only' => true]);
 
             if (!$result['success']) {
-                return redirect()->to('/admin/members/import')->with('error', $result['message']);
+                return redirect()->to('/admin/bulk-import')->with('error', $result['message']);
             }
 
             $data = [
@@ -409,10 +409,10 @@ class BulkImportController extends BaseController
                 'errors' => $result['data']['errors'] ?? []
             ];
 
-            return view('admin/members/import/preview', $data);
+            return view('admin/bulk_import/preview', $data);
         } catch (\Exception $e) {
             log_message('error', 'Error in BulkImportController::preview: ' . $e->getMessage());
-            return redirect()->to('/admin/members/import')->with('error', 'Gagal memproses file: ' . $e->getMessage());
+            return redirect()->to('/admin/bulk-import')->with('error', 'Gagal memproses file: ' . $e->getMessage());
         }
     }
 
@@ -433,7 +433,7 @@ class BulkImportController extends BaseController
         $fileInfo = session()->get('import_file');
 
         if (!$fileInfo || !file_exists($fileInfo['path'])) {
-            return redirect()->to('/admin/members/import')->with('error', 'File tidak ditemukan. Silakan upload ulang.');
+            return redirect()->to('/admin/bulk-import')->with('error', 'File tidak ditemukan. Silakan upload ulang.');
         }
 
         try {
@@ -469,13 +469,13 @@ class BulkImportController extends BaseController
                     $message .= ", {$result['data']['failed_count']} data gagal";
                 }
 
-                return redirect()->to('/admin/members/import')->with('success', $message);
+                return redirect()->to('/admin/bulk-import')->with('success', $message);
             }
 
-            return redirect()->to('/admin/members/import')->with('error', $result['message']);
+            return redirect()->to('/admin/bulk-import')->with('error', $result['message']);
         } catch (\Exception $e) {
             log_message('error', 'Error in BulkImportController::process: ' . $e->getMessage());
-            return redirect()->to('/admin/members/import')->with('error', 'Gagal memproses import: ' . $e->getMessage());
+            return redirect()->to('/admin/bulk-import')->with('error', 'Gagal memproses import: ' . $e->getMessage());
         }
     }
 
@@ -523,7 +523,7 @@ class BulkImportController extends BaseController
             'status' => $status
         ];
 
-        return view('admin/members/import/history', $data);
+        return view('admin/bulk_import/history', $data);
     }
 
     /**
@@ -561,7 +561,7 @@ class BulkImportController extends BaseController
             'errors' => $errors
         ];
 
-        return view('admin/members/import/detail', $data);
+        return view('admin/bulk_import/detail', $data);
     }
 
     /**
@@ -582,7 +582,7 @@ class BulkImportController extends BaseController
         // Clear session
         session()->remove('import_file');
 
-        return redirect()->to('/admin/members/import')->with('info', 'Import dibatalkan');
+        return redirect()->to('/admin/bulk-import')->with('info', 'Import dibatalkan');
     }
 
     /**
