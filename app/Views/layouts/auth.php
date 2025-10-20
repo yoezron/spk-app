@@ -267,6 +267,150 @@
                 font-size: 30px;
             }
         }
+
+        /* Steps Progress (untuk activation flow) */
+        .steps {
+            display: flex;
+            justify-content: space-between;
+            padding: 0;
+            margin: 0;
+            list-style: none;
+        }
+
+        .step-item {
+            flex: 1;
+            text-align: center;
+            padding: 1rem;
+            position: relative;
+        }
+
+        .step-item::before {
+            content: '';
+            position: absolute;
+            top: 24px;
+            left: -50%;
+            width: 100%;
+            height: 2px;
+            background: #e2e8f0;
+            z-index: -1;
+        }
+
+        .step-item:first-child::before {
+            display: none;
+        }
+
+        .step-item.active::before {
+            background: #48bb78;
+        }
+
+        .step-item .h4 {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 0.5rem;
+            border-radius: 50%;
+            background: #e2e8f0;
+            color: #718096;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+        }
+
+        .step-item.active .h4 {
+            background: #48bb78;
+            color: white;
+        }
+
+        .step-item div:last-child {
+            font-size: 14px;
+            color: #718096;
+        }
+
+        .step-item.active div:last-child {
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        /* Avatar Upload */
+        .avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            overflow: hidden;
+            background: #f7fafc;
+            border: 3px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .avatar.avatar-xl {
+            width: 120px;
+            height: 120px;
+        }
+
+        /* Password Strength Indicator */
+        .progress {
+            height: 6px;
+            border-radius: 3px;
+            background: #e2e8f0;
+            overflow: hidden;
+        }
+
+        .progress-bar {
+            transition: width 0.3s ease, background-color 0.3s ease;
+        }
+
+        .progress-bar.bg-danger {
+            background: #f56565;
+        }
+
+        .progress-bar.bg-warning {
+            background: #ed8936;
+        }
+
+        .progress-bar.bg-success {
+            background: #48bb78;
+        }
+
+        /* Form Hints */
+        .form-hint {
+            font-size: 12px;
+            color: #718096;
+            margin-top: 0.25rem;
+        }
+
+        /* Input Group */
+        .input-group-flat .input-group-text {
+            background: transparent;
+            border-left: none;
+        }
+
+        .input-group-flat .form-control {
+            border-right: none;
+        }
+
+        /* Container Tight */
+        .container-tight {
+            max-width: 480px;
+            width: 100%;
+            margin: 0 auto;
+        }
+
+        .card-md {
+            margin-bottom: 1rem;
+        }
+
+        /* Text Utilities */
+        .text-muted {
+            color: #6c757d !important;
+        }
     </style>
 
     <!-- Additional CSS -->

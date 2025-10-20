@@ -28,9 +28,8 @@ class AddImportFieldsToMemberProfiles extends Migration
         // Add foreign key
         $this->forge->addForeignKey('import_batch_id', 'import_logs', 'id', 'SET NULL', 'CASCADE', 'member_profiles');
 
-        // Add index for filtering imported members
-        $this->forge->addKey('import_batch_id', false, false, 'idx_import_batch');
-        $this->db->query('CREATE INDEX idx_import_batch ON member_profiles(import_batch_id) WHERE import_batch_id IS NOT NULL');
+        // Add index for filtering imported members (MySQL compatible)
+        $this->db->query('CREATE INDEX idx_import_batch ON member_profiles(import_batch_id)');
     }
 
     public function down()
@@ -39,7 +38,7 @@ class AddImportFieldsToMemberProfiles extends Migration
         $this->forge->dropForeignKey('member_profiles', 'member_profiles_import_batch_id_foreign');
 
         // Drop index
-        $this->forge->dropKey('member_profiles', 'idx_import_batch');
+        $this->db->query('DROP INDEX idx_import_batch ON member_profiles');
 
         // Drop columns
         $this->forge->dropColumn('member_profiles', [

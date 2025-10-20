@@ -29,15 +29,14 @@ class AddActivationFieldsToUsers extends Migration
 
         $this->forge->addColumn('users', $fields);
 
-        // Add index for faster token lookup
-        $this->forge->addKey('activation_token', false, false, 'idx_activation_token');
-        $this->db->query('CREATE INDEX idx_activation_token ON users(activation_token) WHERE activation_token IS NOT NULL');
+        // Add index for faster token lookup (MySQL compatible)
+        $this->db->query('CREATE INDEX idx_activation_token ON users(activation_token)');
     }
 
     public function down()
     {
         // Drop index first
-        $this->forge->dropKey('users', 'idx_activation_token');
+        $this->db->query('DROP INDEX idx_activation_token ON users');
 
         // Drop columns
         $this->forge->dropColumn('users', [

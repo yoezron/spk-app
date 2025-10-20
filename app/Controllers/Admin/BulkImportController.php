@@ -69,6 +69,7 @@ class BulkImportController extends BaseController
      */
     public function index()
     {
+
         // Check permission
         if (!auth()->user()->can('member.import')) {
             return redirect()->back()->with('error', 'Anda tidak memiliki akses untuk mengimpor data anggota');
@@ -78,8 +79,8 @@ class BulkImportController extends BaseController
 
         // Get recent import history
         $recentImports = $this->importLogModel
-            ->select('import_logs.*, users.email')
-            ->join('users', 'users.id = import_logs.user_id')
+            ->select('import_logs.*, users.username')
+            ->join('users', 'users.id = import_logs.imported_by', 'left')
             ->orderBy('import_logs.created_at', 'DESC')
             ->limit(10)
             ->findAll();

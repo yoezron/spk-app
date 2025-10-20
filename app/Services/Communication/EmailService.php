@@ -317,38 +317,6 @@ class EmailService
         }
     }
 
-    /**
-     * Send verification email
-     * Sends email verification link to user
-     * 
-     * @param object $user User entity or object with email property
-     * @param string $token Verification token
-     * @return array ['success' => bool, 'message' => string, 'data' => mixed]
-     */
-    public function sendVerificationEmail(object $user, string $token): array
-    {
-        try {
-            $verificationUrl = base_url("auth/verify-email/{$token}");
-
-            $data = [
-                'subject' => 'Verifikasi Email - SPK',
-                'user_name' => $user->full_name ?? $user->username ?? 'Member',
-                'verification_url' => $verificationUrl,
-                'token' => $token,
-                'expires_in' => '24 jam'
-            ];
-
-            return $this->sendTemplate($user->email, 'emails/verification', $data);
-        } catch (\Exception $e) {
-            log_message('error', 'Error in EmailService::sendVerificationEmail: ' . $e->getMessage());
-
-            return [
-                'success' => false,
-                'message' => 'Gagal mengirim email verifikasi: ' . $e->getMessage(),
-                'data' => null
-            ];
-        }
-    }
 
     /**
      * Send welcome email

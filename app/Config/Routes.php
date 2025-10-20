@@ -84,6 +84,14 @@ $routes->group('auth', ['namespace' => 'App\Controllers\Auth'], function ($route
     $routes->post('forgot-password', 'PasswordController::sendResetLink');
     $routes->get('reset-password/(:segment)', 'PasswordController::resetPassword/$1');
     $routes->post('reset-password', 'PasswordController::updatePassword');
+
+    // Member Activation (from bulk import)
+    $routes->get('activate/(:segment)', 'ActivationController::index/$1', ['as' => 'activation']);
+    $routes->post('activate/(:segment)', 'ActivationController::activate/$1');
+    $routes->get('update-profile/(:segment)', 'ActivationController::updateProfile/$1');
+    $routes->post('update-profile/(:segment)', 'ActivationController::processProfileUpdate/$1');
+    $routes->post('resend-activation', 'ActivationController::resendEmail');
+    $routes->get('activation-status/(:num)', 'ActivationController::checkStatus/$1');
 });
 
 /*
@@ -233,11 +241,19 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'ro
     });
 
     // Bulk Import
-    $routes->get('bulk-import', 'BulkImportController::index', ['filter' => 'permission:member.import']);
-    $routes->post('bulk-import/upload', 'BulkImportController::upload', ['filter' => 'permission:member.import']);
-    $routes->get('bulk-import/preview', 'BulkImportController::preview', ['filter' => 'permission:member.import']);
-    $routes->post('bulk-import/process', 'BulkImportController::process', ['filter' => 'permission:member.import']);
-    $routes->get('bulk-import/download-template', 'BulkImportController::downloadTemplate');
+    $routes->group('bulk-import', function ($routes) {
+        $routes->get('/', 'BulkImportController::index');
+        $routes->get('download-template', 'BulkImportController::downloadTemplate');
+        $routes->post('upload', 'BulkImportController::upload');
+        $routes->get('preview', 'BulkImportController::preview');
+        $routes->post('process', 'BulkImportController::process');
+        $routes->post('process-with-activation', 'BulkImportController::processWithActivation');
+        $routes->get('result/(:num)', 'BulkImportController::result/$1');
+        $routes->get('history', 'BulkImportController::history');
+        $routes->post('resend-activation/(:num)', 'BulkImportController::resendActivation/$1');
+        $routes->get('download-error-report/(:num)', 'BulkImportController::downloadErrorReport/$1');
+        $routes->get('get-activation-stats/(:num)', 'BulkImportController::getActivationStats/$1');
+    });
 
     // Statistics
     $routes->get('statistics', 'StatisticsController::index', ['filter' => 'permission:stats.view']);
