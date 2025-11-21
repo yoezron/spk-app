@@ -3,7 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
-use App\Services\MemberStatisticsService;
+use App\Services\Member\MemberStatisticsService;
 use App\Services\RegionScopeService;
 use App\Models\MemberProfileModel;
 use App\Models\UserModel;

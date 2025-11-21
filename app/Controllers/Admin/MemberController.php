@@ -3,10 +3,10 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
-use App\Services\ApproveMemberService;
+use App\Services\Member\ApproveMemberService;
 use App\Services\RegionScopeService;
-use App\Services\MemberStatisticsService;
-use App\Services\NotificationService;
+use App\Services\Member\MemberStatisticsService;
+use App\Services\Communication\NotificationService;
 use App\Models\MemberProfileModel;
 use App\Models\UserModel;
 use App\Models\ProvinceModel;

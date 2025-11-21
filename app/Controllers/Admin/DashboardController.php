@@ -334,7 +334,7 @@ class DashboardController extends BaseController
     protected function fetchRecentActivities(int $userId, bool $isKoordinator, ?array $scopeData): array
     {
         try {
-            $builder = $this->memberModel
+            $builder = $this->memberModel->builder()
                 ->select('member_profiles.*, users.email, users.created_at')
                 ->join('users', 'users.id = member_profiles.user_id')
                 ->orderBy('users.created_at', 'DESC')
@@ -348,7 +348,7 @@ class DashboardController extends BaseController
             $recentMembers = $builder->get()->getResultArray();
 
             // Get recent audit logs
-            $auditBuilder = $this->auditModel
+            $auditBuilder = $this->auditModel->builder()
                 ->select('audit_logs.*, users.email')
                 ->join('users', 'users.id = audit_logs.user_id')
                 ->orderBy('audit_logs.created_at', 'DESC')
@@ -387,7 +387,7 @@ class DashboardController extends BaseController
     {
         try {
             // Pending member approvals
-            $pendingBuilder = $this->memberModel
+            $pendingBuilder = $this->memberModel->builder()
                 ->select('member_profiles.*, users.email, users.created_at')
                 ->join('users', 'users.id = member_profiles.user_id')
                 ->where('member_profiles.membership_status', 'calon_anggota')
@@ -401,7 +401,7 @@ class DashboardController extends BaseController
             $pendingApprovals = $pendingBuilder->get()->getResultArray();
 
             // Open tickets
-            $ticketBuilder = $this->complaintModel
+            $ticketBuilder = $this->complaintModel->builder()
                 ->select('complaints.*, member_profiles.full_name, users.email')
                 ->join('member_profiles', 'member_profiles.user_id = complaints.user_id')
                 ->join('users', 'users.id = complaints.user_id')
@@ -447,7 +447,7 @@ class DashboardController extends BaseController
                 $monthStart = $month . '-01 00:00:00';
                 $monthEnd = date('Y-m-t 23:59:59', strtotime($monthStart));
 
-                $builder = $this->memberModel
+                $builder = $this->memberModel->builder()
                     ->join('users', 'users.id = member_profiles.user_id')
                     ->where('users.created_at >=', $monthStart)
                     ->where('users.created_at <=', $monthEnd);
@@ -467,7 +467,7 @@ class DashboardController extends BaseController
             // Regional distribution (if not koordinator)
             $regionalData = [];
             if (!$isKoordinator) {
-                $regionalData = $this->memberModel
+                $regionalData = $this->memberModel->builder()
                     ->select('provinces.name as province_name, COUNT(*) as total')
                     ->join('provinces', 'provinces.id = member_profiles.province_id')
                     ->join('users', 'users.id = member_profiles.user_id')
@@ -480,15 +480,15 @@ class DashboardController extends BaseController
             }
 
             // Membership status distribution
-            $statusData = $this->memberModel
+            $statusBuilder = $this->memberModel->builder()
                 ->select('membership_status, COUNT(*) as total')
                 ->join('users', 'users.id = member_profiles.user_id');
 
             if ($isKoordinator && $scopeData) {
-                $statusData->where('member_profiles.province_id', $scopeData['province_id']);
+                $statusBuilder->where('member_profiles.province_id', $scopeData['province_id']);
             }
 
-            $statusData = $statusData
+            $statusData = $statusBuilder
                 ->groupBy('membership_status')
                 ->get()
                 ->getResultArray();

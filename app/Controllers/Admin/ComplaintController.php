@@ -5,7 +5,7 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Services\ComplaintService;
 use App\Services\RegionScopeService;
-use App\Services\NotificationService;
+use App\Services\Communication\NotificationService;
 use App\Models\ComplaintModel;
 use App\Models\ComplaintReplyModel;
 use App\Models\UserModel;
