@@ -667,9 +667,322 @@ class MemberController extends BaseController
     }
 
     /**
+     * Bulk reject members
+     * Reject multiple pending members at once
+     *
+     * @return ResponseInterface
+     */
+    public function bulkReject(): ResponseInterface
+    {
+        // Check permission
+        if (!auth()->user()->can('member.approve')) {
+            return redirect()->back()->with('error', 'Anda tidak memiliki izin untuk menolak anggota');
+        }
+
+        $memberIds = $this->request->getPost('member_ids');
+
+        if (empty($memberIds) || !is_array($memberIds)) {
+            return redirect()->back()->with('error', 'Pilih minimal satu anggota untuk ditolak');
+        }
+
+        // Get rejection reason (optional)
+        $reason = $this->request->getPost('reason') ?? 'Tidak memenuhi persyaratan';
+
+        $user = auth()->user();
+        $successCount = 0;
+        $failCount = 0;
+
+        foreach ($memberIds as $id) {
+            // Check regional scope access
+            if ($user->inGroup('koordinator_wilayah') && !$this->regionScope->canAccessMember($user->id, $id)) {
+                $failCount++;
+                continue;
+            }
+
+            $member = $this->memberModel->find($id);
+            if ($member) {
+                $result = $this->approveService->reject($member->user_id, $user->id, $reason);
+            } else {
+                $failCount++;
+                continue;
+            }
+
+            if ($result['success']) {
+                $successCount++;
+            } else {
+                $failCount++;
+            }
+        }
+
+        $message = "{$successCount} anggota berhasil ditolak";
+        if ($failCount > 0) {
+            $message .= ", {$failCount} gagal";
+        }
+
+        return redirect()->back()->with('success', $message);
+    }
+
+    /**
+     * Bulk delete members
+     * Delete multiple members at once (soft delete)
+     *
+     * @return ResponseInterface
+     */
+    public function bulkDelete(): ResponseInterface
+    {
+        // Check permission
+        if (!auth()->user()->can('member.delete')) {
+            return redirect()->back()->with('error', 'Anda tidak memiliki izin untuk menghapus anggota');
+        }
+
+        $memberIds = $this->request->getPost('member_ids');
+
+        if (empty($memberIds) || !is_array($memberIds)) {
+            return redirect()->back()->with('error', 'Pilih minimal satu anggota untuk dihapus');
+        }
+
+        $user = auth()->user();
+        $successCount = 0;
+        $failCount = 0;
+
+        foreach ($memberIds as $id) {
+            // Check regional scope access
+            if ($user->inGroup('koordinator_wilayah') && !$this->regionScope->canAccessMember($user->id, $id)) {
+                $failCount++;
+                continue;
+            }
+
+            $member = $this->memberModel->find($id);
+            if ($member) {
+                try {
+                    // Soft delete: Deactivate user account
+                    $this->userModel->update($member->user_id, ['active' => 0]);
+
+                    // Update member status to deleted
+                    $this->memberModel->update($id, [
+                        'membership_status' => 'deleted',
+                        'deleted_at' => date('Y-m-d H:i:s'),
+                        'deleted_by' => $user->id
+                    ]);
+
+                    // Log activity
+                    log_message('info', "Member {$member->full_name} (ID: {$id}) deleted by user {$user->id}");
+
+                    $successCount++;
+                } catch (\Exception $e) {
+                    log_message('error', "Failed to delete member ID {$id}: " . $e->getMessage());
+                    $failCount++;
+                }
+            } else {
+                $failCount++;
+            }
+        }
+
+        $message = "{$successCount} anggota berhasil dihapus";
+        if ($failCount > 0) {
+            $message .= ", {$failCount} gagal";
+        }
+
+        return redirect()->back()->with('success', $message);
+    }
+
+    /**
+     * Delete individual member
+     * Soft delete member by ID
+     *
+     * @param int $id Member profile ID
+     * @return ResponseInterface
+     */
+    public function delete(int $id): ResponseInterface
+    {
+        // Check permission
+        if (!auth()->user()->can('member.delete')) {
+            return redirect()->back()->with('error', 'Anda tidak memiliki izin untuk menghapus anggota');
+        }
+
+        $user = auth()->user();
+
+        // Check regional scope access
+        if ($user->inGroup('koordinator_wilayah') && !$this->regionScope->canAccessMember($user->id, $id)) {
+            return redirect()->back()->with('error', 'Anda tidak memiliki akses ke anggota ini');
+        }
+
+        try {
+            $member = $this->memberModel->find($id);
+
+            if (!$member) {
+                return redirect()->back()->with('error', 'Anggota tidak ditemukan');
+            }
+
+            // Soft delete: Deactivate user account
+            $this->userModel->update($member->user_id, ['active' => 0]);
+
+            // Update member status to deleted
+            $this->memberModel->update($id, [
+                'membership_status' => 'deleted',
+                'deleted_at' => date('Y-m-d H:i:s'),
+                'deleted_by' => $user->id
+            ]);
+
+            // Log activity
+            log_message('info', "Member {$member->full_name} (ID: {$id}) deleted by user {$user->id}");
+
+            return redirect()->to('/admin/members')->with('success', 'Anggota berhasil dihapus');
+        } catch (\Exception $e) {
+            log_message('error', 'Error in MemberController::delete: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal menghapus anggota: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Search members (AJAX endpoint)
+     * Used for autocomplete and dynamic search
+     *
+     * @return ResponseInterface JSON response
+     */
+    public function search(): ResponseInterface
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid request'
+            ])->setStatusCode(400);
+        }
+
+        // Check permission
+        if (!auth()->user()->can('member.view')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Access denied'
+            ])->setStatusCode(403);
+        }
+
+        $searchTerm = $this->request->getGet('q') ?? $this->request->getGet('search');
+
+        if (empty($searchTerm) || strlen($searchTerm) < 2) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Search term must be at least 2 characters'
+            ])->setStatusCode(400);
+        }
+
+        $user = auth()->user();
+        $isKoordinator = $user->inGroup('koordinator_wilayah');
+
+        try {
+            // Build query
+            $builder = $this->memberModel
+                ->select('member_profiles.id, member_profiles.full_name, member_profiles.member_number, member_profiles.phone, users.email, member_profiles.membership_status, provinces.name as province_name, universities.name as university_name')
+                ->join('users', 'users.id = member_profiles.user_id')
+                ->join('provinces', 'provinces.id = member_profiles.province_id', 'left')
+                ->join('universities', 'universities.id = member_profiles.university_id', 'left')
+                ->where('users.active', 1);
+
+            // Apply regional scope for Koordinator Wilayah
+            if ($isKoordinator) {
+                $scopeResult = $this->regionScope->getScopeData($user->id);
+                if ($scopeResult['success']) {
+                    $builder->where('member_profiles.province_id', $scopeResult['data']['province_id']);
+                }
+            }
+
+            // Apply search filter
+            $builder->groupStart()
+                ->like('member_profiles.full_name', $searchTerm)
+                ->orLike('users.email', $searchTerm)
+                ->orLike('member_profiles.member_number', $searchTerm)
+                ->orLike('member_profiles.phone', $searchTerm)
+                ->groupEnd();
+
+            // Limit results for performance
+            $members = $builder->limit(20)->findAll();
+
+            // Format results for Select2 or autocomplete
+            $results = [];
+            foreach ($members as $member) {
+                $results[] = [
+                    'id' => $member->id,
+                    'text' => $member->full_name . ' (' . ($member->email ?? '-') . ')',
+                    'full_name' => $member->full_name,
+                    'email' => $member->email,
+                    'member_number' => $member->member_number,
+                    'phone' => $member->phone,
+                    'membership_status' => $member->membership_status,
+                    'province_name' => $member->province_name,
+                    'university_name' => $member->university_name
+                ];
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $results,
+                'count' => count($results)
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error in MemberController::search: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Search failed: ' . $e->getMessage()
+            ])->setStatusCode(500);
+        }
+    }
+
+    /**
+     * Get member statistics (AJAX endpoint)
+     * Returns member counts by status for dashboard
+     *
+     * @return ResponseInterface JSON response
+     */
+    public function getStatistics(): ResponseInterface
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Invalid request'
+            ])->setStatusCode(400);
+        }
+
+        // Check permission
+        if (!auth()->user()->can('member.view')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Access denied'
+            ])->setStatusCode(403);
+        }
+
+        $user = auth()->user();
+        $isKoordinator = $user->inGroup('koordinator_wilayah');
+
+        try {
+            // Get regional scope if needed
+            $provinceId = null;
+            if ($isKoordinator) {
+                $scopeResult = $this->regionScope->getScopeData($user->id);
+                if ($scopeResult['success']) {
+                    $provinceId = $scopeResult['data']['province_id'];
+                }
+            }
+
+            // Get statistics using service
+            $stats = $this->statsService->getMemberStatistics($provinceId);
+
+            return $this->response->setJSON([
+                'success' => true,
+                'data' => $stats
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error in MemberController::getStatistics: ' . $e->getMessage());
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Failed to get statistics: ' . $e->getMessage()
+            ])->setStatusCode(500);
+        }
+    }
+
+    /**
      * Export member data to Excel/CSV
      * Export filtered member list based on current filters
-     * 
+     *
      * @return ResponseInterface
      */
     public function export(): ResponseInterface
