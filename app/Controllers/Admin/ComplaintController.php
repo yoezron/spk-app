@@ -562,9 +562,186 @@ class ComplaintController extends BaseController
     }
 
     /**
+     * Resolve ticket
+     * Mark ticket as resolved (convenience method for updateStatus)
+     *
+     * @param int $id Ticket ID
+     * @return ResponseInterface
+     */
+    public function resolve(int $id): ResponseInterface
+    {
+        // Check permission
+        if (!auth()->user()->can('complaint.manage')) {
+            return redirect()->back()->with('error', 'Anda tidak memiliki izin untuk menyelesaikan pengaduan');
+        }
+
+        $user = auth()->user();
+
+        try {
+            $ticket = $this->complaintModel->find($id);
+
+            if (!$ticket) {
+                return redirect()->back()->with('error', 'Pengaduan tidak ditemukan');
+            }
+
+            // Check regional scope access
+            if ($user->inGroup('koordinator_wilayah')) {
+                $memberProfile = $this->memberModel->where('user_id', $ticket->user_id)->first();
+                if ($memberProfile) {
+                    $scopeResult = $this->regionScope->getScopeData($user->id);
+                    if ($scopeResult['success']) {
+                        if ($memberProfile->province_id != $scopeResult['data']['province_id']) {
+                            return redirect()->back()->with('error', 'Anda tidak memiliki akses ke pengaduan ini');
+                        }
+                    }
+                }
+            }
+
+            $resolutionNotes = $this->request->getPost('resolution_notes') ?? $this->request->getPost('notes');
+
+            // Resolve ticket
+            $updateData = [
+                'status' => 'resolved',
+                'resolved_at' => date('Y-m-d H:i:s'),
+                'resolved_by' => $user->id,
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+
+            if (!empty($resolutionNotes)) {
+                $updateData['resolution_notes'] = $resolutionNotes;
+            }
+
+            $this->complaintModel->update($id, $updateData);
+
+            // Add system reply
+            $message = "Pengaduan telah diselesaikan";
+            if (!empty($resolutionNotes)) {
+                $message .= ". Catatan: {$resolutionNotes}";
+            }
+
+            $this->replyModel->insert([
+                'complaint_id' => $id,
+                'user_id' => $user->id,
+                'message' => $message,
+                'is_internal' => 0,
+                'created_at' => date('Y-m-d H:i:s')
+            ]);
+
+            // Send notification
+            $this->notificationService->sendTicketStatusChangedNotification(
+                $ticket->user_id,
+                $ticket->ticket_number,
+                'Telah diselesaikan'
+            );
+
+            // Log activity
+            log_message('info', "Ticket {$ticket->ticket_number} resolved by user {$user->id}");
+
+            return redirect()->back()->with('success', 'Pengaduan berhasil diselesaikan');
+        } catch (\Exception $e) {
+            log_message('error', 'Error in ComplaintController::resolve: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal menyelesaikan pengaduan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reopen ticket
+     * Reopen a resolved/closed ticket (convenience method for updateStatus)
+     *
+     * @param int $id Ticket ID
+     * @return ResponseInterface
+     */
+    public function reopen(int $id): ResponseInterface
+    {
+        // Check permission
+        if (!auth()->user()->can('complaint.manage')) {
+            return redirect()->back()->with('error', 'Anda tidak memiliki izin untuk membuka kembali pengaduan');
+        }
+
+        $user = auth()->user();
+
+        try {
+            $ticket = $this->complaintModel->find($id);
+
+            if (!$ticket) {
+                return redirect()->back()->with('error', 'Pengaduan tidak ditemukan');
+            }
+
+            // Check if ticket can be reopened
+            if (!in_array($ticket->status, ['resolved', 'closed'])) {
+                return redirect()->back()->with('error', 'Hanya pengaduan yang sudah diselesaikan atau ditutup yang dapat dibuka kembali');
+            }
+
+            // Check regional scope access
+            if ($user->inGroup('koordinator_wilayah')) {
+                $memberProfile = $this->memberModel->where('user_id', $ticket->user_id)->first();
+                if ($memberProfile) {
+                    $scopeResult = $this->regionScope->getScopeData($user->id);
+                    if ($scopeResult['success']) {
+                        if ($memberProfile->province_id != $scopeResult['data']['province_id']) {
+                            return redirect()->back()->with('error', 'Anda tidak memiliki akses ke pengaduan ini');
+                        }
+                    }
+                }
+            }
+
+            $reopenReason = $this->request->getPost('reason') ?? $this->request->getPost('notes');
+            $oldStatus = $ticket->status;
+
+            // Reopen ticket
+            $updateData = [
+                'status' => 'open',
+                'updated_at' => date('Y-m-d H:i:s'),
+                'reopened_at' => date('Y-m-d H:i:s'),
+                'reopened_by' => $user->id
+            ];
+
+            // Clear resolution/closed data
+            if ($oldStatus === 'resolved') {
+                $updateData['resolved_at'] = null;
+                $updateData['resolved_by'] = null;
+            } elseif ($oldStatus === 'closed') {
+                $updateData['closed_at'] = null;
+                $updateData['closed_by'] = null;
+            }
+
+            $this->complaintModel->update($id, $updateData);
+
+            // Add system reply
+            $message = "Pengaduan dibuka kembali dari status {$oldStatus}";
+            if (!empty($reopenReason)) {
+                $message .= ". Alasan: {$reopenReason}";
+            }
+
+            $this->replyModel->insert([
+                'complaint_id' => $id,
+                'user_id' => $user->id,
+                'message' => $message,
+                'is_internal' => 0,
+                'created_at' => date('Y-m-d H:i:s')
+            ]);
+
+            // Send notification
+            $this->notificationService->sendTicketStatusChangedNotification(
+                $ticket->user_id,
+                $ticket->ticket_number,
+                'Dibuka kembali'
+            );
+
+            // Log activity
+            log_message('info', "Ticket {$ticket->ticket_number} reopened by user {$user->id}");
+
+            return redirect()->back()->with('success', 'Pengaduan berhasil dibuka kembali');
+        } catch (\Exception $e) {
+            log_message('error', 'Error in ComplaintController::reopen: ' . $e->getMessage());
+            return redirect()->back()->with('error', 'Gagal membuka kembali pengaduan: ' . $e->getMessage());
+        }
+    }
+
+    /**
      * Export ticket report to Excel
      * Export filtered tickets with complete information
-     * 
+     *
      * @return ResponseInterface
      */
     public function export(): ResponseInterface

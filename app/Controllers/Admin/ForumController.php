@@ -522,9 +522,24 @@ class ForumController extends BaseController
     }
 
     /**
+     * Delete comment/post (alias for deletePost)
+     * Moderators can delete any comment
+     * This is an alias method to match the route naming
+     *
+     * @param int $id Post/Comment ID
+     * @return ResponseInterface
+     */
+    public function deleteComment(int $id): ResponseInterface
+    {
+        // This is an alias for deletePost to match route expectations
+        // In forum systems, comments are essentially posts/replies
+        return $this->deletePost($id);
+    }
+
+    /**
      * Get forum statistics (AJAX endpoint)
      * Returns statistics for dashboard widgets
-     * 
+     *
      * @return ResponseInterface JSON response
      */
     public function getStats(): ResponseInterface
