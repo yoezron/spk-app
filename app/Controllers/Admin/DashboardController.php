@@ -335,8 +335,9 @@ class DashboardController extends BaseController
     {
         try {
             $builder = $this->memberModel->builder()
-                ->select('member_profiles.*, users.email, users.created_at')
+                ->select('member_profiles.*, auth_identities.secret as email, users.created_at')
                 ->join('users', 'users.id = member_profiles.user_id')
+                ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
                 ->orderBy('users.created_at', 'DESC')
                 ->limit(10);
 
@@ -349,8 +350,9 @@ class DashboardController extends BaseController
 
             // Get recent audit logs
             $auditBuilder = $this->auditModel->builder()
-                ->select('audit_logs.*, users.email')
+                ->select('audit_logs.*, auth_identities.secret as email')
                 ->join('users', 'users.id = audit_logs.user_id')
+                ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
                 ->orderBy('audit_logs.created_at', 'DESC')
                 ->limit(10);
 
@@ -388,8 +390,9 @@ class DashboardController extends BaseController
         try {
             // Pending member approvals
             $pendingBuilder = $this->memberModel->builder()
-                ->select('member_profiles.*, users.email, users.created_at')
+                ->select('member_profiles.*, auth_identities.secret as email, users.created_at')
                 ->join('users', 'users.id = member_profiles.user_id')
+                ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
                 ->where('member_profiles.membership_status', 'calon_anggota')
                 ->orderBy('users.created_at', 'ASC')
                 ->limit(5);
@@ -402,9 +405,10 @@ class DashboardController extends BaseController
 
             // Open tickets
             $ticketBuilder = $this->complaintModel->builder()
-                ->select('complaints.*, member_profiles.full_name, users.email')
+                ->select('complaints.*, member_profiles.full_name, auth_identities.secret as email')
                 ->join('member_profiles', 'member_profiles.user_id = complaints.user_id')
                 ->join('users', 'users.id = complaints.user_id')
+                ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
                 ->where('complaints.status', 'open')
                 ->orderBy('complaints.created_at', 'ASC')
                 ->limit(5);
