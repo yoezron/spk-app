@@ -719,8 +719,9 @@ class StatisticsController extends BaseController
         $sheet->setTitle('Daftar Anggota');
 
         $builder = $this->memberModel->builder()
-            ->select('member_profiles.*, users.email, provinces.name as province_name')
+            ->select('member_profiles.*, auth_identities.secret as email, provinces.name as province_name')
             ->join('users', 'users.id = member_profiles.user_id')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
             ->join('provinces', 'provinces.id = member_profiles.province_id', 'left')
             ->where('users.active', 1);
 

@@ -83,8 +83,9 @@ class SurveyController extends BaseController
 
         // Build query
         $builder = $this->surveyModel
-            ->select('surveys.*, users.email as created_by_email, member_profiles.full_name as created_by_name, COUNT(DISTINCT survey_responses.user_id) as response_count')
+            ->select('surveys.*, auth_identities.secret as created_by_email, member_profiles.full_name as created_by_name, COUNT(DISTINCT survey_responses.user_id) as response_count')
             ->join('users', 'users.id = surveys.created_by')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
             ->join('member_profiles', 'member_profiles.user_id = users.id', 'left')
             ->join('survey_responses', 'survey_responses.survey_id = surveys.id', 'left')
             ->groupBy('surveys.id');
@@ -360,8 +361,9 @@ class SurveyController extends BaseController
 
         // Get recent responses
         $recentResponses = $this->responseModel
-            ->select('survey_responses.*, users.email, member_profiles.full_name, member_profiles.province_id, provinces.name as province_name')
+            ->select('survey_responses.*, auth_identities.secret as email, member_profiles.full_name, member_profiles.province_id, provinces.name as province_name')
             ->join('users', 'users.id = survey_responses.user_id')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
             ->join('member_profiles', 'member_profiles.user_id = users.id', 'left')
             ->join('provinces', 'provinces.id = member_profiles.province_id', 'left')
             ->where('survey_responses.survey_id', $id)
@@ -409,8 +411,9 @@ class SurveyController extends BaseController
 
             // Get all responses
             $responses = $this->responseModel
-                ->select('survey_responses.*, users.email, member_profiles.full_name, member_profiles.phone, provinces.name as province_name')
+                ->select('survey_responses.*, auth_identities.secret as email, member_profiles.full_name, member_profiles.phone, provinces.name as province_name')
                 ->join('users', 'users.id = survey_responses.user_id')
+                ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
                 ->join('member_profiles', 'member_profiles.user_id = users.id', 'left')
                 ->join('provinces', 'provinces.id = member_profiles.province_id', 'left')
                 ->where('survey_responses.survey_id', $id)

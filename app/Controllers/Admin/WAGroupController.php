@@ -484,17 +484,19 @@ class WAGroupController extends BaseController
 
         // Get group members
         $members = $this->groupMemberModel
-            ->select('wa_group_members.*, member_profiles.full_name, member_profiles.phone, users.email')
+            ->select('wa_group_members.*, member_profiles.full_name, member_profiles.phone, auth_identities.secret as email')
             ->join('member_profiles', 'member_profiles.id = wa_group_members.member_id')
             ->join('users', 'users.id = member_profiles.user_id')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
             ->where('wa_group_members.group_id', $id)
             ->orderBy('wa_group_members.joined_at', 'DESC')
             ->paginate(20);
 
         // Get members in province who haven't joined
         $notJoinedMembers = $this->memberModel
-            ->select('member_profiles.*, users.email')
+            ->select('member_profiles.*, auth_identities.secret as email')
             ->join('users', 'users.id = member_profiles.user_id')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
             ->where('member_profiles.province_id', $group->province_id)
             ->where('users.active', 1)
             ->whereNotIn('member_profiles.id', function ($builder) use ($id) {
