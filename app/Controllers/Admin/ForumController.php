@@ -82,9 +82,10 @@ class ForumController extends BaseController
 
         // Build query
         $builder = $this->threadModel
-            ->select('forum_threads.*, forum_categories.name as category_name, users.email as author_email, member_profiles.full_name as author_name')
+            ->select('forum_threads.*, forum_categories.name as category_name, auth_identities.secret as author_email, member_profiles.full_name as author_name')
             ->join('forum_categories', 'forum_categories.id = forum_threads.category_id')
             ->join('users', 'users.id = forum_threads.user_id')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
             ->join('member_profiles', 'member_profiles.user_id = users.id', 'left');
 
         // Apply filters
@@ -151,9 +152,10 @@ class ForumController extends BaseController
 
         // Get thread with author info
         $thread = $this->threadModel
-            ->select('forum_threads.*, forum_categories.name as category_name, users.email as author_email, member_profiles.full_name as author_name')
+            ->select('forum_threads.*, forum_categories.name as category_name, auth_identities.secret as author_email, member_profiles.full_name as author_name')
             ->join('forum_categories', 'forum_categories.id = forum_threads.category_id')
             ->join('users', 'users.id = forum_threads.user_id')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
             ->join('member_profiles', 'member_profiles.user_id = users.id', 'left')
             ->find($id);
 
@@ -163,8 +165,9 @@ class ForumController extends BaseController
 
         // Get all posts in this thread
         $posts = $this->postModel
-            ->select('forum_posts.*, users.email as author_email, member_profiles.full_name as author_name, member_profiles.foto_path')
+            ->select('forum_posts.*, auth_identities.secret as author_email, member_profiles.full_name as author_name, member_profiles.foto_path')
             ->join('users', 'users.id = forum_posts.user_id')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
             ->join('member_profiles', 'member_profiles.user_id = users.id', 'left')
             ->where('forum_posts.thread_id', $id)
             ->orderBy('forum_posts.created_at', 'ASC')
@@ -475,11 +478,13 @@ class ForumController extends BaseController
 
         // Get deleted threads
         $deletedThreads = $this->threadModel
-            ->select('forum_threads.*, forum_categories.name as category_name, users.email as author_email, member_profiles.full_name as author_name, deleters.email as deleted_by_email')
+            ->select('forum_threads.*, forum_categories.name as category_name, auth_identities.secret as author_email, member_profiles.full_name as author_name, deleter_auth.secret as deleted_by_email')
             ->join('forum_categories', 'forum_categories.id = forum_threads.category_id')
             ->join('users', 'users.id = forum_threads.user_id')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
             ->join('member_profiles', 'member_profiles.user_id = users.id', 'left')
             ->join('users as deleters', 'deleters.id = forum_threads.deleted_by', 'left')
+            ->join('auth_identities as deleter_auth', 'deleter_auth.user_id = deleters.id AND deleter_auth.type = "email_password"', 'left')
             ->where('forum_threads.is_deleted', 1)
             ->orderBy('forum_threads.deleted_at', 'DESC')
             ->paginate(20);
