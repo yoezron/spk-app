@@ -256,7 +256,7 @@ class BulkImportService
             }
 
             // Assign role based on options
-            $role = $options['default_role'] ?? 'Anggota';
+            $role = $options['default_role'] ?? 'anggota';
             $user->addGroup($role);
 
             // Set active status based on options

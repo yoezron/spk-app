@@ -80,7 +80,7 @@ class RegisterMemberService
             }
 
             // 5. Assign role "Calon Anggota"
-            $user->addGroup('Calon Anggota');
+            $user->addGroup('calon_anggota');
 
             // 6. Send verification email
             $emailResult = $this->sendVerificationEmail($user);
