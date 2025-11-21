@@ -135,7 +135,7 @@ class DashboardController extends BaseController
             'chart_data' => $chartData
         ];
 
-        return view('admin/dashboard/index', $data);
+        return view('admin/dashboard', $data);
     }
 
     /**
