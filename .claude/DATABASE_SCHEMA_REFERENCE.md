@@ -11,21 +11,21 @@ Aplikasi ini menggunakan **CodeIgniter Shield** untuk authentication. Tabel-tabe
 ### 1. `users` (Table Utama User)
 **Tabel ini dikelola oleh Shield, BUKAN custom migration!**
 
-Kolom standar Shield:
-- `id` INT (PK)
+Kolom yang ada:
+- `id` INT UNSIGNED (PK)
 - `username` VARCHAR(30) UNIQUE
 - `status` VARCHAR(255) - status akun (active, banned, etc)
 - `status_message` VARCHAR(255)
-- `active` TINYINT(1) - flag aktif/non-aktif
+- `active` TINYINT(1) - flag aktif/non-aktif (0=inactive, 1=active)
 - `last_active` DATETIME
 - `created_at` DATETIME
 - `updated_at` DATETIME
 - `deleted_at` DATETIME (soft delete)
 
-Kolom tambahan dari migration `2025_01_15_000001`:
-- `activation_token` VARCHAR(255) - untuk aktivasi member import
-- `activation_token_expires_at` DATETIME
-- `activated_at` DATETIME
+Kolom tambahan untuk import member:
+- `activation_token` VARCHAR(255) - token untuk aktivasi akun member yang diimport
+- `activation_token_expires_at` DATETIME - kadaluarsa token (7 hari dari generate)
+- `activated_at` DATETIME - waktu member berhasil aktivasi akun
 
 **PENTING**:
 - Email dan password **TIDAK** disimpan di tabel `users`!
@@ -90,19 +90,21 @@ public function findByEmail(string $email)
 **Pivot table untuk relasi many-to-many users dengan groups/roles**
 
 Kolom:
-- `id` INT (PK)
-- `user_id` INT (FK ke `users.id`)
-- `group` VARCHAR(255) - nama role/group:
-  - `'Super Admin'`
-  - `'Pengurus'`
-  - `'Koordinator Wilayah'`
-  - `'Anggota'`
-  - `'Calon Anggota'`
+- `id` INT UNSIGNED (PK)
+- `user_id` INT UNSIGNED (FK ke `users.id`)
+- `group` VARCHAR(255) - nama role/group (LOWERCASE, TANPA SPASI):
+  - `'superadmin'`
+  - `'pengurus'`
+  - `'koordinator'`
+  - `'anggota'`
+  - `'calon_anggota'`
 - `created_at` DATETIME
 
 **PENTING**:
 - Satu user biasanya hanya punya 1 role (meskipun strukturnya many-to-many)
-- Role disimpan sebagai string di kolom `group`, bukan ID!
+- Role disimpan sebagai **string LOWERCASE dengan underscore** di kolom `group`, bukan ID!
+- **BUKAN** 'Super Admin' tapi `'superadmin'`
+- **BUKAN** 'Koordinator Wilayah' tapi `'koordinator'`
 
 ---
 
@@ -160,22 +162,34 @@ Foreign Keys:
 - `approved_by` → `users.id` (admin yang approve)
 
 Kolom penting:
-- `user_id` INT (FK ke `users.id`, UNIQUE)
+- `id` INT UNSIGNED (PK)
+- `user_id` INT UNSIGNED (FK ke `users.id`, UNIQUE)
 - `member_number` VARCHAR(50) UNIQUE - format: SPK-2025-00001
 - `full_name` VARCHAR(255)
 - `nik` VARCHAR(20) - NIK KTP
 - `nidn_nip` VARCHAR(30) - NIDN/NIP dosen
+- `gender` ENUM('Laki-laki','Perempuan')
 - `membership_status` ENUM: pending, active, inactive, suspended, expired
 - `join_date` DATE
-- `verified_at` DATETIME
-- `verified_by` INT
-- `district_id` INT - **KOLOM INI TIDAK ADA DI MIGRATION!** (bug?)
-- `village_id` INT - **KOLOM INI TIDAK ADA DI MIGRATION!** (bug?)
+- `approved_at` DATETIME
+- `approved_by` INT UNSIGNED
+- `postal_code` VARCHAR(10)
+- `salary_payer` ENUM('KAMPUS','PEMERINTAH','YAYASAN','LAINNYA')
+- `job_position` VARCHAR(100)
+- `work_start_date` DATE
+
+Kolom untuk import member:
+- `imported_at` DATETIME - waktu data member diimport dari Excel
+- `import_batch_id` INT UNSIGNED - FK ke `import_logs.id`
+- `legacy_member_id` VARCHAR(50) - ID dari sistem lama
+- `is_legacy_member` TINYINT(1) - flag anggota dari sistem lama
 
 **CATATAN PENTING**:
+- ❌ `district_id` - **TIDAK ADA di database!** (ada di Model tapi tidak di tabel)
+- ❌ `village_id` - **TIDAK ADA di database!** (ada di Model tapi tidak di tabel)
+- ✅ Yang ada hanya: `province_id` dan `regency_id`
 - Di MemberProfileModel.php line 39-40 ada `district_id` dan `village_id` di allowedFields
-- Tapi di migration TIDAK ADA kolom ini!
-- Ini bisa menyebabkan error saat save jika ada data district/village
+- **Ini bisa menyebabkan error** saat save jika ada data district/village!
 
 ---
 
@@ -270,6 +284,28 @@ Tabel: `auth_groups`, `auth_permissions`, `auth_groups_permissions`
 
 ---
 
+### 24. Import Logs (Member Import Tracking)
+Tabel: `import_logs`
+
+Kolom utama:
+- `id` INT UNSIGNED (PK)
+- `imported_by` INT UNSIGNED (FK ke `users.id`) - user yang melakukan import
+- `filename` VARCHAR(255) - nama file Excel yang diupload
+- `total_rows` INT UNSIGNED - total baris yang diproses
+- `success_count` INT UNSIGNED - jumlah data berhasil diimport
+- `failed_count` INT UNSIGNED - jumlah data gagal (validasi error)
+- `duplicate_count` INT UNSIGNED - jumlah data duplicate (email/NIK sudah ada)
+- `error_details` TEXT - detail error per row dalam format JSON
+- `status` ENUM('processing','completed','failed')
+- `created_at` DATETIME
+- `updated_at` DATETIME
+
+**Relasi dengan member_profiles:**
+- `member_profiles.import_batch_id` → `import_logs.id`
+- `member_profiles.imported_at` → timestamp import
+
+---
+
 ## ⚠️ KESALAHAN UMUM YANG HARUS DIHINDARI
 
 ### ❌ SALAH #1: Mengakses email dari tabel users
@@ -325,23 +361,47 @@ $memberProfileModel->save([
 // - regency_id ✅
 ```
 
-### ❌ SALAH #5: Asumsi role adalah integer ID
+### ❌ SALAH #5: Asumsi role adalah integer ID atau menggunakan string dengan spasi
 ```php
-// SALAH!
+// SALAH #1 - Mengira role adalah integer!
 $role = $db->table('auth_groups_users')
     ->where('user_id', 1)
     ->get()->getRow()->group;
-// $role = "Super Admin" (string, bukan ID!)
+// $role = "superadmin" (string lowercase!)
 
 if ($role == 1) { // ❌ SALAH! Role adalah string!
     // ...
 }
 
+// SALAH #2 - Menggunakan string dengan spasi dan Title Case!
+if ($role == 'Super Admin') { // ❌ SALAH! Role adalah lowercase!
+    // ...
+}
+
+if ($role == 'Koordinator Wilayah') { // ❌ SALAH!
+    // ...
+}
+
 // BENAR!
-if ($role == 'Super Admin') { // ✅
+if ($role == 'superadmin') { // ✅ lowercase, underscore
+    // ...
+}
+
+if ($role == 'koordinator') { // ✅
+    // ...
+}
+
+if ($role == 'calon_anggota') { // ✅
     // ...
 }
 ```
+
+**Daftar role yang BENAR:**
+- ✅ `'superadmin'` (bukan 'Super Admin')
+- ✅ `'pengurus'` (bukan 'Pengurus')
+- ✅ `'koordinator'` (bukan 'Koordinator' atau 'Koordinator Wilayah')
+- ✅ `'anggota'` (bukan 'Anggota')
+- ✅ `'calon_anggota'` (bukan 'Calon Anggota')
 
 ---
 
@@ -392,13 +452,16 @@ mysql -u root -p spk_db -e "SHOW INDEX FROM users;"
 Sebelum melakukan perubahan apapun, pastikan:
 
 - [ ] Saya sudah membaca file ini
-- [ ] Saya memahami email disimpan di `auth_identities`, bukan `users`
+- [ ] Saya memahami email disimpan di `auth_identities.secret`, bukan `users.email`
 - [ ] Saya memahami password disimpan di `auth_identities.secret2`
-- [ ] Saya memahami role disimpan sebagai string di `auth_groups_users.group`
+- [ ] Saya memahami role disimpan sebagai **string lowercase** di `auth_groups_users.group`
+- [ ] Saya menggunakan role yang benar: `'superadmin'`, `'pengurus'`, `'koordinator'`, `'anggota'`, `'calon_anggota'`
+- [ ] Saya TIDAK menggunakan role dengan spasi: ~~'Super Admin'~~, ~~'Koordinator Wilayah'~~
 - [ ] Saya sudah cek kolom tabel via migration atau DESCRIBE table
 - [ ] Saya sudah cek contoh di UserModel.php untuk join auth_identities
-- [ ] Saya tidak menggunakan kolom `district_id`/`village_id` di member_profiles
+- [ ] Saya tidak menggunakan kolom `district_id`/`village_id` di member_profiles (kolom tidak ada!)
 - [ ] Saya memahami foreign key constraints yang ada
+- [ ] Saya memahami relasi `import_logs` dengan `member_profiles` untuk tracking import
 
 ---
 
