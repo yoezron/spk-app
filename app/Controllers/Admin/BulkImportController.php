@@ -497,15 +497,16 @@ class BulkImportController extends BaseController
         $status = $this->request->getGet('status');
 
         $builder = $this->importLogModel
-            ->select('import_logs.*, users.email')
-            ->join('users', 'users.id = import_logs.user_id')
+            ->select('import_logs.*, auth_identities.secret as email')
+            ->join('users', 'users.id = import_logs.imported_by')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
             ->orderBy('import_logs.created_at', 'DESC');
 
         // Apply filters
         if (!empty($search)) {
             $builder->groupStart()
                 ->like('import_logs.filename', $search)
-                ->orLike('users.email', $search)
+                ->orLike('auth_identities.secret', $search)
                 ->groupEnd();
         }
 
@@ -541,8 +542,9 @@ class BulkImportController extends BaseController
         }
 
         $import = $this->importLogModel
-            ->select('import_logs.*, users.email')
-            ->join('users', 'users.id = import_logs.user_id')
+            ->select('import_logs.*, auth_identities.secret as email')
+            ->join('users', 'users.id = import_logs.imported_by')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
             ->find($id);
 
         if (!$import) {

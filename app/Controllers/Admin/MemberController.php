@@ -303,8 +303,9 @@ class MemberController extends BaseController
 
         // Get member with relations
         $member = $this->memberModel
-            ->select('member_profiles.*, users.email, users.active, users.created_at as registered_at')
+            ->select('member_profiles.*, auth_identities.secret as email, users.active, users.created_at as registered_at')
             ->join('users', 'users.id = member_profiles.user_id')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
             ->find($id);
 
         if (!$member) {
@@ -405,10 +406,16 @@ class MemberController extends BaseController
             if ($user->inGroup('superadmin')) {
                 $newEmail = $this->request->getPost('email');
                 if ($newEmail && $newEmail !== $member->email) {
-                    $emailRules = ['email' => 'required|valid_email|is_unique[users.email,id,' . $member->user_id . ']'];
+                    // Validate email uniqueness in auth_identities table
+                    $emailRules = ['email' => 'required|valid_email|is_unique[auth_identities.secret,user_id,' . $member->user_id . ']'];
 
                     if ($this->validate($emailRules)) {
-                        $this->userModel->update($member->user_id, ['email' => $newEmail]);
+                        // Update email in auth_identities table
+                        $db = \Config\Database::connect();
+                        $db->table('auth_identities')
+                            ->where('user_id', $member->user_id)
+                            ->where('type', 'email_password')
+                            ->update(['secret' => $newEmail]);
                     } else {
                         return redirect()->back()->withInput()->with('warning', 'Profil diupdate, tetapi email gagal diubah (sudah digunakan)');
                     }
@@ -875,8 +882,9 @@ class MemberController extends BaseController
         try {
             // Build query
             $builder = $this->memberModel
-                ->select('member_profiles.id, member_profiles.full_name, member_profiles.member_number, member_profiles.phone, users.email, member_profiles.membership_status, provinces.name as province_name, universities.name as university_name')
+                ->select('member_profiles.id, member_profiles.full_name, member_profiles.member_number, member_profiles.phone, auth_identities.secret as email, member_profiles.membership_status, provinces.name as province_name, universities.name as university_name')
                 ->join('users', 'users.id = member_profiles.user_id')
+                ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
                 ->join('provinces', 'provinces.id = member_profiles.province_id', 'left')
                 ->join('universities', 'universities.id = member_profiles.university_id', 'left')
                 ->where('users.active', 1);
@@ -892,7 +900,7 @@ class MemberController extends BaseController
             // Apply search filter
             $builder->groupStart()
                 ->like('member_profiles.full_name', $searchTerm)
-                ->orLike('users.email', $searchTerm)
+                ->orLike('auth_identities.secret', $searchTerm)
                 ->orLike('member_profiles.member_number', $searchTerm)
                 ->orLike('member_profiles.phone', $searchTerm)
                 ->groupEnd();
@@ -1009,8 +1017,9 @@ class MemberController extends BaseController
         try {
             // Build query with same filters as index
             $builder = $this->memberModel
-                ->select('member_profiles.*, users.email, users.active, users.created_at as registered_at, provinces.name as province_name, universities.name as university_name')
+                ->select('member_profiles.*, auth_identities.secret as email, users.active, users.created_at as registered_at, provinces.name as province_name, universities.name as university_name')
                 ->join('users', 'users.id = member_profiles.user_id')
+                ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
                 ->join('provinces', 'provinces.id = member_profiles.province_id', 'left')
                 ->join('universities', 'universities.id = member_profiles.university_id', 'left');
 
@@ -1041,7 +1050,7 @@ class MemberController extends BaseController
                 $search = $filters['search'];
                 $builder->groupStart()
                     ->like('member_profiles.full_name', $search)
-                    ->orLike('users.email', $search)
+                    ->orLike('auth_identities.secret', $search)
                     ->orLike('member_profiles.member_number', $search)
                     ->groupEnd();
             }
