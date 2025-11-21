@@ -135,7 +135,7 @@ class DashboardController extends BaseController
             'chart_data' => $chartData
         ];
 
-        return view('admin/dashboard/index', $data);
+        return view('admin/dashboard', $data);
     }
 
     /**
@@ -363,17 +363,47 @@ class DashboardController extends BaseController
 
             $recentAudits = $auditBuilder->get()->getResultArray();
 
-            return [
-                'recent_members' => $recentMembers,
-                'recent_audits' => $recentAudits
-            ];
-        } catch (\Exception $e) {
-            log_message('error', 'Error in DashboardController::getRecentActivities: ' . $e->getMessage());
+            // Format activities for the view
+            $activities = [];
 
-            return [
-                'recent_members' => [],
-                'recent_audits' => []
-            ];
+            // Add recent member registrations
+            foreach ($recentMembers as $member) {
+                $activities[] = [
+                    'title' => 'Pendaftaran Anggota Baru',
+                    'description' => $member['full_name'] . ' mendaftar sebagai anggota baru',
+                    'time' => $this->timeAgo($member['created_at']),
+                    'icon' => 'person_add',
+                    'timestamp' => strtotime($member['created_at'])
+                ];
+            }
+
+            // Add recent audit logs
+            foreach ($recentAudits as $audit) {
+                $activities[] = [
+                    'title' => $audit['action'] ?? 'Aktivitas',
+                    'description' => $audit['description'] ?? ($audit['email'] ?? 'User') . ' melakukan aktivitas',
+                    'time' => $this->timeAgo($audit['created_at']),
+                    'icon' => $this->getAuditIcon($audit['action'] ?? ''),
+                    'timestamp' => strtotime($audit['created_at'])
+                ];
+            }
+
+            // Sort by timestamp (most recent first)
+            usort($activities, function($a, $b) {
+                return $b['timestamp'] - $a['timestamp'];
+            });
+
+            // Remove timestamp from output and limit to 10 most recent
+            $activities = array_slice($activities, 0, 10);
+            foreach ($activities as &$activity) {
+                unset($activity['timestamp']);
+            }
+
+            return $activities;
+        } catch (\Exception $e) {
+            log_message('error', 'Error in DashboardController::fetchRecentActivities: ' . $e->getMessage());
+
+            return [];
         }
     }
 
@@ -511,5 +541,60 @@ class DashboardController extends BaseController
                 'status_distribution' => []
             ];
         }
+    }
+
+    /**
+     * Convert timestamp to human-readable "time ago" format
+     *
+     * @param string $datetime DateTime string
+     * @return string Human readable time
+     */
+    protected function timeAgo(string $datetime): string
+    {
+        $timestamp = strtotime($datetime);
+        $diff = time() - $timestamp;
+
+        if ($diff < 60) {
+            return $diff . ' detik yang lalu';
+        } elseif ($diff < 3600) {
+            return floor($diff / 60) . ' menit yang lalu';
+        } elseif ($diff < 86400) {
+            return floor($diff / 3600) . ' jam yang lalu';
+        } elseif ($diff < 604800) {
+            return floor($diff / 86400) . ' hari yang lalu';
+        } else {
+            return date('d M Y H:i', $timestamp);
+        }
+    }
+
+    /**
+     * Get Material Icon name based on audit action type
+     *
+     * @param string $action Action type
+     * @return string Material Icon name
+     */
+    protected function getAuditIcon(string $action): string
+    {
+        $iconMap = [
+            'login' => 'login',
+            'logout' => 'logout',
+            'create' => 'add_circle',
+            'update' => 'edit',
+            'delete' => 'delete',
+            'approve' => 'check_circle',
+            'reject' => 'cancel',
+            'verify' => 'verified',
+            'export' => 'download',
+            'import' => 'upload'
+        ];
+
+        $actionLower = strtolower($action);
+        foreach ($iconMap as $key => $icon) {
+            if (strpos($actionLower, $key) !== false) {
+                return $icon;
+            }
+        }
+
+        return 'info';
     }
 }
