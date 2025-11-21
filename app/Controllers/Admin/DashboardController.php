@@ -3,9 +3,9 @@
 namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
-use App\Services\MemberStatisticsService;
+use App\Services\Member\MemberStatisticsService;
 use App\Services\RegionScopeService;
-use App\Services\NotificationService;
+use App\Services\Communication\NotificationService;
 use App\Models\MemberProfileModel;
 use App\Models\ComplaintModel;
 use App\Models\ForumThreadModel;
