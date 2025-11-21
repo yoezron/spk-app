@@ -439,8 +439,6 @@ class BulkImportService
             'address'              => $rowData['address'],
             'province_id'          => $provinceId,
             'regency_id'           => null, // Can be enhanced to lookup
-            'district_id'          => null,
-            'village_id'           => null,
             'employment_status_id' => null, // Can be enhanced to lookup
             'salary_range_id'      => null,
             'basic_salary'         => $rowData['basic_salary'] ?? null,

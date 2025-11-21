@@ -43,8 +43,6 @@ class Member extends Entity
         'user_id'               => 'integer',
         'province_id'           => '?integer',
         'regency_id'            => '?integer',
-        'district_id'           => '?integer',
-        'village_id'            => '?integer',
         'employment_status_id'  => '?integer',
         'salary_range_id'       => '?integer',
         'university_id'         => '?integer',

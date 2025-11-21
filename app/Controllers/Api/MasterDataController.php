@@ -7,8 +7,8 @@ use CodeIgniter\API\ResponseTrait;
 use App\Models\UniversityModel;
 use App\Models\StudyProgramModel;
 use App\Models\RegencyModel;
-use App\Models\DistrictModel;
-use App\Models\VillageModel;
+// use App\Models\DistrictModel;  // ❌ COMMENTED: districts table doesn't exist in database
+// use App\Models\VillageModel;   // ❌ COMMENTED: villages table doesn't exist in database
 
 /**
  * Master Data API Controller
@@ -25,8 +25,8 @@ class MasterDataController extends ResourceController
     protected $universityModel;
     protected $studyProgramModel;
     protected $regencyModel;
-    protected $districtModel;
-    protected $villageModel;
+    // protected $districtModel;  // ❌ COMMENTED: districts table doesn't exist
+    // protected $villageModel;   // ❌ COMMENTED: villages table doesn't exist
 
     /**
      * Constructor
@@ -36,8 +36,8 @@ class MasterDataController extends ResourceController
         $this->universityModel = new UniversityModel();
         $this->studyProgramModel = new StudyProgramModel();
         $this->regencyModel = new RegencyModel();
-        $this->districtModel = new DistrictModel();
-        $this->villageModel = new VillageModel();
+        // $this->districtModel = new DistrictModel();  // ❌ COMMENTED: districts table doesn't exist
+        // $this->villageModel = new VillageModel();    // ❌ COMMENTED: villages table doesn't exist
 
         // Enable CORS if needed
         header('Access-Control-Allow-Origin: *');
@@ -205,9 +205,12 @@ class MasterDataController extends ResourceController
 
     /**
      * Get districts by regency
-     * 
+     * ❌ COMMENTED OUT: districts table doesn't exist in database
+     * TODO: Uncomment when districts table is created
+     *
      * @return \CodeIgniter\HTTP\Response
      */
+    /*
     public function getDistricts()
     {
         try {
@@ -251,12 +254,16 @@ class MasterDataController extends ResourceController
             ], 500);
         }
     }
+    */
 
     /**
      * Get villages by district
-     * 
+     * ❌ COMMENTED OUT: villages table doesn't exist in database
+     * TODO: Uncomment when villages table is created
+     *
      * @return \CodeIgniter\HTTP\Response
      */
+    /*
     public function getVillages()
     {
         try {
@@ -300,6 +307,7 @@ class MasterDataController extends ResourceController
             ], 500);
         }
     }
+    */
 
     /**
      * Search universities by name
@@ -366,8 +374,8 @@ class MasterDataController extends ResourceController
             cache()->deleteMatching('universities_*');
             cache()->deleteMatching('study_programs_*');
             cache()->deleteMatching('regencies_*');
-            cache()->deleteMatching('districts_*');
-            cache()->deleteMatching('villages_*');
+            // cache()->deleteMatching('districts_*');  // ❌ COMMENTED: districts table doesn't exist
+            // cache()->deleteMatching('villages_*');   // ❌ COMMENTED: villages table doesn't exist
 
             return $this->respond([
                 'success' => true,

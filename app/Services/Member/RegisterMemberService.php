@@ -298,8 +298,6 @@ class RegisterMemberService
             'address'              => $data['address'],
             'province_id'          => $data['province_id'],
             'regency_id'           => $data['regency_id'] ?? null,
-            'district_id'          => $data['district_id'] ?? null,
-            'village_id'           => $data['village_id'] ?? null,
             'employment_status_id' => $data['employment_status_id'] ?? null,
             'salary_range_id'      => $data['salary_range_id'] ?? null,
             'basic_salary'         => $data['basic_salary'] ?? null,
