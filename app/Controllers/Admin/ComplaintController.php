@@ -152,11 +152,11 @@ class ComplaintController extends BaseController
 
         // Get staff list for assignment filter
         $staffList = $this->userModel
-            ->select('users.id, users.email, member_profiles.full_name')
+            ->select('users.id, auth_identities.secret as email, member_profiles.full_name')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
             ->join('auth_groups_users', 'auth_groups_users.user_id = users.id')
-            ->join('auth_groups', 'auth_groups.id = auth_groups_users.group')
             ->join('member_profiles', 'member_profiles.user_id = users.id', 'left')
-            ->whereIn('auth_groups.name', ['pengurus', 'koordinator'])
+            ->whereIn('auth_groups_users.group', ['pengurus', 'koordinator'])
             ->findAll();
 
         $data = [
@@ -216,8 +216,9 @@ class ComplaintController extends BaseController
 
         // Get replies
         $replies = $this->replyModel
-            ->select('complaint_replies.*, users.email as replier_email, member_profiles.full_name as replier_name')
+            ->select('complaint_replies.*, auth_identities.secret as replier_email, member_profiles.full_name as replier_name')
             ->join('users', 'users.id = complaint_replies.user_id')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
             ->join('member_profiles', 'member_profiles.user_id = users.id', 'left')
             ->where('complaint_replies.complaint_id', $id)
             ->orderBy('complaint_replies.created_at', 'ASC')
@@ -225,11 +226,11 @@ class ComplaintController extends BaseController
 
         // Get staff list for assignment
         $staffList = $this->userModel
-            ->select('users.id, users.email, member_profiles.full_name')
+            ->select('users.id, auth_identities.secret as email, member_profiles.full_name')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
             ->join('auth_groups_users', 'auth_groups_users.user_id = users.id')
-            ->join('auth_groups', 'auth_groups.id = auth_groups_users.group')
             ->join('member_profiles', 'member_profiles.user_id = users.id', 'left')
-            ->whereIn('auth_groups.name', ['pengurus', 'koordinator'])
+            ->whereIn('auth_groups_users.group', ['pengurus', 'koordinator'])
             ->findAll();
 
         $data = [

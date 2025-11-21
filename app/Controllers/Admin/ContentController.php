@@ -89,9 +89,10 @@ class ContentController extends BaseController
 
         // Build query
         $builder = $this->postModel
-            ->select('posts.*, post_categories.name as category_name, users.email as author_email, member_profiles.full_name as author_name')
+            ->select('posts.*, post_categories.name as category_name, auth_identities.secret as author_email, member_profiles.full_name as author_name')
             ->join('post_categories', 'post_categories.id = posts.category_id', 'left')
             ->join('users', 'users.id = posts.author_id')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
             ->join('member_profiles', 'member_profiles.user_id = users.id', 'left');
 
         // Apply filters
@@ -492,8 +493,9 @@ class ContentController extends BaseController
 
         // Get all pages
         $pages = $this->pageModel
-            ->select('pages.*, users.email as author_email, member_profiles.full_name as author_name')
+            ->select('pages.*, auth_identities.secret as author_email, member_profiles.full_name as author_name')
             ->join('users', 'users.id = pages.author_id', 'left')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
             ->join('member_profiles', 'member_profiles.user_id = users.id', 'left')
             ->orderBy('pages.order_number', 'ASC')
             ->findAll();

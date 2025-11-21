@@ -207,8 +207,9 @@ class PaymentController extends BaseController
             return redirect()->back()->with('error', 'Anda tidak memiliki izin untuk mengakses halaman ini.');
         }
 
-        $payment = $this->paymentModel->select('payments.*, users.username, users.email, member_profiles.*')
+        $payment = $this->paymentModel->select('payments.*, users.username, auth_identities.secret as email, member_profiles.*')
             ->join('users', 'users.id = payments.user_id')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
             ->join('member_profiles', 'member_profiles.user_id = payments.user_id', 'left')
             ->find($id);
 
