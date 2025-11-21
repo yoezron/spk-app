@@ -4,7 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Services\SurveyService;
-use App\Services\NotificationService;
+use App\Services\Communication\NotificationService;
 use App\Models\SurveyModel;
 use App\Models\SurveyQuestionModel;
 use App\Models\SurveyResponseModel;

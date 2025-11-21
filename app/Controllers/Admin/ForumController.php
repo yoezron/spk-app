@@ -4,7 +4,7 @@ namespace App\Controllers\Admin;
 
 use App\Controllers\BaseController;
 use App\Services\ForumService;
-use App\Services\NotificationService;
+use App\Services\Communication\NotificationService;
 use App\Models\ForumThreadModel;
 use App\Models\ForumPostModel;
 use App\Models\ForumCategoryModel;

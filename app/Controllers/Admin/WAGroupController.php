@@ -5,7 +5,7 @@ namespace App\Controllers\Admin;
 use App\Controllers\BaseController;
 use App\Services\WhatsAppService;
 use App\Services\RegionScopeService;
-use App\Services\NotificationService;
+use App\Services\Communication\NotificationService;
 use App\Models\WAGroupModel;
 use App\Models\WAGroupMemberModel;
 use App\Models\ProvinceModel;
