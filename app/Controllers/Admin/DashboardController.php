@@ -449,17 +449,40 @@ class DashboardController extends BaseController
 
             $openTickets = $ticketBuilder->get()->getResultArray();
 
-            return [
-                'pending_approvals' => $pendingApprovals,
-                'open_tickets' => $openTickets
-            ];
+            // Format pending items for the view
+            $items = [];
+
+            // Add pending member approvals if any
+            $approvalCount = count($pendingApprovals);
+            if ($approvalCount > 0) {
+                $oldestApproval = $pendingApprovals[0] ?? null;
+                $items[] = [
+                    'title' => 'Persetujuan Anggota Pending',
+                    'count' => $approvalCount,
+                    'description' => $approvalCount . ' anggota menunggu persetujuan',
+                    'time' => $oldestApproval ? 'Tertua: ' . $this->timeAgo($oldestApproval['created_at']) : '',
+                    'url' => base_url('admin/members/pending')
+                ];
+            }
+
+            // Add open tickets if any
+            $ticketCount = count($openTickets);
+            if ($ticketCount > 0) {
+                $oldestTicket = $openTickets[0] ?? null;
+                $items[] = [
+                    'title' => 'Tiket Terbuka',
+                    'count' => $ticketCount,
+                    'description' => $ticketCount . ' tiket menunggu respon',
+                    'time' => $oldestTicket ? 'Tertua: ' . $this->timeAgo($oldestTicket['created_at']) : '',
+                    'url' => base_url('admin/complaints')
+                ];
+            }
+
+            return $items;
         } catch (\Exception $e) {
             log_message('error', 'Error in DashboardController::getPendingItems: ' . $e->getMessage());
 
-            return [
-                'pending_approvals' => [],
-                'open_tickets' => []
-            ];
+            return [];
         }
     }
 
