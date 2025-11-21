@@ -193,8 +193,9 @@ class MemberController extends BaseController
 
         // Build query
         $builder = $this->memberModel
-            ->select('member_profiles.*, users.email, users.created_at as registered_at, provinces.name as province_name, universities.name as university_name')
+            ->select('member_profiles.*, auth_identities.secret as email, users.created_at as registered_at, provinces.name as province_name, universities.name as university_name')
             ->join('users', 'users.id = member_profiles.user_id')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
             ->join('provinces', 'provinces.id = member_profiles.province_id', 'left')
             ->join('universities', 'universities.id = member_profiles.university_id', 'left')
             ->where('member_profiles.membership_status', 'calon_anggota');
@@ -212,7 +213,7 @@ class MemberController extends BaseController
         if (!empty($search)) {
             $builder->groupStart()
                 ->like('member_profiles.full_name', $search)
-                ->orLike('users.email', $search)
+                ->orLike('auth_identities.secret', $search)
                 ->orLike('member_profiles.phone', $search)
                 ->groupEnd();
         }
@@ -256,8 +257,9 @@ class MemberController extends BaseController
 
         // Get member with relations
         $member = $this->memberModel
-            ->select('member_profiles.*, users.email, users.active, users.created_at as registered_at, provinces.name as province_name, regencies.name as regency_name, universities.name as university_name, study_programs.name as study_program_name')
+            ->select('member_profiles.*, auth_identities.secret as email, users.active, users.created_at as registered_at, provinces.name as province_name, regencies.name as regency_name, universities.name as university_name, study_programs.name as study_program_name')
             ->join('users', 'users.id = member_profiles.user_id')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
             ->join('provinces', 'provinces.id = member_profiles.province_id', 'left')
             ->join('regencies', 'regencies.id = member_profiles.regency_id', 'left')
             ->join('universities', 'universities.id = member_profiles.university_id', 'left')
