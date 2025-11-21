@@ -115,7 +115,7 @@ class DashboardController extends BaseController
         $stats = $this->getStatistics($userId, $isKoordinator, $scopeData);
 
         // Get recent activities
-        $recentActivities = $this->getRecentActivities($userId, $isKoordinator, $scopeData);
+        $recentActivities = $this->fetchRecentActivities($userId, $isKoordinator, $scopeData);
 
         // Get pending items
         $pendingItems = $this->getPendingItems($userId, $isKoordinator, $scopeData);
@@ -202,7 +202,7 @@ class DashboardController extends BaseController
             }
         }
 
-        $activities = $this->getRecentActivities($userId, $isKoordinator, $scopeData);
+        $activities = $this->fetchRecentActivities($userId, $isKoordinator, $scopeData);
 
         return $this->response->setJSON([
             'success' => true,
@@ -324,14 +324,14 @@ class DashboardController extends BaseController
     }
 
     /**
-     * Get recent activities based on user scope
-     * 
+     * Fetch recent activities based on user scope
+     *
      * @param int $userId User ID
      * @param bool $isKoordinator Is user Koordinator Wilayah
      * @param array|null $scopeData Scope data for Koordinator
      * @return array Recent activities
      */
-    protected function getRecentActivities(int $userId, bool $isKoordinator, ?array $scopeData): array
+    protected function fetchRecentActivities(int $userId, bool $isKoordinator, ?array $scopeData): array
     {
         try {
             $builder = $this->memberModel
