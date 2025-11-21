@@ -94,8 +94,113 @@ class PaymentController extends BaseController
     }
 
     /**
+     * Display payment history
+     * Dedicated page for viewing payment history with filters
+     *
+     * @return string
+     */
+    public function history()
+    {
+        $userId = auth()->id();
+
+        // Get filters from query string
+        $filters = [
+            'status' => $this->request->getGet('status'),
+            'type' => $this->request->getGet('type'),
+            'year' => $this->request->getGet('year') ?? date('Y'),
+            'month' => $this->request->getGet('month')
+        ];
+
+        // Build query with filters
+        $builder = $this->paymentModel
+            ->select('payments.*')
+            ->select('verifier_users.username as verifier_name, verifier_profiles.full_name as verifier_full_name')
+            ->join('users as verifier_users', 'verifier_users.id = payments.verified_by', 'left')
+            ->join('member_profiles as verifier_profiles', 'verifier_profiles.user_id = verifier_users.id', 'left')
+            ->where('payments.user_id', $userId);
+
+        // Apply status filter
+        if (!empty($filters['status'])) {
+            $builder->where('payments.status', $filters['status']);
+        }
+
+        // Apply type filter
+        if (!empty($filters['type'])) {
+            $builder->where('payments.payment_type', $filters['type']);
+        }
+
+        // Apply year filter
+        if (!empty($filters['year'])) {
+            $builder->where('YEAR(payments.payment_date)', $filters['year']);
+        }
+
+        // Apply month filter
+        if (!empty($filters['month'])) {
+            $builder->where('MONTH(payments.payment_date)', $filters['month']);
+        }
+
+        // Get paginated payments
+        $payments = $builder
+            ->orderBy('payments.payment_date', 'DESC')
+            ->orderBy('payments.created_at', 'DESC')
+            ->paginate(20);
+
+        $pager = $this->paymentModel->pager;
+
+        // Get available years for filter dropdown
+        $yearsResult = $this->paymentModel
+            ->select('DISTINCT YEAR(payment_date) as year')
+            ->where('user_id', $userId)
+            ->orderBy('year', 'DESC')
+            ->findAll();
+
+        $years = $yearsResult ? array_column($yearsResult, 'year') : [date('Y')];
+
+        // Get summary by type
+        $summaryByType = $this->paymentModel
+            ->select('payment_type, COUNT(*) as count, SUM(amount) as total')
+            ->where('user_id', $userId)
+            ->where('status', 'verified')
+            ->groupBy('payment_type')
+            ->findAll();
+
+        // Get summary by status
+        $summaryByStatus = $this->paymentModel
+            ->select('status, COUNT(*) as count')
+            ->where('user_id', $userId)
+            ->groupBy('status')
+            ->findAll();
+
+        $data = [
+            'title' => 'Riwayat Pembayaran Lengkap',
+            'payments' => $payments,
+            'pager' => $pager,
+            'filters' => $filters,
+            'years' => $years,
+            'summaryByType' => $summaryByType,
+            'summaryByStatus' => $summaryByStatus
+        ];
+
+        return view('member/payment/history', $data);
+    }
+
+    /**
+     * Upload payment proof
+     * Alias method for store() to match route naming
+     * POST /member/payment/upload
+     *
+     * @return RedirectResponse
+     */
+    public function uploadProof()
+    {
+        // This method is an alias for store() to match the route
+        // It provides a more semantic route name for uploading payment proofs
+        return $this->store();
+    }
+
+    /**
      * Show upload payment form
-     * 
+     *
      * @return string
      */
     public function create()
