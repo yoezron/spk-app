@@ -203,7 +203,7 @@ $this->section('content');
                                     $roleColors = [
                                         'superadmin' => 'danger',
                                         'pengurus' => 'primary',
-                                        'koordinator_wilayah' => 'info',
+                                        'koordinator' => 'info',
                                         'anggota' => 'success',
                                         'calon_anggota' => 'warning'
                                     ];

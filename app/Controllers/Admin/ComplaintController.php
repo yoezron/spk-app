@@ -90,7 +90,7 @@ class ComplaintController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Get filters from request
         $filters = [
@@ -156,7 +156,7 @@ class ComplaintController extends BaseController
             ->join('auth_groups_users', 'auth_groups_users.user_id = users.id')
             ->join('auth_groups', 'auth_groups.id = auth_groups_users.group')
             ->join('member_profiles', 'member_profiles.user_id = users.id', 'left')
-            ->whereIn('auth_groups.name', ['pengurus', 'koordinator_wilayah'])
+            ->whereIn('auth_groups.name', ['pengurus', 'koordinator'])
             ->findAll();
 
         $data = [
@@ -186,7 +186,7 @@ class ComplaintController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Get ticket with complete info
         $ticket = $this->complaintModel
@@ -229,7 +229,7 @@ class ComplaintController extends BaseController
             ->join('auth_groups_users', 'auth_groups_users.user_id = users.id')
             ->join('auth_groups', 'auth_groups.id = auth_groups_users.group')
             ->join('member_profiles', 'member_profiles.user_id = users.id', 'left')
-            ->whereIn('auth_groups.name', ['pengurus', 'koordinator_wilayah'])
+            ->whereIn('auth_groups.name', ['pengurus', 'koordinator'])
             ->findAll();
 
         $data = [
@@ -274,7 +274,7 @@ class ComplaintController extends BaseController
             }
 
             // Check regional scope access for Koordinator
-            if ($user->inGroup('koordinator_wilayah')) {
+            if ($user->inGroup('koordinator')) {
                 $memberProfile = $this->memberModel->where('user_id', $ticket->user_id)->first();
                 if ($memberProfile) {
                     $scopeResult = $this->regionScope->getScopeData($user->id);
@@ -350,7 +350,7 @@ class ComplaintController extends BaseController
             }
 
             // Check regional scope access
-            if ($user->inGroup('koordinator_wilayah')) {
+            if ($user->inGroup('koordinator')) {
                 $memberProfile = $this->memberModel->where('user_id', $ticket->user_id)->first();
                 if ($memberProfile) {
                     $scopeResult = $this->regionScope->getScopeData($user->id);
@@ -427,7 +427,7 @@ class ComplaintController extends BaseController
             }
 
             // Check regional scope access
-            if ($user->inGroup('koordinator_wilayah')) {
+            if ($user->inGroup('koordinator')) {
                 $memberProfile = $this->memberModel->where('user_id', $ticket->user_id)->first();
                 if ($memberProfile) {
                     $scopeResult = $this->regionScope->getScopeData($user->id);
@@ -514,7 +514,7 @@ class ComplaintController extends BaseController
             }
 
             // Check regional scope access
-            if ($user->inGroup('koordinator_wilayah')) {
+            if ($user->inGroup('koordinator')) {
                 $memberProfile = $this->memberModel->where('user_id', $ticket->user_id)->first();
                 if ($memberProfile) {
                     $scopeResult = $this->regionScope->getScopeData($user->id);
@@ -585,7 +585,7 @@ class ComplaintController extends BaseController
             }
 
             // Check regional scope access
-            if ($user->inGroup('koordinator_wilayah')) {
+            if ($user->inGroup('koordinator')) {
                 $memberProfile = $this->memberModel->where('user_id', $ticket->user_id)->first();
                 if ($memberProfile) {
                     $scopeResult = $this->regionScope->getScopeData($user->id);
@@ -673,7 +673,7 @@ class ComplaintController extends BaseController
             }
 
             // Check regional scope access
-            if ($user->inGroup('koordinator_wilayah')) {
+            if ($user->inGroup('koordinator')) {
                 $memberProfile = $this->memberModel->where('user_id', $ticket->user_id)->first();
                 if ($memberProfile) {
                     $scopeResult = $this->regionScope->getScopeData($user->id);
@@ -752,7 +752,7 @@ class ComplaintController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Get filters from request
         $filters = [
@@ -867,7 +867,7 @@ class ComplaintController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         try {
             $builder = $this->complaintModel->builder();

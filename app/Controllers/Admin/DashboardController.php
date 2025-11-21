@@ -99,7 +99,7 @@ class DashboardController extends BaseController
         $userId = $user->id;
 
         // Get user role for scope determination
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
         $isSuperAdmin = $user->inGroup('superadmin');
 
         // Get scope data for Koordinator Wilayah
@@ -155,7 +155,7 @@ class DashboardController extends BaseController
 
         $user = auth()->user();
         $userId = $user->id;
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Get scope data
         $scopeData = null;
@@ -191,7 +191,7 @@ class DashboardController extends BaseController
 
         $user = auth()->user();
         $userId = $user->id;
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Get scope data
         $scopeData = null;
@@ -227,7 +227,7 @@ class DashboardController extends BaseController
 
         $user = auth()->user();
         $userId = $user->id;
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Get scope data
         $scopeData = null;

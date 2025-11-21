@@ -97,7 +97,7 @@ class MemberController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Get filters from request
         $filters = [
@@ -189,7 +189,7 @@ class MemberController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Build query
         $builder = $this->memberModel
@@ -247,7 +247,7 @@ class MemberController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Check regional scope access
         if ($isKoordinator && !$this->regionScope->canAccessMember($user->id, $id)) {
@@ -292,7 +292,7 @@ class MemberController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Check regional scope access
         if ($isKoordinator && !$this->regionScope->canAccessMember($user->id, $id)) {
@@ -346,7 +346,7 @@ class MemberController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Check regional scope access
         if ($isKoordinator && !$this->regionScope->canAccessMember($user->id, $id)) {
@@ -455,7 +455,7 @@ class MemberController extends BaseController
         $user = auth()->user();
 
         // Check regional scope access
-        if ($user->inGroup('koordinator_wilayah') && !$this->regionScope->canAccessMember($user->id, $id)) {
+        if ($user->inGroup('koordinator') && !$this->regionScope->canAccessMember($user->id, $id)) {
             return redirect()->back()->with('error', 'Anda tidak memiliki akses ke anggota ini');
         }
 
@@ -487,7 +487,7 @@ class MemberController extends BaseController
         $user = auth()->user();
 
         // Check regional scope access
-        if ($user->inGroup('koordinator_wilayah') && !$this->regionScope->canAccessMember($user->id, $id)) {
+        if ($user->inGroup('koordinator') && !$this->regionScope->canAccessMember($user->id, $id)) {
             return redirect()->back()->with('error', 'Anda tidak memiliki akses ke anggota ini');
         }
 
@@ -522,7 +522,7 @@ class MemberController extends BaseController
         $user = auth()->user();
 
         // Check regional scope access
-        if ($user->inGroup('koordinator_wilayah') && !$this->regionScope->canAccessMember($user->id, $id)) {
+        if ($user->inGroup('koordinator') && !$this->regionScope->canAccessMember($user->id, $id)) {
             return redirect()->back()->with('error', 'Anda tidak memiliki akses ke anggota ini');
         }
 
@@ -577,7 +577,7 @@ class MemberController extends BaseController
         $user = auth()->user();
 
         // Check regional scope access
-        if ($user->inGroup('koordinator_wilayah') && !$this->regionScope->canAccessMember($user->id, $id)) {
+        if ($user->inGroup('koordinator') && !$this->regionScope->canAccessMember($user->id, $id)) {
             return redirect()->back()->with('error', 'Anda tidak memiliki akses ke anggota ini');
         }
 
@@ -639,7 +639,7 @@ class MemberController extends BaseController
 
         foreach ($memberIds as $id) {
             // Check regional scope access
-            if ($user->inGroup('koordinator_wilayah') && !$this->regionScope->canAccessMember($user->id, $id)) {
+            if ($user->inGroup('koordinator') && !$this->regionScope->canAccessMember($user->id, $id)) {
                 $failCount++;
                 continue;
             }
@@ -695,7 +695,7 @@ class MemberController extends BaseController
 
         foreach ($memberIds as $id) {
             // Check regional scope access
-            if ($user->inGroup('koordinator_wilayah') && !$this->regionScope->canAccessMember($user->id, $id)) {
+            if ($user->inGroup('koordinator') && !$this->regionScope->canAccessMember($user->id, $id)) {
                 $failCount++;
                 continue;
             }
@@ -748,7 +748,7 @@ class MemberController extends BaseController
 
         foreach ($memberIds as $id) {
             // Check regional scope access
-            if ($user->inGroup('koordinator_wilayah') && !$this->regionScope->canAccessMember($user->id, $id)) {
+            if ($user->inGroup('koordinator') && !$this->regionScope->canAccessMember($user->id, $id)) {
                 $failCount++;
                 continue;
             }
@@ -804,7 +804,7 @@ class MemberController extends BaseController
         $user = auth()->user();
 
         // Check regional scope access
-        if ($user->inGroup('koordinator_wilayah') && !$this->regionScope->canAccessMember($user->id, $id)) {
+        if ($user->inGroup('koordinator') && !$this->regionScope->canAccessMember($user->id, $id)) {
             return redirect()->back()->with('error', 'Anda tidak memiliki akses ke anggota ini');
         }
 
@@ -868,7 +868,7 @@ class MemberController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         try {
             // Build query
@@ -952,7 +952,7 @@ class MemberController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         try {
             // Get regional scope if needed
@@ -994,7 +994,7 @@ class MemberController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Get filters from request
         $filters = [
@@ -1123,7 +1123,7 @@ class MemberController extends BaseController
         $user = auth()->user();
 
         // Check if koordinator can access this province
-        if ($user->inGroup('koordinator_wilayah')) {
+        if ($user->inGroup('koordinator')) {
             $scopeResult = $this->regionScope->getScopeData($user->id);
             if ($scopeResult['success']) {
                 if ($scopeResult['data']['province_id'] != $provinceId) {

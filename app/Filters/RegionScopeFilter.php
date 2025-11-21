@@ -116,13 +116,13 @@ class RegionScopeFilter implements FilterInterface
         }
 
         // Koordinator Wilayah - restricted to assigned provinces
-        if ($user->inGroup('koordinator_wilayah')) {
+        if ($user->inGroup('koordinator')) {
             // Get assigned provinces from user's member profile
             $provinceIds = $this->regionScopeService->getUserProvinceIds($user->id);
 
             return [
                 'is_restricted' => true,
-                'role' => 'koordinator_wilayah',
+                'role' => 'koordinator',
                 'province_ids' => $provinceIds,
                 'has_all_access' => false
             ];

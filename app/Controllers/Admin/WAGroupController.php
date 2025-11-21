@@ -88,7 +88,7 @@ class WAGroupController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Get filters from request
         $filters = [
@@ -168,7 +168,7 @@ class WAGroupController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Get provinces
         $provinces = [];
@@ -222,7 +222,7 @@ class WAGroupController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         try {
             $provinceId = $this->request->getPost('province_id');
@@ -289,7 +289,7 @@ class WAGroupController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Get group
         $group = $this->groupModel
@@ -342,7 +342,7 @@ class WAGroupController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Check regional scope access
         if ($isKoordinator) {
@@ -410,7 +410,7 @@ class WAGroupController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         try {
             $group = $this->groupModel->find($id);
@@ -460,7 +460,7 @@ class WAGroupController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Get group
         $group = $this->groupModel
@@ -533,7 +533,7 @@ class WAGroupController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         try {
             $group = $this->groupModel->find($groupId);
@@ -600,7 +600,7 @@ class WAGroupController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         try {
             $group = $this->groupModel->find($groupId);
@@ -655,7 +655,7 @@ class WAGroupController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         try {
             $builder = $this->groupModel->builder();

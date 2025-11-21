@@ -111,7 +111,7 @@ class StatisticsController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Get scope data for Koordinator Wilayah
         $scopeData = null;
@@ -157,7 +157,7 @@ class StatisticsController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Get filters
         $filters = [
@@ -211,7 +211,7 @@ class StatisticsController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Get scope data
         $scopeData = null;
@@ -249,7 +249,7 @@ class StatisticsController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Get period filter (default: last 12 months)
         $period = $this->request->getGet('period') ?? '12';
@@ -291,7 +291,7 @@ class StatisticsController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Get scope data
         $scopeData = null;
