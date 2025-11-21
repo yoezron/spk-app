@@ -147,7 +147,7 @@ class RoleFilter implements FilterInterface
             return '/admin/dashboard';
         }
 
-        if (in_array('koordinator_wilayah', $userRoles) || in_array('Koordinator Wilayah', $userRoles)) {
+        if (in_array('koordinator', $userRoles) || in_array('Koordinator', $userRoles)) {
             return '/admin/dashboard';
         }
 

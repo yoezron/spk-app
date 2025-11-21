@@ -36,8 +36,6 @@ class MemberProfileModel extends Model
         'address',
         'province_id',
         'regency_id',
-        'district_id',
-        'village_id',
         'employment_status_id',
         'salary_range_id',
         'basic_salary',

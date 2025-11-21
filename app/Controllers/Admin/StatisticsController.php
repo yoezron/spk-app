@@ -111,7 +111,7 @@ class StatisticsController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Get scope data for Koordinator Wilayah
         $scopeData = null;
@@ -157,7 +157,7 @@ class StatisticsController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Get filters
         $filters = [
@@ -211,7 +211,7 @@ class StatisticsController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Get scope data
         $scopeData = null;
@@ -249,7 +249,7 @@ class StatisticsController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Get period filter (default: last 12 months)
         $period = $this->request->getGet('period') ?? '12';
@@ -291,7 +291,7 @@ class StatisticsController extends BaseController
         }
 
         $user = auth()->user();
-        $isKoordinator = $user->inGroup('koordinator_wilayah');
+        $isKoordinator = $user->inGroup('koordinator');
 
         // Get scope data
         $scopeData = null;
@@ -719,8 +719,9 @@ class StatisticsController extends BaseController
         $sheet->setTitle('Daftar Anggota');
 
         $builder = $this->memberModel->builder()
-            ->select('member_profiles.*, users.email, provinces.name as province_name')
+            ->select('member_profiles.*, auth_identities.secret as email, provinces.name as province_name')
             ->join('users', 'users.id = member_profiles.user_id')
+            ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
             ->join('provinces', 'provinces.id = member_profiles.province_id', 'left')
             ->where('users.active', 1);
 

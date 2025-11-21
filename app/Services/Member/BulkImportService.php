@@ -256,7 +256,7 @@ class BulkImportService
             }
 
             // Assign role based on options
-            $role = $options['default_role'] ?? 'Anggota';
+            $role = $options['default_role'] ?? 'anggota';
             $user->addGroup($role);
 
             // Set active status based on options
@@ -439,8 +439,6 @@ class BulkImportService
             'address'              => $rowData['address'],
             'province_id'          => $provinceId,
             'regency_id'           => null, // Can be enhanced to lookup
-            'district_id'          => null,
-            'village_id'           => null,
             'employment_status_id' => null, // Can be enhanced to lookup
             'salary_range_id'      => null,
             'basic_salary'         => $rowData['basic_salary'] ?? null,
