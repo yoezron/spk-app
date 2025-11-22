@@ -1029,12 +1029,16 @@
             const validation = validateFile(file);
 
             if (!validation.valid) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'File Tidak Valid',
-                    text: validation.message,
-                    confirmButtonColor: '#f56565'
-                });
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'File Tidak Valid',
+                        text: validation.message,
+                        confirmButtonColor: '#f56565'
+                    });
+                } else {
+                    alert('File Tidak Valid: ' + validation.message);
+                }
 
                 fileInput.value = '';
                 fileInfo.style.display = 'none';
@@ -1097,12 +1101,16 @@
             const file = fileInput.files[0];
 
             if (!file) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'File Belum Dipilih',
-                    text: 'Silakan pilih file terlebih dahulu',
-                    confirmButtonColor: '#f56565'
-                });
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'File Belum Dipilih',
+                        text: 'Silakan pilih file terlebih dahulu',
+                        confirmButtonColor: '#f56565'
+                    });
+                } else {
+                    alert('File Belum Dipilih: Silakan pilih file terlebih dahulu');
+                }
                 return;
             }
 
@@ -1124,15 +1132,19 @@
 
     // Download Template
     function downloadTemplate() {
-        Swal.fire({
-            icon: 'info',
-            title: 'Mengunduh Template...',
-            text: 'Template Excel akan segera diunduh',
-            timer: 2000,
-            showConfirmButton: false,
-            timerProgressBar: true
-        });
+        // Check if SweetAlert2 is loaded
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                icon: 'info',
+                title: 'Mengunduh Template...',
+                text: 'Template Excel akan segera diunduh',
+                timer: 2000,
+                showConfirmButton: false,
+                timerProgressBar: true
+            });
+        }
 
+        // Redirect to download template
         window.location.href = '<?= base_url('admin/bulk-import/download-template') ?>';
     }
 
