@@ -14,6 +14,14 @@
 
 // Get current user
 $currentUser = auth()->user();
+
+// Check if user is calon anggota (pending member)
+$isCalonAnggota = $currentUser->inGroup('calon_anggota') || $currentUser->inGroup('Calon Anggota');
+
+// Get membership status from profile
+$memberModel = model('MemberProfileModel');
+$memberProfile = $memberModel->where('user_id', $currentUser->id)->first();
+$membershipStatus = $memberProfile->membership_status ?? 'pending';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -64,7 +72,9 @@ $currentUser = auth()->user();
                         <span class="activity-indicator"></span>
                         <span class="user-info-text">
                             <?= esc($currentUser->full_name ?? $currentUser->username) ?><br>
-                            <span class="user-state-info">Anggota SPK</span>
+                            <span class="user-state-info">
+                                <?= $isCalonAnggota ? 'Calon Anggota' : 'Anggota SPK' ?>
+                            </span>
                         </span>
                     </a>
                 </div>
@@ -72,83 +82,126 @@ $currentUser = auth()->user();
 
             <div class="app-menu">
                 <ul class="accordion-menu">
-                    <li class="sidebar-title">Menu Utama</li>
 
-                    <!-- Dashboard -->
-                    <li class="<?= url_is('member/dashboard') ? 'active-page' : '' ?>">
-                        <a href="<?= base_url('member/dashboard') ?>" class="<?= url_is('member/dashboard') ? 'active' : '' ?>">
-                            <i class="material-icons-two-tone">dashboard</i>Dashboard
-                        </a>
-                    </li>
+                    <?php if ($isCalonAnggota): ?>
+                        <!-- Menu untuk Calon Anggota (Terbatas) -->
+                        <li class="sidebar-title">Status Keanggotaan</li>
 
-                    <!-- Profile & Card -->
-                    <li class="sidebar-title">Profil & Identitas</li>
+                        <li class="<?= url_is('member/dashboard') ? 'active-page' : '' ?>">
+                            <a href="<?= base_url('member/dashboard') ?>" class="<?= url_is('member/dashboard') ? 'active' : '' ?>">
+                                <i class="material-icons-two-tone">pending_actions</i>Status Pendaftaran
+                            </a>
+                        </li>
 
-                    <li class="<?= url_is('member/profile*') ? 'active-page' : '' ?>">
-                        <a href="<?= base_url('member/profile') ?>">
-                            <i class="material-icons-two-tone">person</i>Profil Saya
-                        </a>
-                    </li>
+                        <li class="sidebar-title">Profil</li>
 
-                    <li class="<?= url_is('member/card') ? 'active-page' : '' ?>">
-                        <a href="<?= base_url('member/card') ?>">
-                            <i class="material-icons-two-tone">badge</i>Kartu Anggota
-                        </a>
-                    </li>
+                        <li class="<?= url_is('member/profile*') ? 'active-page' : '' ?>">
+                            <a href="<?= base_url('member/profile') ?>">
+                                <i class="material-icons-two-tone">person</i>Profil Saya
+                            </a>
+                        </li>
 
-                    <!-- Community Features -->
-                    <li class="sidebar-title">Komunitas</li>
+                        <!-- SPK Information untuk Calon Anggota -->
+                        <li class="sidebar-title">Tentang SPK</li>
 
-                    <li class="<?= url_is('member/forum*') ? 'active-page' : '' ?>">
-                        <a href="<?= base_url('member/forum') ?>">
-                            <i class="material-icons-two-tone">forum</i>Forum Diskusi
-                        </a>
-                    </li>
+                        <li>
+                            <a href="">
+                                <i class="material-icons-two-tone">menu_book</i>Dokumen SPK
+                                <i class="material-icons has-sub-menu">keyboard_arrow_right</i>
+                            </a>
+                            <ul class="sub-menu">
+                                <li>
+                                    <a href="<?= base_url('manifesto') ?>">Manifesto Serikat</a>
+                                </li>
+                                <li>
+                                    <a href="<?= base_url('adart') ?>">AD/ART</a>
+                                </li>
+                                <li>
+                                    <a href="<?= base_url('sejarah') ?>">Sejarah SPK</a>
+                                </li>
+                            </ul>
+                        </li>
 
-                    <li class="<?= url_is('member/survey*') ? 'active-page' : '' ?>">
-                        <a href="<?= base_url('member/survey') ?>">
-                            <i class="material-icons-two-tone">poll</i>Survei
-                        </a>
-                    </li>
+                    <?php else: ?>
+                        <!-- Menu untuk Anggota Aktif (Full Access) -->
+                        <li class="sidebar-title">Menu Utama</li>
 
-                    <li class="<?= url_is('member/complaint*') ? 'active-page' : '' ?>">
-                        <a href="<?= base_url('member/complaint') ?>">
-                            <i class="material-icons-two-tone">support</i>Pengaduan
-                        </a>
-                    </li>
+                        <!-- Dashboard -->
+                        <li class="<?= url_is('member/dashboard') ? 'active-page' : '' ?>">
+                            <a href="<?= base_url('member/dashboard') ?>" class="<?= url_is('member/dashboard') ? 'active' : '' ?>">
+                                <i class="material-icons-two-tone">dashboard</i>Dashboard
+                            </a>
+                        </li>
 
-                    <!-- SPK Information -->
-                    <li class="sidebar-title">Informasi SPK</li>
+                        <!-- Profile & Card -->
+                        <li class="sidebar-title">Profil & Identitas</li>
 
-                    <li>
-                        <a href="">
-                            <i class="material-icons-two-tone">menu_book</i>Dokumen SPK
-                            <i class="material-icons has-sub-menu">keyboard_arrow_right</i>
-                        </a>
-                        <ul class="sub-menu">
-                            <li>
-                                <a href="<?= base_url('manifesto') ?>">Manifesto Serikat</a>
-                            </li>
-                            <li>
-                                <a href="<?= base_url('adart') ?>">AD/ART</a>
-                            </li>
-                            <li>
-                                <a href="<?= base_url('sejarah') ?>">Sejarah SPK</a>
-                            </li>
-                        </ul>
-                    </li>
+                        <li class="<?= url_is('member/profile*') ? 'active-page' : '' ?>">
+                            <a href="<?= base_url('member/profile') ?>">
+                                <i class="material-icons-two-tone">person</i>Profil Saya
+                            </a>
+                        </li>
 
-                    <li>
-                        <a href="<?= base_url('blog') ?>">
-                            <i class="material-icons-two-tone">article</i>Berita & Informasi
-                        </a>
-                    </li>
+                        <li class="<?= url_is('member/card') ? 'active-page' : '' ?>">
+                            <a href="<?= base_url('member/card') ?>">
+                                <i class="material-icons-two-tone">badge</i>Kartu Anggota
+                            </a>
+                        </li>
 
-                    <li>
-                        <a href="<?= base_url('struktur-organisasi') ?>">
-                            <i class="material-icons-two-tone">account_tree</i>Struktur Organisasi
-                        </a>
-                    </li>
+                        <!-- Community Features -->
+                        <li class="sidebar-title">Komunitas</li>
+
+                        <li class="<?= url_is('member/forum*') ? 'active-page' : '' ?>">
+                            <a href="<?= base_url('member/forum') ?>">
+                                <i class="material-icons-two-tone">forum</i>Forum Diskusi
+                            </a>
+                        </li>
+
+                        <li class="<?= url_is('member/survey*') ? 'active-page' : '' ?>">
+                            <a href="<?= base_url('member/survey') ?>">
+                                <i class="material-icons-two-tone">poll</i>Survei
+                            </a>
+                        </li>
+
+                        <li class="<?= url_is('member/complaint*') ? 'active-page' : '' ?>">
+                            <a href="<?= base_url('member/complaint') ?>">
+                                <i class="material-icons-two-tone">support</i>Pengaduan
+                            </a>
+                        </li>
+
+                        <!-- SPK Information -->
+                        <li class="sidebar-title">Informasi SPK</li>
+
+                        <li>
+                            <a href="">
+                                <i class="material-icons-two-tone">menu_book</i>Dokumen SPK
+                                <i class="material-icons has-sub-menu">keyboard_arrow_right</i>
+                            </a>
+                            <ul class="sub-menu">
+                                <li>
+                                    <a href="<?= base_url('manifesto') ?>">Manifesto Serikat</a>
+                                </li>
+                                <li>
+                                    <a href="<?= base_url('adart') ?>">AD/ART</a>
+                                </li>
+                                <li>
+                                    <a href="<?= base_url('sejarah') ?>">Sejarah SPK</a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li>
+                            <a href="<?= base_url('blog') ?>">
+                                <i class="material-icons-two-tone">article</i>Berita & Informasi
+                            </a>
+                        </li>
+
+                        <li>
+                            <a href="<?= base_url('struktur-organisasi') ?>">
+                                <i class="material-icons-two-tone">account_tree</i>Struktur Organisasi
+                            </a>
+                        </li>
+                    <?php endif; ?>
 
                     <!-- Settings -->
                     <li class="sidebar-title">Pengaturan</li>

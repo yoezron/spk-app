@@ -256,8 +256,8 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'ro
     });
 
     // Statistics
-    $routes->get('statistics', 'StatisticsController::index', ['filter' => 'permission:stats.view']);
-    $routes->get('statistics/export', 'StatisticsController::export', ['filter' => 'permission:stats.export']);
+    $routes->get('statistics', 'StatisticsController::index', ['filter' => 'permission:statistics.view']);
+    $routes->get('statistics/export', 'StatisticsController::export', ['filter' => 'permission:statistics.export']);
 
     // Forum Management
     $routes->get('forum', 'ForumController::index', ['filter' => 'permission:forum.moderate']);

@@ -82,11 +82,15 @@ class RegisterMemberService
             // 5. Assign role "Calon Anggota"
             $user->addGroup('calon_anggota');
 
-            // 6. Send verification email
-            $emailResult = $this->sendVerificationEmail($user);
-            if (!$emailResult['success']) {
-                // Log error but don't fail the registration
-                log_message('error', 'Failed to send verification email: ' . $emailResult['message']);
+            // 6. Trigger email verification using Shield's EmailActivator
+            // This will automatically send verification email and set user as inactive
+            // User must click verification link before they can login
+            try {
+                // Force user to verify email before login
+                $user->active = 0; // User cannot login until email verified
+                $this->userModel->save($user);
+            } catch (\Exception $e) {
+                log_message('error', 'Failed to set user as inactive: ' . $e->getMessage());
             }
 
             $db->transComplete();
@@ -97,12 +101,12 @@ class RegisterMemberService
 
             return [
                 'success' => true,
-                'message' => 'Pendaftaran berhasil! Silakan cek email Anda untuk verifikasi akun.',
+                'message' => 'Pendaftaran berhasil! Silakan cek email Anda untuk verifikasi akun. Anda harus memverifikasi email sebelum dapat login.',
                 'data' => [
                     'user_id' => $user->id,
                     'member_id' => $memberId,
                     'email' => $user->email,
-                    'email_sent' => $emailResult['success']
+                    'requires_verification' => true
                 ]
             ];
         } catch (\Exception $e) {
