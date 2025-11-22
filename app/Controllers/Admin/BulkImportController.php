@@ -101,9 +101,11 @@ class BulkImportController extends BaseController
      * 
      * @return ResponseInterface
      */
-    public function downloadTemplate(): ResponseInterface
+    public function downloadTemplate()
     {
         try {
+            log_message('info', 'BulkImportController::downloadTemplate - Starting template generation');
+
             // Create new spreadsheet
             $spreadsheet = new Spreadsheet();
             $sheet = $spreadsheet->getActiveSheet();
@@ -268,23 +270,46 @@ class BulkImportController extends BaseController
             // Generate filename
             $filename = 'template_import_anggota_' . date('YmdHis') . '.xlsx';
 
+            log_message('info', 'BulkImportController::downloadTemplate - Filename: ' . $filename);
+
+            // Create temporary file path
+            $tempFile = WRITEPATH . 'uploads/temp_' . $filename;
+
+            // Ensure directory exists
+            $uploadDir = WRITEPATH . 'uploads';
+            if (!is_dir($uploadDir)) {
+                mkdir($uploadDir, 0755, true);
+            }
+
             // Create writer and save to temporary file
             $writer = new Xlsx($spreadsheet);
+            $writer->save($tempFile);
 
-            // Use output buffering to capture the file content
-            ob_start();
-            $writer->save('php://output');
-            $content = ob_get_clean();
+            log_message('info', 'BulkImportController::downloadTemplate - File saved to: ' . $tempFile);
+
+            // Read file content
+            if (!file_exists($tempFile)) {
+                throw new \Exception('Failed to create template file');
+            }
+
+            $content = file_get_contents($tempFile);
+
+            // Delete temporary file
+            @unlink($tempFile);
+
+            log_message('info', 'BulkImportController::downloadTemplate - File size: ' . strlen($content) . ' bytes');
 
             // Return proper CodeIgniter response
             return $this->response
                 ->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
                 ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
                 ->setHeader('Cache-Control', 'max-age=0')
-                ->setHeader('Pragma', 'public')
+                ->setHeader('Content-Length', (string)strlen($content))
                 ->setBody($content);
         } catch (\Exception $e) {
             log_message('error', 'Error in BulkImportController::downloadTemplate: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
+
             return redirect()->back()->with('error', 'Gagal mengunduh template: ' . $e->getMessage());
         }
     }
