@@ -155,7 +155,7 @@ class ContentController extends BaseController
             'tags' => $tags
         ];
 
-        return view('admin/content/posts/create', $data);
+        return view('admin/content/posts/form', $data);
     }
 
     /**
@@ -269,7 +269,7 @@ class ContentController extends BaseController
             'tags' => $tags
         ];
 
-        return view('admin/content/posts/edit', $data);
+        return view('admin/content/posts/form', $data);
     }
 
     /**
@@ -534,7 +534,7 @@ class ContentController extends BaseController
             'page' => $page
         ];
 
-        return view('admin/content/pages/edit', $data);
+        return view('admin/content/pages/form', $data);
     }
 
     /**

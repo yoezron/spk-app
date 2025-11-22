@@ -90,7 +90,7 @@ class CardController extends BaseController
                 'canDownload' => $cardStatus['status'] !== 'expired'
             ];
 
-            return view('member/card/index', $data);
+            return view('member/card/qrcode', $data);
         } catch (\Exception $e) {
             log_message('error', 'Error loading member card: ' . $e->getMessage());
 

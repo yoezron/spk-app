@@ -115,7 +115,7 @@ class SurveyController extends BaseController
             'filters' => $filters
         ];
 
-        return view('admin/surveys/index', $data);
+        return view('admin/survey/index', $data);
     }
 
     /**
@@ -135,7 +135,7 @@ class SurveyController extends BaseController
             'title' => 'Buat Survey Baru'
         ];
 
-        return view('admin/surveys/create', $data);
+        return view('admin/survey/create', $data);
     }
 
     /**
@@ -231,7 +231,7 @@ class SurveyController extends BaseController
             'questions' => $questions
         ];
 
-        return view('admin/surveys/edit', $data);
+        return view('admin/survey/edit', $data);
     }
 
     /**
@@ -378,7 +378,7 @@ class SurveyController extends BaseController
             'pager' => $this->responseModel->pager
         ];
 
-        return view('admin/surveys/responses', $data);
+        return view('admin/survey/responses', $data);
     }
 
     /**

@@ -267,7 +267,7 @@ class ComplaintController extends BaseController
                 'replies' => $ticket->replies ?? []
             ];
 
-            return view('member/complaint/show', $data);
+            return view('member/complaint/detail', $data);
         } catch (\Exception $e) {
             log_message('error', 'Error loading complaint: ' . $e->getMessage());
 

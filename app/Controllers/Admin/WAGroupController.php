@@ -151,7 +151,7 @@ class WAGroupController extends BaseController
             'is_koordinator' => $isKoordinator
         ];
 
-        return view('admin/wagroups/index', $data);
+        return view('admin/wa_groups/index', $data);
     }
 
     /**
@@ -192,7 +192,7 @@ class WAGroupController extends BaseController
             'is_koordinator' => $isKoordinator
         ];
 
-        return view('admin/wagroups/create', $data);
+        return view('admin/wa_groups/create', $data);
     }
 
     /**
@@ -317,7 +317,7 @@ class WAGroupController extends BaseController
             'is_koordinator' => $isKoordinator
         ];
 
-        return view('admin/wagroups/edit', $data);
+        return view('admin/wa_groups/edit', $data);
     }
 
     /**
@@ -516,7 +516,7 @@ class WAGroupController extends BaseController
             'is_koordinator' => $isKoordinator
         ];
 
-        return view('admin/wagroups/members', $data);
+        return view('admin/wa_groups/members', $data);
     }
 
     /**
