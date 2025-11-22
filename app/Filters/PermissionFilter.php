@@ -43,17 +43,24 @@ class PermissionFilter implements FilterInterface
         $user = auth()->user();
 
         // Super Admin bypass all permission checks
-        // Use getGroups() instead of inGroup() for more reliable check
-        if ($user->inGroup('superadmin')) {
+        // Check multiple variations of superadmin role name
+        if ($user->inGroup('superadmin') ||
+            $user->inGroup('Superadmin') ||
+            $user->inGroup('Super Admin') ||
+            $user->inGroup('admin')) {
             return $request;
         }
 
-        // === TAMBAHKAN DEBUG INI ===
+        // === DEBUG LOGGING ===
         log_message('debug', 'PermissionFilter - User ID: ' . $user->id);
         log_message('debug', 'PermissionFilter - Required permissions: ' . json_encode($arguments));
         log_message('debug', 'PermissionFilter - User groups: ' . json_encode($user->getGroups()));
-        log_message('debug', 'PermissionFilter - inGroup superadmin: ' . ($user->inGroup('superadmin') ? 'YES' : 'NO'));
-        // === AKHIR DEBUG ===
+        log_message('debug', 'PermissionFilter - inGroup check results:');
+        log_message('debug', '  - superadmin: ' . ($user->inGroup('superadmin') ? 'YES' : 'NO'));
+        log_message('debug', '  - Superadmin: ' . ($user->inGroup('Superadmin') ? 'YES' : 'NO'));
+        log_message('debug', '  - Super Admin: ' . ($user->inGroup('Super Admin') ? 'YES' : 'NO'));
+        log_message('debug', '  - admin: ' . ($user->inGroup('admin') ? 'YES' : 'NO'));
+        // === END DEBUG ===
 
         // No permission specified, allow access (just check login)
         if (empty($arguments)) {
