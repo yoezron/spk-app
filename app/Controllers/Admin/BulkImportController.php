@@ -268,16 +268,21 @@ class BulkImportController extends BaseController
             // Generate filename
             $filename = 'template_import_anggota_' . date('YmdHis') . '.xlsx';
 
-            // Create writer
+            // Create writer and save to temporary file
             $writer = new Xlsx($spreadsheet);
 
-            // Set headers for download
-            header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-            header('Content-Disposition: attachment;filename="' . $filename . '"');
-            header('Cache-Control: max-age=0');
-
+            // Use output buffering to capture the file content
+            ob_start();
             $writer->save('php://output');
-            exit;
+            $content = ob_get_clean();
+
+            // Return proper CodeIgniter response
+            return $this->response
+                ->setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+                ->setHeader('Content-Disposition', 'attachment; filename="' . $filename . '"')
+                ->setHeader('Cache-Control', 'max-age=0')
+                ->setHeader('Pragma', 'public')
+                ->setBody($content);
         } catch (\Exception $e) {
             log_message('error', 'Error in BulkImportController::downloadTemplate: ' . $e->getMessage());
             return redirect()->back()->with('error', 'Gagal mengunduh template: ' . $e->getMessage());
