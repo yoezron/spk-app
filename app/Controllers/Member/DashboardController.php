@@ -64,6 +64,21 @@ class DashboardController extends BaseController
                     ->with('error', 'Profil anggota tidak ditemukan.');
             }
 
+            // Check if user is calon anggota (pending member)
+            $isCalonAnggota = $user->inGroup('calon_anggota') || $user->inGroup('Calon Anggota');
+
+            // If calon anggota, show limited dashboard with status
+            if ($isCalonAnggota) {
+                $data = [
+                    'title' => 'Status Pendaftaran - Serikat Pekerja Kampus',
+                    'pageTitle' => 'Status Pendaftaran',
+                    'user' => $user,
+                    'member' => $member,
+                    'membershipStatus' => $member->membership_status ?? 'pending'
+                ];
+                return view('member/dashboard_pending', $data);
+            }
+
             // Get personal statistics
             $personalStats = $this->getPersonalStatistics($user->id);
 
