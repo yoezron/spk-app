@@ -14,7 +14,7 @@
 
 // Get current user
 $currentUser = auth()->user();
-$hasMemberPortalAccess = $currentUser->inGroup('anggota') || $currentUser->inGroup('Anggota') || $currentUser->inGroup('calon_anggota') || $currentUser->inGroup('Calon Anggota');
+$hasMemberPortalAccess = $currentUser->inGroup('superadmin') || $currentUser->inGroup('anggota') || $currentUser->inGroup('Anggota') || $currentUser->inGroup('calon_anggota') || $currentUser->inGroup('Calon Anggota');
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -125,6 +125,58 @@ $hasMemberPortalAccess = $currentUser->inGroup('anggota') || $currentUser->inGro
                         </li>
                     <?php endif; ?>
 
+                    <!-- Payment Management -->
+                    <?php if (auth()->user()->can('payment.view')): ?>
+                        <li class="sidebar-title">Keuangan</li>
+
+                        <li class="<?= url_is('admin/payment*') ? 'active-page' : '' ?>">
+                            <a href="">
+                                <i class="material-icons-two-tone">payments</i>Pembayaran
+                                <i class="material-icons has-sub-menu">keyboard_arrow_right</i>
+                            </a>
+                            <ul class="sub-menu">
+                                <li>
+                                    <a href="<?= base_url('admin/payment') ?>">Daftar Pembayaran</a>
+                                </li>
+                                <?php if (auth()->user()->can('payment.verify')): ?>
+                                    <li>
+                                        <a href="<?= base_url('admin/payment/pending') ?>">Perlu Verifikasi</a>
+                                    </li>
+                                <?php endif; ?>
+                                <?php if (auth()->user()->can('payment.report')): ?>
+                                    <li>
+                                        <a href="<?= base_url('admin/payment/report') ?>">Laporan Keuangan</a>
+                                    </li>
+                                <?php endif; ?>
+                            </ul>
+                        </li>
+                    <?php endif; ?>
+
+                    <!-- Organization Structure -->
+                    <?php if (auth()->user()->can('org_structure.view')): ?>
+                        <li class="<?= url_is('admin/org-structure*') ? 'active-page' : '' ?>">
+                            <a href="">
+                                <i class="material-icons-two-tone">corporate_fare</i>Struktur Organisasi
+                                <i class="material-icons has-sub-menu">keyboard_arrow_right</i>
+                            </a>
+                            <ul class="sub-menu">
+                                <li>
+                                    <a href="<?= base_url('admin/org-structure') ?>">Lihat Struktur</a>
+                                </li>
+                                <?php if (auth()->user()->can('org_structure.manage')): ?>
+                                    <li>
+                                        <a href="<?= base_url('admin/org-structure/manage') ?>">Kelola Jabatan</a>
+                                    </li>
+                                <?php endif; ?>
+                                <?php if (auth()->user()->can('org_structure.assign')): ?>
+                                    <li>
+                                        <a href="<?= base_url('admin/org-structure/assign') ?>">Penugasan</a>
+                                    </li>
+                                <?php endif; ?>
+                            </ul>
+                        </li>
+                    <?php endif; ?>
+
                     <!-- Community Management -->
                     <li class="sidebar-title">Kelola Komunitas</li>
 
@@ -199,6 +251,65 @@ $hasMemberPortalAccess = $currentUser->inGroup('anggota') || $currentUser->inGro
                                 </li>
                                 <li>
                                     <a href="<?= base_url('admin/content/categories') ?>">Kategori</a>
+                                </li>
+                            </ul>
+                        </li>
+                    <?php endif; ?>
+
+                    <!-- Super Admin Management -->
+                    <?php if ($currentUser->inGroup('superadmin')): ?>
+                        <li class="sidebar-title">Super Admin</li>
+
+                        <li class="<?= url_is('super/dashboard*') ? 'active-page' : '' ?>">
+                            <a href="<?= base_url('super/dashboard') ?>">
+                                <i class="material-icons-two-tone">admin_panel_settings</i>Dashboard Super Admin
+                            </a>
+                        </li>
+
+                        <li class="<?= url_is('super/users*') ? 'active-page' : '' ?>">
+                            <a href="">
+                                <i class="material-icons-two-tone">manage_accounts</i>Manajemen User
+                                <i class="material-icons has-sub-menu">keyboard_arrow_right</i>
+                            </a>
+                            <ul class="sub-menu">
+                                <li>
+                                    <a href="<?= base_url('super/users') ?>">Daftar User</a>
+                                </li>
+                                <li>
+                                    <a href="<?= base_url('super/users/create') ?>">Tambah User</a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="<?= url_is('super/roles*') ? 'active-page' : '' ?>">
+                            <a href="">
+                                <i class="material-icons-two-tone">shield</i>Role & Permission
+                                <i class="material-icons has-sub-menu">keyboard_arrow_right</i>
+                            </a>
+                            <ul class="sub-menu">
+                                <li>
+                                    <a href="<?= base_url('super/roles') ?>">Daftar Role</a>
+                                </li>
+                                <li>
+                                    <a href="<?= base_url('super/permissions') ?>">Permissions</a>
+                                </li>
+                            </ul>
+                        </li>
+
+                        <li class="<?= url_is('super/system*') ? 'active-page' : '' ?>">
+                            <a href="">
+                                <i class="material-icons-two-tone">settings</i>Sistem
+                                <i class="material-icons has-sub-menu">keyboard_arrow_right</i>
+                            </a>
+                            <ul class="sub-menu">
+                                <li>
+                                    <a href="<?= base_url('super/system/settings') ?>">Pengaturan</a>
+                                </li>
+                                <li>
+                                    <a href="<?= base_url('super/system/logs') ?>">System Logs</a>
+                                </li>
+                                <li>
+                                    <a href="<?= base_url('super/system/backup') ?>">Backup Data</a>
                                 </li>
                             </ul>
                         </li>
