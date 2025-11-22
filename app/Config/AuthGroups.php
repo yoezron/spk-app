@@ -76,6 +76,9 @@ class AuthGroups extends ShieldAuthGroups
 
         // Statistics
         'statistics.view' => 'Can view statistics',
+        'statistics.export' => 'Can export statistics',
+        'stats.view' => 'Can view statistics (alias)',
+        'stats.export' => 'Can export statistics (alias)',
 
         // Survey management
         'survey.manage' => 'Can manage surveys',
@@ -120,6 +123,7 @@ class AuthGroups extends ShieldAuthGroups
             'content.create',
             'forum.moderate',
             'statistics.view',
+            'statistics.export',
             'survey.manage',
             'survey.create',
             'survey.view_results',
