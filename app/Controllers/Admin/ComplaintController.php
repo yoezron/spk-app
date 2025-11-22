@@ -168,7 +168,7 @@ class ComplaintController extends BaseController
             'is_koordinator' => $isKoordinator
         ];
 
-        return view('admin/complaints/index', $data);
+        return view('admin/complaint/index', $data);
     }
 
     /**
@@ -241,7 +241,7 @@ class ComplaintController extends BaseController
             'is_koordinator' => $isKoordinator
         ];
 
-        return view('admin/complaints/show', $data);
+        return view('admin/complaint/show', $data);
     }
 
     /**

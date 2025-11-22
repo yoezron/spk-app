@@ -276,7 +276,7 @@ class MemberController extends BaseController
             'is_koordinator' => $isKoordinator
         ];
 
-        return view('admin/members/show', $data);
+        return view('admin/members/detail', $data);
     }
 
     /**
