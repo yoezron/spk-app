@@ -26,7 +26,7 @@
 
 <?= $this->section('styles') ?>
 <!-- SweetAlert2 CSS -->
-<link href="<?= base_url('assets/plugins/sweetalert2/sweetalert2.min.css') ?>" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 <!-- DataTables CSS -->
 <link href="<?= base_url('assets/plugins/datatables/datatables.min.css') ?>" rel="stylesheet">
 
@@ -958,7 +958,7 @@
 
 <?= $this->section('scripts') ?>
 <!-- SweetAlert2 JS -->
-<script src="<?= base_url('assets/plugins/sweetalert2/sweetalert2.min.js') ?>"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.js"></script>
 <!-- DataTables JS -->
 <script src="<?= base_url('assets/plugins/datatables/datatables.min.js') ?>"></script>
 
