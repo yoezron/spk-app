@@ -60,11 +60,27 @@ class RoleFilter implements FilterInterface
         }
 
         // Check if user has at least one of the required roles
+        // Also check title variations (e.g., 'superadmin' vs 'Super Admin')
         $hasRole = false;
         $userRoles = [];
 
         foreach ($requiredRoles as $role) {
+            // Check exact match first
             if ($user->inGroup($role)) {
+                $hasRole = true;
+                break;
+            }
+
+            // Check title case variation
+            $titleRole = ucwords(str_replace('_', ' ', $role));
+            if ($user->inGroup($titleRole)) {
+                $hasRole = true;
+                break;
+            }
+
+            // Check lowercase variation
+            $lowerRole = strtolower(str_replace(' ', '_', $role));
+            if ($user->inGroup($lowerRole)) {
                 $hasRole = true;
                 break;
             }
@@ -75,6 +91,13 @@ class RoleFilter implements FilterInterface
         foreach ($groups as $group) {
             $userRoles[] = $group;
         }
+
+        // === DEBUG LOGGING ===
+        log_message('debug', 'RoleFilter - User ID: ' . $user->id);
+        log_message('debug', 'RoleFilter - Required roles: ' . json_encode($requiredRoles));
+        log_message('debug', 'RoleFilter - User groups: ' . json_encode($userRoles));
+        log_message('debug', 'RoleFilter - Has required role: ' . ($hasRole ? 'YES' : 'NO'));
+        // === END DEBUG ===
 
         // User doesn't have required role
         if (!$hasRole) {
