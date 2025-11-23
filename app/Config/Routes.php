@@ -170,6 +170,7 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'ro
 
         // View Member Detail
         $routes->get('show/(:num)', 'MemberController::show/$1', ['as' => 'member.show']);
+        $routes->get('detail/(:num)', 'MemberController::show/$1'); // Alias for 'detail'
         $routes->get('(:num)', 'MemberController::show/$1'); // Alternative
 
         // Edit Member
