@@ -396,12 +396,12 @@ class DashboardController extends BaseController
         // Check required fields
         $requiredFields = [
             'full_name',
-            'jenis_kelamin',
-            'alamat',
-            'no_wa',
-            'wilayah_id',
-            'kampus_id',
-            'prodi_id'
+            'gender',
+            'address',
+            'whatsapp',
+            'province_id',
+            'university_id',
+            'study_program_id'
         ];
 
         foreach ($requiredFields as $field) {

@@ -192,12 +192,12 @@ class VerifyCardController extends BaseController
             $memberModel = model('MemberProfileModel');
 
             // Try to find by member number first
-            $member = $memberModel->select('member_profiles.*, users.active as user_active, 
+            $member = $memberModel->select('member_profiles.*, users.active as user_active,
                                            provinces.name as province_name,
                                            universities.name as university_name')
                 ->join('users', 'users.id = member_profiles.user_id')
-                ->join('provinces', 'provinces.id = member_profiles.wilayah_id', 'left')
-                ->join('universities', 'universities.id = member_profiles.kampus_id', 'left')
+                ->join('provinces', 'provinces.id = member_profiles.province_id', 'left')
+                ->join('universities', 'universities.id = member_profiles.university_id', 'left')
                 ->where('member_profiles.member_number', $code)
                 ->first();
 
@@ -207,8 +207,8 @@ class VerifyCardController extends BaseController
                                                provinces.name as province_name,
                                                universities.name as university_name')
                     ->join('users', 'users.id = member_profiles.user_id')
-                    ->join('provinces', 'provinces.id = member_profiles.wilayah_id', 'left')
-                    ->join('universities', 'universities.id = member_profiles.kampus_id', 'left')
+                    ->join('provinces', 'provinces.id = member_profiles.province_id', 'left')
+                    ->join('universities', 'universities.id = member_profiles.university_id', 'left')
                     ->where('member_profiles.card_verification_token', $code)
                     ->first();
             }
