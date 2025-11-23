@@ -110,6 +110,11 @@ class ProfileController extends BaseController
                     ->with('error', 'Profil tidak ditemukan.');
             }
 
+            // Set default values for fields that might not exist in database
+            if (!isset($member->religion)) {
+                $member->religion = null;
+            }
+
             // Load master data for dropdowns
             $data = [
                 'title' => 'Edit Profil - Serikat Pekerja Kampus',
@@ -118,11 +123,17 @@ class ProfileController extends BaseController
                 'member' => $member,
 
                 // Master data
-                'provinsi' => $this->loadMasterData('ProvinceModel', 'name'),
-                'jenis_pt' => $this->loadMasterData('JenisPtModel', 'name'),
-                'status_kepegawaian' => $this->loadMasterData('StatusKepegawaianModel', 'name'),
-                'pemberi_gaji' => $this->loadMasterData('PemberiGajiModel', 'name'),
-                'range_gaji' => $this->loadMasterData('RangeGajiModel', 'min_salary')
+                'provinces' => $this->loadMasterData('ProvinceModel', 'name'),
+                'employment_statuses' => $this->loadMasterData('EmploymentStatusModel', 'name'),
+                'salary_ranges' => $this->loadMasterData('SalaryRangeModel', 'min_amount'),
+
+                // Static data for salary payer (no database table)
+                'salary_payers' => [
+                    'KAMPUS' => 'Kampus/Perguruan Tinggi',
+                    'PEMERINTAH' => 'Pemerintah',
+                    'YAYASAN' => 'Yayasan',
+                    'LAINNYA' => 'Lainnya'
+                ]
             ];
 
             return view('member/profile/edit', $data);
@@ -182,59 +193,51 @@ class ProfileController extends BaseController
         $validationRules = [
             'full_name' => [
                 'label' => 'Nama Lengkap',
-                'rules' => 'required|min_length[3]|max_length[150]'
+                'rules' => 'required|min_length[3]|max_length[255]'
             ],
-            'jenis_kelamin' => [
+            'gender' => [
                 'label' => 'Jenis Kelamin',
-                'rules' => 'required|in_list[L,P]'
+                'rules' => 'required|in_list[Laki-laki,Perempuan]'
             ],
-            'no_wa' => [
+            'phone' => [
+                'label' => 'Nomor Telepon',
+                'rules' => 'permit_empty|max_length[20]'
+            ],
+            'whatsapp' => [
                 'label' => 'Nomor WhatsApp',
-                'rules' => 'required|numeric|min_length[10]|max_length[15]'
+                'rules' => 'permit_empty|max_length[20]'
             ],
-            'alamat' => [
+            'address' => [
                 'label' => 'Alamat',
-                'rules' => 'required|min_length[10]'
+                'rules' => 'permit_empty|max_length[500]'
             ],
-            'wilayah_id' => [
+            'province_id' => [
                 'label' => 'Provinsi',
-                'rules' => 'required|is_natural_no_zero'
+                'rules' => 'permit_empty|is_natural_no_zero'
             ],
-            'kabupaten' => [
+            'regency_id' => [
                 'label' => 'Kabupaten/Kota',
-                'rules' => 'required|min_length[3]'
+                'rules' => 'permit_empty|is_natural_no_zero'
             ],
-            'kecamatan' => [
-                'label' => 'Kecamatan',
-                'rules' => 'required|min_length[3]'
-            ],
-            'status_kepegawaian_id' => [
+            'employment_status_id' => [
                 'label' => 'Status Kepegawaian',
-                'rules' => 'required|is_natural_no_zero'
+                'rules' => 'permit_empty|is_natural_no_zero'
             ],
-            'pemberi_gaji_id' => [
+            'salary_payer' => [
                 'label' => 'Pemberi Gaji',
-                'rules' => 'required|is_natural_no_zero'
+                'rules' => 'permit_empty|in_list[KAMPUS,PEMERINTAH,YAYASAN,LAINNYA]'
             ],
-            'range_gaji_id' => [
+            'salary_range_id' => [
                 'label' => 'Range Gaji',
-                'rules' => 'required|is_natural_no_zero'
+                'rules' => 'permit_empty|is_natural_no_zero'
             ],
-            'gaji_pokok' => [
-                'label' => 'Gaji Pokok',
-                'rules' => 'required|numeric|greater_than[0]'
+            'university_id' => [
+                'label' => 'Universitas',
+                'rules' => 'permit_empty|is_natural_no_zero'
             ],
-            'jenis_pt_id' => [
-                'label' => 'Jenis PT',
-                'rules' => 'required|is_natural_no_zero'
-            ],
-            'kampus_id' => [
-                'label' => 'Kampus',
-                'rules' => 'required|is_natural_no_zero'
-            ],
-            'prodi_id' => [
+            'study_program_id' => [
                 'label' => 'Program Studi',
-                'rules' => 'required|is_natural_no_zero'
+                'rules' => 'permit_empty|is_natural_no_zero'
             ]
         ];
 
@@ -259,25 +262,22 @@ class ProfileController extends BaseController
             // Prepare update data
             $updateData = [
                 'full_name' => $this->request->getPost('full_name'),
-                'jenis_kelamin' => $this->request->getPost('jenis_kelamin'),
-                'no_wa' => $this->request->getPost('no_wa'),
-                'alamat' => $this->request->getPost('alamat'),
-                'wilayah_id' => $this->request->getPost('wilayah_id'),
-                'kabupaten' => $this->request->getPost('kabupaten'),
-                'kecamatan' => $this->request->getPost('kecamatan'),
-                'desa' => $this->request->getPost('desa'),
+                'gender' => $this->request->getPost('gender'),
+                'phone' => $this->request->getPost('phone'),
+                'whatsapp' => $this->request->getPost('whatsapp'),
+                'address' => $this->request->getPost('address'),
+                'province_id' => $this->request->getPost('province_id'),
+                'regency_id' => $this->request->getPost('regency_id'),
+                'postal_code' => $this->request->getPost('postal_code'),
                 'nidn_nip' => $this->request->getPost('nidn_nip'),
-                'status_kepegawaian_id' => $this->request->getPost('status_kepegawaian_id'),
-                'pemberi_gaji_id' => $this->request->getPost('pemberi_gaji_id'),
-                'range_gaji_id' => $this->request->getPost('range_gaji_id'),
-                'gaji_pokok' => $this->request->getPost('gaji_pokok'),
-                'jenis_pt_id' => $this->request->getPost('jenis_pt_id'),
-                'kampus_id' => $this->request->getPost('kampus_id'),
-                'prodi_id' => $this->request->getPost('prodi_id'),
-                'expertise' => $this->request->getPost('expertise'),
-                'motivasi' => $this->request->getPost('motivasi'),
-                'social_media' => $this->request->getPost('social_media'),
-                'updated_at' => date('Y-m-d H:i:s')
+                'employment_status_id' => $this->request->getPost('employment_status_id'),
+                'salary_payer' => $this->request->getPost('salary_payer'),
+                'salary_range_id' => $this->request->getPost('salary_range_id'),
+                'job_position' => $this->request->getPost('job_position'),
+                'university_id' => $this->request->getPost('university_id'),
+                'study_program_id' => $this->request->getPost('study_program_id'),
+                'skills' => $this->request->getPost('skills'),
+                'motivation' => $this->request->getPost('motivation')
             ];
 
             // Update profile
