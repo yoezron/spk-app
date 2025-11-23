@@ -94,18 +94,24 @@
             </div>
 
             <div class="card-body p-4">
-                <?php if (session()->getFlashdata('error')): ?>
+                <?php
+                // Get flashdata once and store in variables to avoid multiple calls
+                $error = session()->getFlashdata('error');
+                $errors = session()->getFlashdata('errors');
+                ?>
+
+                <?php if ($error): ?>
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <i class="fas fa-exclamation-circle"></i> <?= session()->getFlashdata('error') ?>
+                        <i class="fas fa-exclamation-circle"></i> <?= $error ?>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                     </div>
                 <?php endif; ?>
 
-                <?php if (session()->getFlashdata('errors')): ?>
+                <?php if ($errors): ?>
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <i class="fas fa-exclamation-circle"></i> <strong>Terdapat kesalahan:</strong>
                         <ul class="mb-0 mt-2">
-                            <?php foreach (session()->getFlashdata('errors') as $error): ?>
+                            <?php foreach ($errors as $error): ?>
                                 <li><?= esc($error) ?></li>
                             <?php endforeach; ?>
                         </ul>
