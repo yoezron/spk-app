@@ -19,7 +19,7 @@ class SalaryRangeModel extends Model
     protected $table            = 'salary_ranges';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
-    protected $returnType       = 'object';
+    protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = [
