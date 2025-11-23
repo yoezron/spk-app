@@ -326,10 +326,19 @@
             // Initialize fresh
             $('#regenciesTable').DataTable({
                 responsive: true,
-                destroy: true, // Force destroy on init
+                destroy: true,
+                autoWidth: false,
+                columns: [
+                    null, // No
+                    null, // Kode
+                    null, // Nama
+                    null, // Provinsi
+                    null, // Jumlah Anggota
+                    null  // Aksi
+                ],
                 order: [
-                    [3, 'asc'],
-                    [2, 'asc']
+                    [3, 'asc'], // Order by Provinsi
+                    [2, 'asc']  // Then by Nama
                 ],
                 language: {
                     url: '//cdn.datatables.net/plug-ins/1.13.6/i18n/id.json'
