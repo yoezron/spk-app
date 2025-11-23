@@ -252,29 +252,75 @@ class RegisterMemberService
     protected function createUserAccount(array $data): ?User
     {
         try {
-            $users = auth()->getProvider();
+            log_message('info', 'Starting user account creation for: ' . $data['username']);
 
-            $user = new User([
+            // Get auth provider
+            $users = auth()->getProvider();
+            log_message('info', 'Auth provider obtained: ' . get_class($users));
+
+            // Create user entity
+            $userData = [
                 'username' => $data['username'],
                 'email'    => $data['email'],
                 'password' => $data['password'],
-                'active'   => false, // Will be activated after admin approval
-            ]);
+                'active'   => false,
+            ];
 
-            $users->save($user);
+            log_message('info', 'Creating user with data: ' . json_encode([
+                'username' => $userData['username'],
+                'email' => $userData['email'],
+                'active' => $userData['active']
+            ]));
 
-            // Create email identity
+            $user = new User($userData);
+            log_message('info', 'User entity created successfully');
+
+            // Save user
+            log_message('info', 'Attempting to save user...');
+            $result = $users->save($user);
+
+            log_message('info', 'Save result: ' . ($result ? 'true' : 'false'));
+
+            if (!$result) {
+                $errors = $users->errors();
+                $errorMsg = 'Failed to save user. Errors: ' . json_encode($errors);
+                log_message('error', $errorMsg);
+                throw new \Exception($errorMsg);
+            }
+
+            log_message('info', 'User saved successfully. User ID: ' . ($user->id ?? 'N/A'));
+
+            // Get or create email identity
+            log_message('info', 'Checking for existing email identity...');
             $emailIdentity = $user->getEmailIdentity();
+
             if (!$emailIdentity) {
-                $user->createEmailIdentity([
+                log_message('info', 'No existing email identity, creating new one...');
+
+                $identityResult = $user->createEmailIdentity([
                     'email' => $data['email'],
                     'password' => $data['password']
                 ]);
+
+                if (!$identityResult) {
+                    $errorMsg = 'Failed to create email identity';
+                    log_message('error', $errorMsg);
+                    throw new \Exception($errorMsg);
+                }
+
+                log_message('info', 'Email identity created successfully');
+            } else {
+                log_message('info', 'Email identity already exists');
             }
 
+            log_message('info', 'User account creation completed successfully');
             return $user;
+
         } catch (\Exception $e) {
-            log_message('error', 'Error creating user account: ' . $e->getMessage());
+            log_message('error', 'EXCEPTION in createUserAccount: ' . $e->getMessage());
+            log_message('error', 'Exception type: ' . get_class($e));
+            log_message('error', 'File: ' . $e->getFile() . ':' . $e->getLine());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
             return null;
         }
     }
