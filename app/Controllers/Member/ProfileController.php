@@ -131,6 +131,9 @@ class ProfileController extends BaseController
 
                 // Master data
                 'provinces' => $this->loadMasterData('ProvinceModel', 'name'),
+                'regencies' => [], // Will be loaded via AJAX based on province selection
+                'universities' => [], // Will be loaded via AJAX based on province selection
+                'study_programs' => [], // Will be loaded via AJAX based on university selection
                 'employment_statuses' => $this->loadMasterData('EmploymentStatusModel', 'name'),
                 'salary_ranges' => $this->loadMasterData('SalaryRangeModel', 'min_amount'),
 
@@ -269,20 +272,29 @@ class ProfileController extends BaseController
             // Prepare update data
             $updateData = [
                 'full_name' => $this->request->getPost('full_name'),
+                'nik' => $this->request->getPost('nik'),
+                'nidn_nip' => $this->request->getPost('nidn_nip'),
+                'employee_id' => $this->request->getPost('employee_id'),
                 'gender' => $this->request->getPost('gender'),
+                'religion' => $this->request->getPost('religion'),
+                'marital_status' => $this->request->getPost('marital_status'),
+                'birth_place' => $this->request->getPost('birth_place'),
+                'birth_date' => $this->request->getPost('birth_date'),
                 'phone' => $this->request->getPost('phone'),
                 'whatsapp' => $this->request->getPost('whatsapp'),
                 'address' => $this->request->getPost('address'),
                 'province_id' => $this->request->getPost('province_id'),
                 'regency_id' => $this->request->getPost('regency_id'),
                 'postal_code' => $this->request->getPost('postal_code'),
-                'nidn_nip' => $this->request->getPost('nidn_nip'),
+                'university_id' => $this->request->getPost('university_id'),
+                'study_program_id' => $this->request->getPost('study_program_id'),
+                'employment_type' => $this->request->getPost('employment_type'),
                 'employment_status_id' => $this->request->getPost('employment_status_id'),
                 'salary_payer' => $this->request->getPost('salary_payer'),
                 'salary_range_id' => $this->request->getPost('salary_range_id'),
                 'job_position' => $this->request->getPost('job_position'),
-                'university_id' => $this->request->getPost('university_id'),
-                'study_program_id' => $this->request->getPost('study_program_id'),
+                'work_start_date' => $this->request->getPost('work_start_date'),
+                'join_date' => $this->request->getPost('join_date'),
                 'skills' => $this->request->getPost('skills'),
                 'motivation' => $this->request->getPost('motivation')
             ];

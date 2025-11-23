@@ -452,6 +452,22 @@
 
             <div class="col-md-6">
                 <div class="form-group">
+                    <label for="nidn_nip">NIDN/NIP</label>
+                    <input type="text"
+                        class="form-control <?= isset($errors['nidn_nip']) ? 'is-invalid' : '' ?>"
+                        id="nidn_nip"
+                        name="nidn_nip"
+                        value="<?= old('nidn_nip', $member->nidn_nip) ?>"
+                        maxlength="30">
+                    <?php if (isset($errors['nidn_nip'])): ?>
+                        <div class="invalid-feedback"><?= $errors['nidn_nip'] ?></div>
+                    <?php endif; ?>
+                    <small class="form-text">NIDN untuk Dosen atau NIP untuk Pegawai</small>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="form-group">
                     <label for="birth_place">Tempat Lahir <span class="required">*</span></label>
                     <input type="text"
                         class="form-control <?= isset($errors['birth_place']) ? 'is-invalid' : '' ?>"
@@ -488,8 +504,8 @@
                         name="gender"
                         required>
                         <option value="">Pilih Jenis Kelamin</option>
-                        <option value="L" <?= old('gender', $member->gender) === 'L' ? 'selected' : '' ?>>Laki-laki</option>
-                        <option value="P" <?= old('gender', $member->gender) === 'P' ? 'selected' : '' ?>>Perempuan</option>
+                        <option value="Laki-laki" <?= old('gender', $member->gender) === 'Laki-laki' ? 'selected' : '' ?>>Laki-laki</option>
+                        <option value="Perempuan" <?= old('gender', $member->gender) === 'Perempuan' ? 'selected' : '' ?>>Perempuan</option>
                     </select>
                     <?php if (isset($errors['gender'])): ?>
                         <div class="invalid-feedback"><?= $errors['gender'] ?></div>
@@ -565,6 +581,25 @@
             </div>
 
             <div class="col-md-6">
+                <div class="form-group">
+                    <label for="whatsapp">No. WhatsApp <span class="required">*</span></label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-whatsapp"></i></span>
+                        <input type="tel"
+                            class="form-control <?= isset($errors['whatsapp']) ? 'is-invalid' : '' ?>"
+                            id="whatsapp"
+                            name="whatsapp"
+                            value="<?= old('whatsapp', $member->whatsapp) ?>"
+                            placeholder="08123456789"
+                            required>
+                    </div>
+                    <?php if (isset($errors['whatsapp'])): ?>
+                        <div class="invalid-feedback"><?= $errors['whatsapp'] ?></div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <div class="col-md-12">
                 <div class="form-group">
                     <label for="email">Email <span class="required">*</span></label>
                     <div class="input-group">
