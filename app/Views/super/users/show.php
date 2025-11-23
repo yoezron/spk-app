@@ -52,8 +52,8 @@ $this->section('content');
         <div class="card">
             <div class="card-body text-center">
                 <div class="mb-3">
-                    <?php if (!empty($user->photo_url)): ?>
-                        <img src="<?= base_url('uploads/photos/' . $user->photo_url) ?>"
+                    <?php if (!empty($user->photo_path)): ?>
+                        <img src="<?= base_url('uploads/photos/' . $user->photo_path) ?>"
                             alt="Photo"
                             class="rounded-circle"
                             style="width: 120px; height: 120px; object-fit: cover;">
