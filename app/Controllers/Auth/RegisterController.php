@@ -296,10 +296,10 @@ class RegisterController extends BaseController
             ],
             'gender' => [
                 'label' => 'Jenis Kelamin',
-                'rules' => 'required|in_list[L,P]',
+                'rules' => 'required|regex_match[/^[LP]$/]',
                 'errors' => [
                     'required' => 'Jenis kelamin harus dipilih',
-                    'in_list' => 'Jenis kelamin tidak valid'
+                    'regex_match' => 'Jenis kelamin tidak valid'
                 ]
             ],
 
@@ -436,32 +436,9 @@ class RegisterController extends BaseController
         $validation->setRules($rules);
 
         if (!$validation->run($data)) {
-            // Log validation errors for debugging
-            $errors = $validation->getErrors();
-            log_message('error', 'Registration validation failed: ' . json_encode($errors));
-
-            // EXTREME DEBUG: Dump ke screen
-            echo "<h1>VALIDATION FAILED DEBUG</h1>";
-            echo "<h2>Validation Errors:</h2>";
-            echo "<pre>";
-            print_r($errors);
-            echo "</pre>";
-
-            echo "<h2>Submitted Data:</h2>";
-            echo "<pre>";
-            print_r($data);
-            echo "</pre>";
-
-            echo "<h2>Files:</h2>";
-            echo "<pre>";
-            print_r($_FILES);
-            echo "</pre>";
-
-            die('DEBUG STOPPED HERE');
-
             return [
                 'success' => false,
-                'errors' => $errors
+                'errors' => $validation->getErrors()
             ];
         }
 
