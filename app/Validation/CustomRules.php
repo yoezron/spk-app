@@ -87,11 +87,31 @@ class CustomRules
     }
 
     /**
+     * Valid Gender (L or P)
+     *
+     * @param string $value
+     * @param string|null $error
+     * @return bool
+     */
+    public function valid_gender(string $value, ?string &$error = null): bool
+    {
+        // Trim whitespace and convert to uppercase
+        $value = trim(strtoupper($value));
+
+        if ($value === 'L' || $value === 'P') {
+            return true;
+        }
+
+        $error = 'Jenis kelamin harus L (Laki-laki) atau P (Perempuan)';
+        return false;
+    }
+
+    /**
      * Valid NIDN/NIP
-     * 
+     *
      * NIDN: 10 digits
      * NIP: 18 digits
-     * 
+     *
      * @param string $value
      * @param string|null $error
      * @return bool

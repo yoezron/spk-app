@@ -296,10 +296,10 @@ class RegisterController extends BaseController
             ],
             'gender' => [
                 'label' => 'Jenis Kelamin',
-                'rules' => 'required|regex_match[/^[LP]$/]',
+                'rules' => 'required|valid_gender',
                 'errors' => [
                     'required' => 'Jenis kelamin harus dipilih',
-                    'regex_match' => 'Jenis kelamin tidak valid'
+                    'valid_gender' => 'Jenis kelamin tidak valid (harus L atau P)'
                 ]
             ],
 
