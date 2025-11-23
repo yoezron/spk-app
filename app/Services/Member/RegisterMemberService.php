@@ -65,11 +65,19 @@ class RegisterMemberService
 
             // 3. Create member profile
             $memberData = $this->prepareMemberData($data, $user->id);
+
+            log_message('info', 'Member data prepared. Type: ' . gettype($memberData));
+            log_message('info', 'Member data: ' . json_encode($memberData));
+
             $memberId = $this->memberModel->insert($memberData);
 
             if (!$memberId) {
-                throw new \Exception('Gagal membuat profil anggota: ' . json_encode($this->memberModel->errors()));
+                $errors = $this->memberModel->errors();
+                log_message('error', 'Failed to insert member profile. Errors: ' . json_encode($errors));
+                throw new \Exception('Gagal membuat profil anggota: ' . json_encode($errors));
             }
+
+            log_message('info', 'Member profile created successfully. ID: ' . $memberId);
 
             // 4. Upload files (foto, bukti bayar, CV)
             if (isset($data['files'])) {
