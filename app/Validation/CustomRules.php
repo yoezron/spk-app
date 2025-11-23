@@ -121,14 +121,14 @@ class CustomRules
      * Valid Image Dimensions
      * 
      * Check if uploaded image meets minimum dimension requirements
-     * 
-     * @param string $file
+     *
+     * @param string|null $file
      * @param string $params Format: "width,height" (e.g., "300,400")
      * @param array $data
      * @param string|null $error
      * @return bool
      */
-    public function min_image_dimensions(string $file, string $params, array $data, ?string &$error = null): bool
+    public function min_image_dimensions(?string $file, string $params, array $data, ?string &$error = null): bool
     {
         // Get the file from request
         $request = \Config\Services::request();
@@ -169,14 +169,14 @@ class CustomRules
      * Maximum Image Dimensions
      * 
      * Check if uploaded image doesn't exceed maximum dimension requirements
-     * 
-     * @param string $file
+     *
+     * @param string|null $file
      * @param string $params Format: "width,height" (e.g., "4000,3000")
      * @param array $data
      * @param string|null $error
      * @return bool
      */
-    public function max_image_dimensions(string $file, string $params, array $data, ?string &$error = null): bool
+    public function max_image_dimensions(?string $file, string $params, array $data, ?string &$error = null): bool
     {
         $request = \Config\Services::request();
         $uploadedFile = $request->getFile($file);
@@ -213,14 +213,14 @@ class CustomRules
      * 
      * Check if image aspect ratio is within acceptable range
      * Useful for profile photos that need specific ratios
-     * 
-     * @param string $file
+     *
+     * @param string|null $file
      * @param string $params Format: "min_ratio,max_ratio" (e.g., "0.7,1.5" for portrait/square)
      * @param array $data
      * @param string|null $error
      * @return bool
      */
-    public function image_aspect_ratio(string $file, string $params, array $data, ?string &$error = null): bool
+    public function image_aspect_ratio(?string $file, string $params, array $data, ?string &$error = null): bool
     {
         $request = \Config\Services::request();
         $uploadedFile = $request->getFile($file);
@@ -263,14 +263,14 @@ class CustomRules
      * 
      * Validates actual image MIME type, not just extension
      * Prevents malicious files with fake extensions
-     * 
-     * @param string $file
+     *
+     * @param string|null $file
      * @param string $params Allowed MIME types (comma-separated)
      * @param array $data
      * @param string|null $error
      * @return bool
      */
-    public function valid_image_mime(string $file, string $params, array $data, ?string &$error = null): bool
+    public function valid_image_mime(?string $file, string $params, array $data, ?string &$error = null): bool
     {
         $request = \Config\Services::request();
         $uploadedFile = $request->getFile($file);
@@ -306,14 +306,14 @@ class CustomRules
 
     /**
      * Maximum File Size (more flexible than built-in)
-     * 
-     * @param string $file
+     *
+     * @param string|null $file
      * @param string $params Max size in KB (e.g., "2048" for 2MB)
      * @param array $data
      * @param string|null $error
      * @return bool
      */
-    public function max_file_size(string $file, string $params, array $data, ?string &$error = null): bool
+    public function max_file_size(?string $file, string $params, array $data, ?string &$error = null): bool
     {
         $request = \Config\Services::request();
         $uploadedFile = $request->getFile($file);
