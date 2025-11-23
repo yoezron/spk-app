@@ -112,10 +112,18 @@ class UserController extends BaseController
         }
 
         // Get user with profile
+        // IMPORTANT: Select users.id explicitly to prevent it being overwritten by member_profiles.id
         $user = $this->db->table('users')
-            ->select('users.*, auth_groups_users.group, member_profiles.*')
+            ->select('users.id, users.username, users.email, users.active, users.created_at, users.updated_at, users.deleted_at')
+            ->select('auth_groups_users.group')
+            ->select('member_profiles.full_name, member_profiles.nik, member_profiles.gender, member_profiles.birth_place, member_profiles.birth_date')
+            ->select('member_profiles.whatsapp, member_profiles.phone, member_profiles.photo_url, member_profiles.member_number, member_profiles.membership_status')
+            ->select('provinces.name as province_name')
+            ->select('universities.name as university_name')
             ->join('auth_groups_users', 'users.id = auth_groups_users.user_id', 'left')
             ->join('member_profiles', 'users.id = member_profiles.user_id', 'left')
+            ->join('provinces', 'member_profiles.province_id = provinces.id', 'left')
+            ->join('universities', 'member_profiles.university_id = universities.id', 'left')
             ->where('users.id', $id)
             ->get()
             ->getRow();
