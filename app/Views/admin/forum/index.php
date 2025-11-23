@@ -804,7 +804,7 @@
                     <div class="text-muted">
                         Menampilkan <?= count($threads) ?> dari <?= $pager->getTotal() ?> thread
                     </div>
-                    <?= $pager->links('default', 'custom_pagination') ?>
+                    <?= $pager->links('default', 'default_full') ?>
                 </div>
             <?php endif; ?>
 

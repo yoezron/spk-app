@@ -939,7 +939,7 @@
                 <div class="text-muted">
                     Menampilkan <?= count($surveys) ?> dari <?= $pager->getTotal() ?> survey
                 </div>
-                <?= $pager->links('default', 'custom_pagination') ?>
+                <?= $pager->links('default', 'default_full') ?>
             </div>
 
         <?php else: ?>
