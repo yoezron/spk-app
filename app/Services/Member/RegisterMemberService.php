@@ -261,20 +261,32 @@ class RegisterMemberService
                 'active'   => false, // Will be activated after admin approval
             ]);
 
-            $users->save($user);
+            $result = $users->save($user);
+
+            if (!$result) {
+                $errors = $users->errors();
+                log_message('error', 'Failed to save user: ' . json_encode($errors));
+                throw new \Exception('Failed to save user: ' . json_encode($errors));
+            }
 
             // Create email identity
             $emailIdentity = $user->getEmailIdentity();
             if (!$emailIdentity) {
-                $user->createEmailIdentity([
+                $identityResult = $user->createEmailIdentity([
                     'email' => $data['email'],
                     'password' => $data['password']
                 ]);
+
+                if (!$identityResult) {
+                    log_message('error', 'Failed to create email identity');
+                    throw new \Exception('Failed to create email identity');
+                }
             }
 
             return $user;
         } catch (\Exception $e) {
             log_message('error', 'Error creating user account: ' . $e->getMessage());
+            log_message('error', 'Stack trace: ' . $e->getTraceAsString());
             return null;
         }
     }
