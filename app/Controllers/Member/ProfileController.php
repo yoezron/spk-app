@@ -114,6 +114,9 @@ class ProfileController extends BaseController
             if (!isset($member->religion)) {
                 $member->religion = null;
             }
+            if (!isset($member->marital_status)) {
+                $member->marital_status = null;
+            }
 
             // Load master data for dropdowns
             $data = [

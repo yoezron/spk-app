@@ -34,10 +34,10 @@ class CardController extends BaseController
     /**
      * Display digital member card
      * Shows card preview with QR code
-     * 
-     * @return string
+     *
+     * @return string|RedirectResponse
      */
-    public function index(): string
+    public function index(): string|RedirectResponse
     {
         // Check authentication
         if (!auth()->loggedIn()) {
@@ -49,12 +49,12 @@ class CardController extends BaseController
         try {
             // Get member profile with relations
             $memberModel = model('MemberProfileModel');
-            $member = $memberModel->select('member_profiles.*, 
+            $member = $memberModel->select('member_profiles.*,
                                            provinces.name as province_name,
                                            universities.name as university_name,
                                            users.active as user_active')
-                ->join('provinces', 'provinces.id = member_profiles.wilayah_id', 'left')
-                ->join('universities', 'universities.id = member_profiles.kampus_id', 'left')
+                ->join('provinces', 'provinces.id = member_profiles.province_id', 'left')
+                ->join('universities', 'universities.id = member_profiles.university_id', 'left')
                 ->join('users', 'users.id = member_profiles.user_id')
                 ->where('member_profiles.user_id', $user->id)
                 ->first();
@@ -165,10 +165,10 @@ class CardController extends BaseController
 
     /**
      * Display QR code only (for printing/sharing)
-     * 
-     * @return string
+     *
+     * @return string|RedirectResponse
      */
-    public function qrcode(): string
+    public function qrcode(): string|RedirectResponse
     {
         // Check authentication
         if (!auth()->loggedIn()) {
