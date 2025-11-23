@@ -130,6 +130,11 @@ class CustomRules
      */
     public function min_image_dimensions(?string $file, string $params, array $data, ?string &$error = null): bool
     {
+        // If no file field specified, validation passes
+        if ($file === null) {
+            return true;
+        }
+
         // Get the file from request
         $request = \Config\Services::request();
         $uploadedFile = $request->getFile($file);
@@ -178,6 +183,11 @@ class CustomRules
      */
     public function max_image_dimensions(?string $file, string $params, array $data, ?string &$error = null): bool
     {
+        // If no file field specified, validation passes
+        if ($file === null) {
+            return true;
+        }
+
         $request = \Config\Services::request();
         $uploadedFile = $request->getFile($file);
 
@@ -222,6 +232,11 @@ class CustomRules
      */
     public function image_aspect_ratio(?string $file, string $params, array $data, ?string &$error = null): bool
     {
+        // If no file field specified, validation passes
+        if ($file === null) {
+            return true;
+        }
+
         $request = \Config\Services::request();
         $uploadedFile = $request->getFile($file);
 
@@ -272,6 +287,11 @@ class CustomRules
      */
     public function valid_image_mime(?string $file, string $params, array $data, ?string &$error = null): bool
     {
+        // If no file field specified, validation passes
+        if ($file === null) {
+            return true;
+        }
+
         $request = \Config\Services::request();
         $uploadedFile = $request->getFile($file);
 
@@ -315,6 +335,11 @@ class CustomRules
      */
     public function max_file_size(?string $file, string $params, array $data, ?string &$error = null): bool
     {
+        // If no file field specified, validation passes
+        if ($file === null) {
+            return true;
+        }
+
         $request = \Config\Services::request();
         $uploadedFile = $request->getFile($file);
 
