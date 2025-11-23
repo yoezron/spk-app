@@ -35,7 +35,7 @@ class OrgPositionModel extends Model
     protected $table            = 'org_positions';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
-    protected $returnType       = 'array';
+    protected $returnType       = 'object';
     protected $useSoftDeletes   = true;
     protected $protectFields    = true;
 

@@ -16,7 +16,7 @@ class LoginLogModel extends Model
     protected $table            = 'login_logs';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
-    protected $returnType       = 'array';
+    protected $returnType       = 'object';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
 

@@ -34,7 +34,7 @@ class OrgUnitModel extends Model
     protected $table            = 'org_units';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
-    protected $returnType       = 'array';
+    protected $returnType       = 'object';
     protected $useSoftDeletes   = true;
     protected $protectFields    = true;
 
