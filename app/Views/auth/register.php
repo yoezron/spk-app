@@ -474,9 +474,11 @@
                     .then(response => response.json())
                     .then(data => {
                         universitySelect.innerHTML = '<option value="">-- Pilih Perguruan Tinggi --</option>';
-                        data.forEach(university => {
-                            universitySelect.innerHTML += `<option value="${university.id}">${university.name}</option>`;
-                        });
+                        if (data.success && data.data) {
+                            data.data.forEach(university => {
+                                universitySelect.innerHTML += `<option value="${university.id}">${university.name}</option>`;
+                            });
+                        }
                     })
                     .catch(error => {
                         console.error('Error:', error);
@@ -499,9 +501,11 @@
                     .then(response => response.json())
                     .then(data => {
                         studyProgramSelect.innerHTML = '<option value="">-- Pilih Program Studi --</option>';
-                        data.forEach(program => {
-                            studyProgramSelect.innerHTML += `<option value="${program.id}">${program.name}</option>`;
-                        });
+                        if (data.success && data.data) {
+                            data.data.forEach(program => {
+                                studyProgramSelect.innerHTML += `<option value="${program.id}">${program.name}</option>`;
+                            });
+                        }
                     })
                     .catch(error => {
                         console.error('Error:', error);
