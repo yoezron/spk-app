@@ -371,18 +371,16 @@ class RegisterMemberService
             'address'              => $data['address'],
             'province_id'          => $data['province_id'],
             'regency_id'           => $data['regency_id'] ?? null,
-            'employment_status_id' => $data['employment_status_id'] ?? null,
-            'salary_range_id'      => $data['salary_range_id'] ?? null,
-            'basic_salary'         => $data['basic_salary'] ?? null,
+            'postal_code'          => $data['postal_code'] ?? null,
             'university_id'        => $data['university_id'],
             'study_program_id'     => $data['study_program_id'] ?? null,
-            'faculty'              => $data['faculty'] ?? null,
-            'department'           => $data['department'] ?? null,
-            'employee_number'      => $data['employee_number'] ?? null,
-            'start_date'           => $data['start_date'] ?? null,
-            'expertise'            => $data['expertise'] ?? null,
-            'research_interest'    => $data['research_interest'] ?? null,
-            'education_level'      => $data['education_level'] ?? null,
+            'employment_status_id' => $data['employment_status_id'] ?? null,
+            'salary_payer'         => $data['salary_payer'] ?? 'KAMPUS',
+            'salary_range_id'      => $data['salary_range_id'] ?? null,
+            'job_position'         => $data['job_position'] ?? null,
+            'work_start_date'      => $data['work_start_date'] ?? null,
+            'skills'               => $data['skills'] ?? null,
+            'motivation'           => $data['motivation'] ?? null,
             'join_date'            => date('Y-m-d'),
             'membership_status'    => 'pending',
         ];
@@ -392,8 +390,12 @@ class RegisterMemberService
             $memberData['photo_path'] = $this->moveFileToSecureLocation($data['photo_path'], $userId, 'photo');
         }
 
-        if (isset($data['payment_proof_path']) && $data['payment_proof_path']) {
-            $memberData['payment_proof_path'] = $this->moveFileToSecureLocation($data['payment_proof_path'], $userId, 'payment_proof');
+        if (isset($data['employment_letter_path']) && $data['employment_letter_path']) {
+            $memberData['employment_letter_path'] = $this->moveFileToSecureLocation($data['employment_letter_path'], $userId, 'employment_letter');
+        }
+
+        if (isset($data['id_card_path']) && $data['id_card_path']) {
+            $memberData['id_card_path'] = $this->moveFileToSecureLocation($data['id_card_path'], $userId, 'id_card');
         }
 
         return $memberData;
