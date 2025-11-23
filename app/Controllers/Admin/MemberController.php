@@ -319,7 +319,7 @@ class MemberController extends BaseController
         // Get user roles for role management (Super Admin only)
         $roles = [];
         if ($user->inGroup('superadmin')) {
-            $roles = model('GroupModel')->findAll();
+            $roles = model('RoleModel')->findAll();
         }
 
         $data = [
