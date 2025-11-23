@@ -51,12 +51,14 @@ class ProfileController extends BaseController
             $memberModel = model('MemberProfileModel');
             $member = $memberModel->select('member_profiles.*,
                                            provinces.name as province_name,
+                                           regencies.name as regency_name,
                                            regions.name as region_name,
                                            universities.name as university_name,
                                            study_programs.name as study_program_name,
                                            employment_statuses.name as employment_status_name,
                                            salary_ranges.name as salary_range_name')
                 ->join('provinces', 'provinces.id = member_profiles.province_id', 'left')
+                ->join('regencies', 'regencies.id = member_profiles.regency_id', 'left')
                 ->join('regions', 'regions.id = member_profiles.region_id', 'left')
                 ->join('universities', 'universities.id = member_profiles.university_id', 'left')
                 ->join('study_programs', 'study_programs.id = member_profiles.study_program_id', 'left')
