@@ -488,8 +488,8 @@
                         name="gender"
                         required>
                         <option value="">Pilih Jenis Kelamin</option>
-                        <option value="L" <?= old('gender', $member->gender) === 'L' ? 'selected' : '' ?>>Laki-laki</option>
-                        <option value="P" <?= old('gender', $member->gender) === 'P' ? 'selected' : '' ?>>Perempuan</option>
+                        <option value="Laki-laki" <?= old('gender', $member->gender) === 'Laki-laki' ? 'selected' : '' ?>>Laki-laki</option>
+                        <option value="Perempuan" <?= old('gender', $member->gender) === 'Perempuan' ? 'selected' : '' ?>>Perempuan</option>
                     </select>
                     <?php if (isset($errors['gender'])): ?>
                         <div class="invalid-feedback"><?= $errors['gender'] ?></div>

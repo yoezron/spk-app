@@ -131,6 +131,9 @@ class ProfileController extends BaseController
 
                 // Master data
                 'provinces' => $this->loadMasterData('ProvinceModel', 'name'),
+                'regencies' => [], // Will be loaded via AJAX based on province selection
+                'universities' => [], // Will be loaded via AJAX based on province selection
+                'study_programs' => [], // Will be loaded via AJAX based on university selection
                 'employment_statuses' => $this->loadMasterData('EmploymentStatusModel', 'name'),
                 'salary_ranges' => $this->loadMasterData('SalaryRangeModel', 'min_amount'),
 
