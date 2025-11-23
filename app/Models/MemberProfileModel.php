@@ -50,6 +50,7 @@ class MemberProfileModel extends Model
         'research_interest',
         'education_level',
         'photo_path',
+        'payment_proof_path',
         'cv_path',
         'id_card_path',
         'join_date',
@@ -88,7 +89,7 @@ class MemberProfileModel extends Model
 
     // Callbacks
     protected $allowCallbacks = true;
-    protected $beforeInsert   = ['generateMemberNumber'];
+    protected $beforeInsert   = [];
     protected $beforeUpdate   = [];
 
     // ========================================
