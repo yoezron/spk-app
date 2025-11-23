@@ -103,19 +103,13 @@
 
                 <?php if (session()->getFlashdata('errors')): ?>
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        <i class="fas fa-exclamation-circle"></i> <strong>Terdapat kesalahan validasi:</strong>
+                        <i class="fas fa-exclamation-circle"></i> <strong>Terdapat kesalahan:</strong>
                         <ul class="mb-0 mt-2">
-                            <?php foreach (session()->getFlashdata('errors') as $field => $error): ?>
-                                <li><strong><?= esc($field) ?>:</strong> <?= esc($error) ?></li>
+                            <?php foreach (session()->getFlashdata('errors') as $error): ?>
+                                <li><?= esc($error) ?></li>
                             <?php endforeach; ?>
                         </ul>
                         <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-
-                    <!-- DEBUG: Tampilkan detail lengkap -->
-                    <div class="alert alert-warning alert-dismissible fade show" role="alert">
-                        <strong>DEBUG - Error Details:</strong>
-                        <pre><?= print_r(session()->getFlashdata('errors'), true) ?></pre>
                     </div>
                 <?php endif; ?>
 
