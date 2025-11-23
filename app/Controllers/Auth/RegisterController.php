@@ -437,11 +437,31 @@ class RegisterController extends BaseController
 
         if (!$validation->run($data)) {
             // Log validation errors for debugging
-            log_message('error', 'Registration validation failed: ' . json_encode($validation->getErrors()));
+            $errors = $validation->getErrors();
+            log_message('error', 'Registration validation failed: ' . json_encode($errors));
+
+            // EXTREME DEBUG: Dump ke screen
+            echo "<h1>VALIDATION FAILED DEBUG</h1>";
+            echo "<h2>Validation Errors:</h2>";
+            echo "<pre>";
+            print_r($errors);
+            echo "</pre>";
+
+            echo "<h2>Submitted Data:</h2>";
+            echo "<pre>";
+            print_r($data);
+            echo "</pre>";
+
+            echo "<h2>Files:</h2>";
+            echo "<pre>";
+            print_r($_FILES);
+            echo "</pre>";
+
+            die('DEBUG STOPPED HERE');
 
             return [
                 'success' => false,
-                'errors' => $validation->getErrors()
+                'errors' => $errors
             ];
         }
 
