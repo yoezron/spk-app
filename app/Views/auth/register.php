@@ -242,16 +242,13 @@
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="payer_id" class="form-label required">Pemberi Gaji</label>
-                            <select class="form-select" id="payer_id" name="payer_id" required>
+                            <label for="salary_payer" class="form-label required">Pemberi Gaji</label>
+                            <select class="form-select" id="salary_payer" name="salary_payer" required>
                                 <option value="">-- Pilih Pemberi Gaji --</option>
-                                <?php if (isset($payers)): ?>
-                                    <?php foreach ($payers as $payer): ?>
-                                        <option value="<?= $payer['id'] ?>" <?= old('payer_id') == $payer['id'] ? 'selected' : '' ?>>
-                                            <?= esc($payer['name']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
+                                <option value="KAMPUS" <?= old('salary_payer') == 'KAMPUS' ? 'selected' : '' ?>>Kampus</option>
+                                <option value="PEMERINTAH" <?= old('salary_payer') == 'PEMERINTAH' ? 'selected' : '' ?>>Pemerintah</option>
+                                <option value="YAYASAN" <?= old('salary_payer') == 'YAYASAN' ? 'selected' : '' ?>>Yayasan</option>
+                                <option value="LAINNYA" <?= old('salary_payer') == 'LAINNYA' ? 'selected' : '' ?>>Lainnya</option>
                             </select>
                         </div>
                     </div>
@@ -271,42 +268,26 @@
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="basic_salary" class="form-label">Gaji Pokok (Opsional)</label>
-                            <input type="number" class="form-control" id="basic_salary" name="basic_salary"
-                                value="<?= old('basic_salary') ?>" min="0">
-                            <small class="form-text text-muted">Data ini bersifat rahasia</small>
+                            <label for="job_position" class="form-label">Jabatan</label>
+                            <input type="text" class="form-control" id="job_position" name="job_position"
+                                value="<?= old('job_position') ?>" placeholder="Contoh: Dosen, Tenaga Kependidikan">
                         </div>
                     </div>
 
                     <!-- SECTION 5: Data Institusi -->
                     <h5 class="section-title"><i class="fas fa-university"></i> Data Institusi</h5>
-                    <div class="row">
-                        <div class="col-md-6 mb-3">
-                            <label for="province_id" class="form-label required">Provinsi</label>
-                            <select class="form-select" id="province_id" name="province_id" required>
-                                <option value="">-- Pilih Provinsi --</option>
-                                <?php if (isset($provinces)): ?>
-                                    <?php foreach ($provinces as $province): ?>
-                                        <option value="<?= $province['id'] ?>" <?= old('province_id') == $province['id'] ? 'selected' : '' ?>>
-                                            <?= esc($province['name']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </select>
-                        </div>
-                        <div class="col-md-6 mb-3">
-                            <label for="university_type_id" class="form-label required">Jenis Perguruan Tinggi</label>
-                            <select class="form-select" id="university_type_id" name="university_type_id" required>
-                                <option value="">-- Pilih Jenis PT --</option>
-                                <?php if (isset($universityTypes)): ?>
-                                    <?php foreach ($universityTypes as $type): ?>
-                                        <option value="<?= $type['id'] ?>" <?= old('university_type_id') == $type['id'] ? 'selected' : '' ?>>
-                                            <?= esc($type['name']) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                <?php endif; ?>
-                            </select>
-                        </div>
+                    <div class="mb-3">
+                        <label for="province_id" class="form-label required">Provinsi</label>
+                        <select class="form-select" id="province_id" name="province_id" required>
+                            <option value="">-- Pilih Provinsi --</option>
+                            <?php if (isset($provinces)): ?>
+                                <?php foreach ($provinces as $province): ?>
+                                    <option value="<?= $province['id'] ?>" <?= old('province_id') == $province['id'] ? 'selected' : '' ?>>
+                                        <?= esc($province['name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
                     </div>
 
                     <div class="row">
@@ -335,20 +316,20 @@
                             <img id="photoPreview" class="image-preview img-thumbnail" alt="Preview">
                         </div>
                         <div class="col-md-6 mb-3">
-                            <label for="payment_proof" class="form-label required">Bukti Pembayaran Iuran</label>
-                            <input type="file" class="form-control" id="payment_proof" name="payment_proof"
-                                accept="image/jpeg,image/png,image/jpg,application/pdf" required>
+                            <label for="employment_letter" class="form-label">Surat Keterangan Kerja (Opsional)</label>
+                            <input type="file" class="form-control" id="employment_letter" name="employment_letter"
+                                accept="image/jpeg,image/png,image/jpg,application/pdf">
                             <small class="form-text text-muted">Format: JPG/PNG/PDF, Max: 2MB</small>
-                            <img id="paymentPreview" class="image-preview img-thumbnail" alt="Preview">
+                            <img id="employmentPreview" class="image-preview img-thumbnail" alt="Preview">
                         </div>
                     </div>
 
                     <!-- SECTION 7: Informasi Tambahan -->
                     <h5 class="section-title"><i class="fas fa-info-circle"></i> Informasi Tambahan</h5>
                     <div class="mb-3">
-                        <label for="expertise" class="form-label">Bidang Keahlian</label>
-                        <textarea class="form-control" id="expertise" name="expertise" rows="2"
-                            placeholder="Contoh: Psikologi, Statistika, Hukum Perburuhan"><?= old('expertise') ?></textarea>
+                        <label for="skills" class="form-label">Bidang Keahlian</label>
+                        <textarea class="form-control" id="skills" name="skills" rows="2"
+                            placeholder="Contoh: Psikologi, Statistika, Hukum Perburuhan"><?= old('skills') ?></textarea>
                         <small class="form-text text-muted">Pisahkan dengan titik koma (;)</small>
                     </div>
 
@@ -356,13 +337,6 @@
                         <label for="motivation" class="form-label required">Motivasi Bergabung</label>
                         <textarea class="form-control" id="motivation" name="motivation" rows="3"
                             required placeholder="Ceritakan motivasi Anda bergabung dengan SPK..."><?= old('motivation') ?></textarea>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="social_media" class="form-label">Link Media Sosial</label>
-                        <input type="url" class="form-control" id="social_media" name="social_media"
-                            value="<?= old('social_media') ?>" placeholder="https://...">
-                        <small class="form-text text-muted">LinkedIn, Instagram, atau media sosial lainnya (opsional)</small>
                     </div>
 
                     <!-- Terms & Conditions -->
@@ -458,12 +432,15 @@
             previewImage(this, 'photoPreview');
         });
 
-        document.getElementById('payment_proof').addEventListener('change', function() {
-            const file = this.files[0];
-            if (file && file.type.includes('image')) {
-                previewImage(this, 'paymentPreview');
-            }
-        });
+        const employmentLetterInput = document.getElementById('employment_letter');
+        if (employmentLetterInput) {
+            employmentLetterInput.addEventListener('change', function() {
+                const file = this.files[0];
+                if (file && file.type.includes('image')) {
+                    previewImage(this, 'employmentPreview');
+                }
+            });
+        }
 
         // Dynamic Dropdown: Province -> University
         document.getElementById('province_id').addEventListener('change', function() {
