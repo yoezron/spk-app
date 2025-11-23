@@ -394,7 +394,8 @@ class StatisticsController extends BaseController
             ->whereIn('status', ['open', 'in_progress'])
             ->countAllResults();
 
-        $totalThreads = $this->forumModel->where('is_deleted', 0)->countAllResults();
+        // Note: ForumThreadModel uses soft deletes, so deleted threads are automatically excluded
+        $totalThreads = $this->forumModel->countAllResults();
 
         $activeSurveys = $this->surveyModel
             ->where('status', 'published')
