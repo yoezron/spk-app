@@ -19,7 +19,7 @@ class EmploymentStatusModel extends Model
     protected $table            = 'employment_statuses';
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
-    protected $returnType       = 'object';
+    protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
     protected $allowedFields    = [
