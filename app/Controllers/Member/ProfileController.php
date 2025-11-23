@@ -111,11 +111,15 @@ class ProfileController extends BaseController
             }
 
             // Set default values for fields that might not exist in database
-            if (!isset($member->religion)) {
-                $member->religion = null;
-            }
-            if (!isset($member->marital_status)) {
-                $member->marital_status = null;
+            $defaultFields = [
+                'religion', 'marital_status', 'employment_type', 'photo',
+                'birth_place', 'birth_date', 'nik', 'position', 'employee_id'
+            ];
+
+            foreach ($defaultFields as $field) {
+                if (!isset($member->$field)) {
+                    $member->$field = null;
+                }
             }
 
             // Load master data for dropdowns
