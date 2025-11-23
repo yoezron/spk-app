@@ -389,8 +389,8 @@
                         <select name="role" class="form-select">
                             <option value="">Pilih Role</option>
                             <?php foreach ($roles as $role): ?>
-                                <option value="<?= $role->name ?>">
-                                    <?= esc($role->name) ?>
+                                <option value="<?= is_object($role) ? $role->name : $role['name'] ?>">
+                                    <?= esc(is_object($role) ? $role->name : $role['name']) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
