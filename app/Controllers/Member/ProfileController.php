@@ -51,12 +51,14 @@ class ProfileController extends BaseController
             $memberModel = model('MemberProfileModel');
             $member = $memberModel->select('member_profiles.*,
                                            provinces.name as province_name,
+                                           regencies.name as regency_name,
                                            regions.name as region_name,
                                            universities.name as university_name,
                                            study_programs.name as study_program_name,
                                            employment_statuses.name as employment_status_name,
                                            salary_ranges.name as salary_range_name')
                 ->join('provinces', 'provinces.id = member_profiles.province_id', 'left')
+                ->join('regencies', 'regencies.id = member_profiles.regency_id', 'left')
                 ->join('regions', 'regions.id = member_profiles.region_id', 'left')
                 ->join('universities', 'universities.id = member_profiles.university_id', 'left')
                 ->join('study_programs', 'study_programs.id = member_profiles.study_program_id', 'left')
@@ -131,9 +133,9 @@ class ProfileController extends BaseController
 
                 // Master data
                 'provinces' => $this->loadMasterData('ProvinceModel', 'name'),
-                'regencies' => [], // Will be loaded via AJAX based on province selection
-                'universities' => [], // Will be loaded via AJAX based on province selection
-                'study_programs' => [], // Will be loaded via AJAX based on university selection
+                'regencies' => $this->loadRegenciesByProvince($member->province_id ?? null),
+                'universities' => $this->loadUniversitiesByProvince($member->province_id ?? null),
+                'study_programs' => $this->loadStudyProgramsByUniversity($member->university_id ?? null),
                 'employment_statuses' => $this->loadMasterData('EmploymentStatusModel', 'name'),
                 'salary_ranges' => $this->loadMasterData('SalaryRangeModel', 'min_amount'),
 
@@ -186,8 +188,77 @@ class ProfileController extends BaseController
     }
 
     /**
+     * Load regencies filtered by province
+     *
+     * @param int|null $provinceId Province ID
+     * @return array
+     */
+    protected function loadRegenciesByProvince(?int $provinceId): array
+    {
+        if (!$provinceId) {
+            return [];
+        }
+
+        try {
+            $regencyModel = model('RegencyModel');
+            return $regencyModel->where('province_id', $provinceId)
+                               ->orderBy('name', 'ASC')
+                               ->findAll();
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed loading regencies for province ' . $provinceId . ': ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Load universities filtered by province
+     *
+     * @param int|null $provinceId Province ID
+     * @return array
+     */
+    protected function loadUniversitiesByProvince(?int $provinceId): array
+    {
+        if (!$provinceId) {
+            return [];
+        }
+
+        try {
+            $universityModel = model('UniversityModel');
+            return $universityModel->where('province_id', $provinceId)
+                                   ->orderBy('name', 'ASC')
+                                   ->findAll();
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed loading universities for province ' . $provinceId . ': ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Load study programs filtered by university
+     *
+     * @param int|null $universityId University ID
+     * @return array
+     */
+    protected function loadStudyProgramsByUniversity(?int $universityId): array
+    {
+        if (!$universityId) {
+            return [];
+        }
+
+        try {
+            $studyProgramModel = model('StudyProgramModel');
+            return $studyProgramModel->where('university_id', $universityId)
+                                     ->orderBy('name', 'ASC')
+                                     ->findAll();
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed loading study programs for university ' . $universityId . ': ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
      * Update profile data
-     * 
+     *
      * @return RedirectResponse
      */
     public function update(): RedirectResponse

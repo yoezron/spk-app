@@ -742,12 +742,12 @@
 
             <div class="col-md-6">
                 <div class="form-group">
-                    <label for="employment_type">Status Kepegawaian <span class="required">*</span></label>
+                    <label for="employment_type">Jenis Kepegawaian <span class="required">*</span></label>
                     <select class="form-select <?= isset($errors['employment_type']) ? 'is-invalid' : '' ?>"
                         id="employment_type"
                         name="employment_type"
                         required>
-                        <option value="">Pilih Status</option>
+                        <option value="">Pilih Jenis</option>
                         <option value="Dosen Tetap" <?= old('employment_type', $member->employment_type) === 'Dosen Tetap' ? 'selected' : '' ?>>Dosen Tetap</option>
                         <option value="Dosen Tidak Tetap" <?= old('employment_type', $member->employment_type) === 'Dosen Tidak Tetap' ? 'selected' : '' ?>>Dosen Tidak Tetap</option>
                         <option value="Tendik Tetap" <?= old('employment_type', $member->employment_type) === 'Tendik Tetap' ? 'selected' : '' ?>>Tendik Tetap</option>
@@ -757,6 +757,29 @@
                     <?php if (isset($errors['employment_type'])): ?>
                         <div class="invalid-feedback"><?= $errors['employment_type'] ?></div>
                     <?php endif; ?>
+                    <small class="form-text">Jenis pegawai (Dosen/Tendik)</small>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="employment_status_id">Status Kepegawaian</label>
+                    <select class="form-select <?= isset($errors['employment_status_id']) ? 'is-invalid' : '' ?>"
+                        id="employment_status_id"
+                        name="employment_status_id">
+                        <option value="">Pilih Status</option>
+                        <?php if (!empty($employment_statuses)): ?>
+                            <?php foreach ($employment_statuses as $status): ?>
+                                <option value="<?= $status->id ?>" <?= old('employment_status_id', $member->employment_status_id) == $status->id ? 'selected' : '' ?>>
+                                    <?= esc($status->name) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </select>
+                    <?php if (isset($errors['employment_status_id'])): ?>
+                        <div class="invalid-feedback"><?= $errors['employment_status_id'] ?></div>
+                    <?php endif; ?>
+                    <small class="form-text">PNS, Non-PNS, Kontrak, dll</small>
                 </div>
             </div>
 
@@ -766,8 +789,8 @@
                     <input type="text"
                         class="form-control <?= isset($errors['position']) ? 'is-invalid' : '' ?>"
                         id="position"
-                        name="position"
-                        value="<?= old('position', $member->position) ?>"
+                        name="job_position"
+                        value="<?= old('job_position', $member->job_position ?? '') ?>"
                         placeholder="contoh: Dosen, Staf Administrasi">
                     <?php if (isset($errors['position'])): ?>
                         <div class="invalid-feedback"><?= $errors['position'] ?></div>
@@ -777,21 +800,82 @@
 
             <div class="col-md-6">
                 <div class="form-group">
-                    <label for="employee_id">NIP/NIDN</label>
+                    <label for="employee_id">Nomor Induk Pegawai</label>
                     <input type="text"
                         class="form-control <?= isset($errors['employee_id']) ? 'is-invalid' : '' ?>"
                         id="employee_id"
                         name="employee_id"
-                        value="<?= old('employee_id', $member->employee_id) ?>">
+                        value="<?= old('employee_id', $member->employee_id) ?>"
+                        maxlength="50">
                     <?php if (isset($errors['employee_id'])): ?>
                         <div class="invalid-feedback"><?= $errors['employee_id'] ?></div>
                     <?php endif; ?>
+                    <small class="form-text">Nomor induk pegawai dari institusi</small>
                 </div>
             </div>
 
             <div class="col-md-6">
                 <div class="form-group">
-                    <label for="join_date">Tanggal Mulai Bekerja</label>
+                    <label for="salary_payer">Pemberi Gaji</label>
+                    <select class="form-select <?= isset($errors['salary_payer']) ? 'is-invalid' : '' ?>"
+                        id="salary_payer"
+                        name="salary_payer">
+                        <option value="">Pilih Pemberi Gaji</option>
+                        <?php if (!empty($salary_payers)): ?>
+                            <?php foreach ($salary_payers as $key => $label): ?>
+                                <option value="<?= $key ?>" <?= old('salary_payer', $member->salary_payer ?? '') === $key ? 'selected' : '' ?>>
+                                    <?= esc($label) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </select>
+                    <?php if (isset($errors['salary_payer'])): ?>
+                        <div class="invalid-feedback"><?= $errors['salary_payer'] ?></div>
+                    <?php endif; ?>
+                    <small class="form-text">Sumber pembayaran gaji</small>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="salary_range_id">Range Gaji</label>
+                    <select class="form-select <?= isset($errors['salary_range_id']) ? 'is-invalid' : '' ?>"
+                        id="salary_range_id"
+                        name="salary_range_id">
+                        <option value="">Pilih Range Gaji</option>
+                        <?php if (!empty($salary_ranges)): ?>
+                            <?php foreach ($salary_ranges as $range): ?>
+                                <option value="<?= $range->id ?>" <?= old('salary_range_id', $member->salary_range_id) == $range->id ? 'selected' : '' ?>>
+                                    <?= esc($range->name) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </select>
+                    <?php if (isset($errors['salary_range_id'])): ?>
+                        <div class="invalid-feedback"><?= $errors['salary_range_id'] ?></div>
+                    <?php endif; ?>
+                    <small class="form-text">Rentang gaji bulanan</small>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="work_start_date">Tanggal Mulai Bekerja</label>
+                    <input type="date"
+                        class="form-control <?= isset($errors['work_start_date']) ? 'is-invalid' : '' ?>"
+                        id="work_start_date"
+                        name="work_start_date"
+                        value="<?= old('work_start_date', $member->work_start_date ?? '') ?>">
+                    <?php if (isset($errors['work_start_date'])): ?>
+                        <div class="invalid-feedback"><?= $errors['work_start_date'] ?></div>
+                    <?php endif; ?>
+                    <small class="form-text">Tanggal mulai bekerja di institusi</small>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="join_date">Tanggal Bergabung SPK</label>
                     <input type="date"
                         class="form-control <?= isset($errors['join_date']) ? 'is-invalid' : '' ?>"
                         id="join_date"
@@ -800,6 +884,47 @@
                     <?php if (isset($errors['join_date'])): ?>
                         <div class="invalid-feedback"><?= $errors['join_date'] ?></div>
                     <?php endif; ?>
+                    <small class="form-text">Tanggal bergabung dengan SPK</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Information -->
+    <div class="form-card">
+        <div class="form-card-header">
+            <i class="bi bi-card-text"></i>
+            <h3>Informasi Tambahan</h3>
+        </div>
+
+        <div class="row">
+            <div class="col-md-12">
+                <div class="form-group">
+                    <label for="skills">Keahlian/Kompetensi</label>
+                    <textarea class="form-control <?= isset($errors['skills']) ? 'is-invalid' : '' ?>"
+                        id="skills"
+                        name="skills"
+                        rows="4"
+                        placeholder="Tuliskan keahlian atau kompetensi yang Anda miliki, misalnya: Pengajaran, Penelitian, Administrasi, dll."><?= old('skills', $member->skills ?? '') ?></textarea>
+                    <?php if (isset($errors['skills'])): ?>
+                        <div class="invalid-feedback"><?= $errors['skills'] ?></div>
+                    <?php endif; ?>
+                    <small class="form-text">Opsional - Keahlian atau kompetensi khusus</small>
+                </div>
+            </div>
+
+            <div class="col-md-12">
+                <div class="form-group">
+                    <label for="motivation">Motivasi Bergabung</label>
+                    <textarea class="form-control <?= isset($errors['motivation']) ? 'is-invalid' : '' ?>"
+                        id="motivation"
+                        name="motivation"
+                        rows="4"
+                        placeholder="Tuliskan motivasi Anda bergabung dengan SPK..."><?= old('motivation', $member->motivation ?? '') ?></textarea>
+                    <?php if (isset($errors['motivation'])): ?>
+                        <div class="invalid-feedback"><?= $errors['motivation'] ?></div>
+                    <?php endif; ?>
+                    <small class="form-text">Opsional - Alasan bergabung dengan Serikat Pekerja Kampus</small>
                 </div>
             </div>
         </div>

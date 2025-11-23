@@ -450,13 +450,13 @@
 
     <div class="stat-mini-card">
         <i class="bi bi-geo-alt-fill"></i>
-        <div class="value"><?= esc($province->name ?? '-') ?></div>
+        <div class="value"><?= esc($member->province_name ?? '-') ?></div>
         <div class="label">Wilayah</div>
     </div>
 
     <div class="stat-mini-card">
         <i class="bi bi-building"></i>
-        <div class="value"><?= !empty($university->name) ? (strlen($university->name) > 20 ? substr($university->name, 0, 20) . '...' : $university->name) : '-' ?></div>
+        <div class="value"><?= !empty($member->university_name) ? (strlen($member->university_name) > 20 ? substr($member->university_name, 0, 20) . '...' : $member->university_name) : '-' ?></div>
         <div class="label">Kampus</div>
     </div>
 
@@ -489,6 +489,13 @@
             </div>
 
             <div class="info-row">
+                <div class="info-label">NIDN/NIP</div>
+                <div class="info-value <?= empty($member->nidn_nip) ? 'empty' : '' ?>">
+                    <?= !empty($member->nidn_nip) ? esc($member->nidn_nip) : 'Belum diisi' ?>
+                </div>
+            </div>
+
+            <div class="info-row">
                 <div class="info-label">Tempat, Tanggal Lahir</div>
                 <div class="info-value <?= empty($member->birth_place) ? 'empty' : '' ?>">
                     <?php if (!empty($member->birth_place) && !empty($member->birth_date)): ?>
@@ -502,7 +509,7 @@
             <div class="info-row">
                 <div class="info-label">Jenis Kelamin</div>
                 <div class="info-value <?= empty($member->gender) ? 'empty' : '' ?>">
-                    <?= !empty($member->gender) ? ($member->gender === 'L' ? 'Laki-laki' : 'Perempuan') : 'Belum diisi' ?>
+                    <?= !empty($member->gender) ? esc($member->gender) : 'Belum diisi' ?>
                 </div>
             </div>
 
@@ -548,6 +555,13 @@
             </div>
 
             <div class="info-row">
+                <div class="info-label">No. WhatsApp</div>
+                <div class="info-value <?= empty($member->whatsapp) ? 'empty' : '' ?>">
+                    <?= !empty($member->whatsapp) ? esc($member->whatsapp) : 'Belum diisi' ?>
+                </div>
+            </div>
+
+            <div class="info-row">
                 <div class="info-label">Alamat</div>
                 <div class="info-value <?= empty($member->address) ? 'empty' : '' ?>">
                     <?= !empty($member->address) ? nl2br(esc($member->address)) : 'Belum diisi' ?>
@@ -556,12 +570,14 @@
 
             <div class="info-row">
                 <div class="info-label">Provinsi</div>
-                <div class="info-value"><?= esc($province->name ?? '-') ?></div>
+                <div class="info-value"><?= esc($member->province_name ?? '-') ?></div>
             </div>
 
             <div class="info-row">
                 <div class="info-label">Kabupaten/Kota</div>
-                <div class="info-value"><?= esc($regency->name ?? '-') ?></div>
+                <div class="info-value <?= empty($member->regency_name) ? 'empty' : '' ?>">
+                    <?= !empty($member->regency_name) ? esc($member->regency_name) : 'Belum diisi' ?>
+                </div>
             </div>
 
             <div class="info-row">
@@ -583,39 +599,67 @@
 
             <div class="info-row">
                 <div class="info-label">Kampus</div>
-                <div class="info-value"><?= esc($university->name ?? '-') ?></div>
+                <div class="info-value"><?= esc($member->university_name ?? '-') ?></div>
             </div>
 
             <div class="info-row">
                 <div class="info-label">Program Studi</div>
-                <div class="info-value <?= empty($study_program->name) ? 'empty' : '' ?>">
-                    <?= !empty($study_program->name) ? esc($study_program->name) : 'Belum diisi' ?>
+                <div class="info-value <?= empty($member->study_program_name) ? 'empty' : '' ?>">
+                    <?= !empty($member->study_program_name) ? esc($member->study_program_name) : 'Belum diisi' ?>
                 </div>
             </div>
 
             <div class="info-row">
-                <div class="info-label">Status Kepegawaian</div>
+                <div class="info-label">Jenis Kepegawaian</div>
                 <div class="info-value <?= empty($member->employment_type) ? 'empty' : '' ?>">
                     <?= !empty($member->employment_type) ? esc($member->employment_type) : 'Belum diisi' ?>
                 </div>
             </div>
 
             <div class="info-row">
-                <div class="info-label">Jabatan</div>
-                <div class="info-value <?= empty($member->position) ? 'empty' : '' ?>">
-                    <?= !empty($member->position) ? esc($member->position) : 'Belum diisi' ?>
+                <div class="info-label">Status Kepegawaian</div>
+                <div class="info-value <?= empty($member->employment_status_name) ? 'empty' : '' ?>">
+                    <?= !empty($member->employment_status_name) ? esc($member->employment_status_name) : 'Belum diisi' ?>
                 </div>
             </div>
 
             <div class="info-row">
-                <div class="info-label">NIP/NIDN</div>
+                <div class="info-label">Jabatan</div>
+                <div class="info-value <?= empty($member->job_position) ? 'empty' : '' ?>">
+                    <?= !empty($member->job_position) ? esc($member->job_position) : 'Belum diisi' ?>
+                </div>
+            </div>
+
+            <div class="info-row">
+                <div class="info-label">Nomor Induk Pegawai</div>
                 <div class="info-value <?= empty($member->employee_id) ? 'empty' : '' ?>">
                     <?= !empty($member->employee_id) ? esc($member->employee_id) : 'Belum diisi' ?>
                 </div>
             </div>
 
             <div class="info-row">
+                <div class="info-label">Pemberi Gaji</div>
+                <div class="info-value <?= empty($member->salary_payer) ? 'empty' : '' ?>">
+                    <?= !empty($member->salary_payer) ? esc($member->salary_payer) : 'Belum diisi' ?>
+                </div>
+            </div>
+
+            <div class="info-row">
+                <div class="info-label">Range Gaji</div>
+                <div class="info-value <?= empty($member->salary_range_name) ? 'empty' : '' ?>">
+                    <?= !empty($member->salary_range_name) ? esc($member->salary_range_name) : 'Belum diisi' ?>
+                </div>
+            </div>
+
+            <div class="info-row">
                 <div class="info-label">Tanggal Mulai Bekerja</div>
+                <div class="info-value <?= empty($member->work_start_date) ? 'empty' : '' ?>">
+                    <?= !empty($member->work_start_date) ? date('d F Y', strtotime($member->work_start_date)) : 'Belum diisi' ?>
+                </div>
+            </div>
+
+            <div class="info-row">
+                <div class="info-label">Tanggal Bergabung SPK</div>
                 <div class="info-value <?= empty($member->join_date) ? 'empty' : '' ?>">
                     <?= !empty($member->join_date) ? date('d F Y', strtotime($member->join_date)) : 'Belum diisi' ?>
                 </div>
@@ -726,6 +770,40 @@
         </div>
     </div>
 </div>
+
+<!-- Additional Information -->
+<?php if (!empty($member->skills) || !empty($member->motivation)): ?>
+<div class="info-card">
+    <div class="info-card-header">
+        <i class="bi bi-card-text"></i>
+        <h3>Informasi Tambahan</h3>
+    </div>
+
+    <div class="row">
+        <?php if (!empty($member->skills)): ?>
+        <div class="col-md-6">
+            <div class="info-row">
+                <div class="info-label">Keahlian/Kompetensi</div>
+                <div class="info-value">
+                    <?= nl2br(esc($member->skills)) ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <?php if (!empty($member->motivation)): ?>
+        <div class="col-md-6">
+            <div class="info-row">
+                <div class="info-label">Motivasi Bergabung</div>
+                <div class="info-value">
+                    <?= nl2br(esc($member->motivation)) ?>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+    </div>
+</div>
+<?php endif; ?>
 
 <?= $this->endSection() ?>
 
