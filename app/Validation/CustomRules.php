@@ -87,7 +87,7 @@ class CustomRules
     }
 
     /**
-     * Valid Gender (L or P)
+     * Valid Gender (Laki-laki or Perempuan)
      *
      * @param string $value
      * @param string|null $error
@@ -95,14 +95,14 @@ class CustomRules
      */
     public function valid_gender(string $value, ?string &$error = null): bool
     {
-        // Trim whitespace and convert to uppercase
-        $value = trim(strtoupper($value));
+        // Trim whitespace
+        $value = trim($value);
 
-        if ($value === 'L' || $value === 'P') {
+        if ($value === 'Laki-laki' || $value === 'Perempuan') {
             return true;
         }
 
-        $error = 'Jenis kelamin harus L (Laki-laki) atau P (Perempuan)';
+        $error = 'Jenis kelamin harus Laki-laki atau Perempuan';
         return false;
     }
 

@@ -188,8 +188,8 @@
                             <label for="gender" class="form-label required">Jenis Kelamin</label>
                             <select class="form-select" id="gender" name="gender" required>
                                 <option value="">-- Pilih --</option>
-                                <option value="L" <?= old('gender') === 'L' ? 'selected' : '' ?>>Laki-laki</option>
-                                <option value="P" <?= old('gender') === 'P' ? 'selected' : '' ?>>Perempuan</option>
+                                <option value="Laki-laki" <?= old('gender') === 'Laki-laki' ? 'selected' : '' ?>>Laki-laki</option>
+                                <option value="Perempuan" <?= old('gender') === 'Perempuan' ? 'selected' : '' ?>>Perempuan</option>
                             </select>
                         </div>
                         <div class="col-md-4 mb-3">
