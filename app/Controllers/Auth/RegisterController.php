@@ -127,7 +127,7 @@ class RegisterController extends BaseController
 
             // 3. Add file paths to data
             $data['photo_path'] = $uploadResult['photo_path'];
-            $data['payment_proof_path'] = $uploadResult['payment_proof_path'];
+            $data['employment_letter_path'] = $uploadResult['employment_letter_path'];
 
             // 4. Process registration through service
             $result = $this->registerService->register($data);
@@ -173,7 +173,7 @@ class RegisterController extends BaseController
     {
         $errors = [];
         $photoPath = null;
-        $paymentProofPath = null;
+        $employmentLetterPath = null;
 
         try {
             // Handle photo upload
@@ -197,24 +197,24 @@ class RegisterController extends BaseController
                 }
             }
 
-            // Handle payment proof upload
-            $paymentProof = $this->request->getFile('payment_proof');
-            if ($paymentProof && $paymentProof->isValid() && !$paymentProof->hasMoved()) {
+            // Handle employment letter upload (optional)
+            $employmentLetter = $this->request->getFile('employment_letter');
+            if ($employmentLetter && $employmentLetter->isValid() && !$employmentLetter->hasMoved()) {
                 // Generate temporary secure path
-                $tempDir = WRITEPATH . 'uploads/temp/payments/';
+                $tempDir = WRITEPATH . 'uploads/temp/employment/';
                 if (!is_dir($tempDir)) {
                     mkdir($tempDir, 0755, true);
                 }
 
                 // Generate unique filename with hash for security
-                $proofNewName = 'payment_' . time() . '_' . bin2hex(random_bytes(16)) . '.' . $paymentProof->getExtension();
+                $letterNewName = 'employment_' . time() . '_' . bin2hex(random_bytes(16)) . '.' . $employmentLetter->getExtension();
 
-                if ($paymentProof->move($tempDir, $proofNewName)) {
-                    $paymentProofPath = 'temp/payments/' . $proofNewName;
-                    log_message('info', 'Payment proof uploaded successfully: ' . $paymentProofPath);
+                if ($employmentLetter->move($tempDir, $letterNewName)) {
+                    $employmentLetterPath = 'temp/employment/' . $letterNewName;
+                    log_message('info', 'Employment letter uploaded successfully: ' . $employmentLetterPath);
                 } else {
-                    $errors[] = 'Gagal mengupload bukti pembayaran';
-                    log_message('error', 'Failed to move payment proof file');
+                    $errors[] = 'Gagal mengupload surat keterangan kerja';
+                    log_message('error', 'Failed to move employment letter file');
                 }
             }
 
@@ -222,7 +222,7 @@ class RegisterController extends BaseController
                 'success' => empty($errors),
                 'errors' => $errors,
                 'photo_path' => $photoPath,
-                'payment_proof_path' => $paymentProofPath
+                'employment_letter_path' => $employmentLetterPath
             ];
         } catch (\Exception $e) {
             log_message('error', 'File upload error: ' . $e->getMessage());
@@ -230,7 +230,7 @@ class RegisterController extends BaseController
                 'success' => false,
                 'errors' => ['Terjadi kesalahan saat mengupload file: ' . $e->getMessage()],
                 'photo_path' => null,
-                'payment_proof_path' => null
+                'employment_letter_path' => null
             ];
         }
     }
@@ -338,9 +338,9 @@ class RegisterController extends BaseController
                     'is_natural_no_zero' => 'Status kepegawaian tidak valid'
                 ]
             ],
-            'payer_id' => [
+            'salary_payer' => [
                 'label' => 'Pemberi Gaji',
-                'rules' => 'required|in_list[PT,Yayasan,Pemerintah,Lainnya]',
+                'rules' => 'required|in_list[KAMPUS,PEMERINTAH,YAYASAN,LAINNYA]',
                 'errors' => [
                     'required' => 'Pemberi gaji harus dipilih',
                     'in_list' => 'Pemberi gaji tidak valid'
@@ -362,14 +362,6 @@ class RegisterController extends BaseController
                 'errors' => [
                     'required' => 'Provinsi harus dipilih',
                     'is_natural_no_zero' => 'Provinsi tidak valid'
-                ]
-            ],
-            'university_type_id' => [
-                'label' => 'Jenis Perguruan Tinggi',
-                'rules' => 'required|in_list[PTN,PTS,PTKN,PTKS]',
-                'errors' => [
-                    'required' => 'Jenis perguruan tinggi harus dipilih',
-                    'in_list' => 'Jenis perguruan tinggi tidak valid'
                 ]
             ],
             'university_id' => [
@@ -412,13 +404,12 @@ class RegisterController extends BaseController
                     'max_image_dimensions' => 'Resolusi foto maksimal 4000x4000px'
                 ]
             ],
-            'payment_proof' => [
-                'label' => 'Bukti Pembayaran',
-                'rules' => 'uploaded[payment_proof]|max_file_size[payment_proof,5120]|ext_in[payment_proof,jpg,jpeg,png,pdf]',
+            'employment_letter' => [
+                'label' => 'Surat Keterangan Kerja',
+                'rules' => 'permit_empty|max_file_size[employment_letter,5120]|ext_in[employment_letter,jpg,jpeg,png,pdf]',
                 'errors' => [
-                    'uploaded' => 'Bukti pembayaran harus diupload',
-                    'max_file_size' => 'Ukuran bukti pembayaran maksimal 5MB',
-                    'ext_in' => 'Format bukti pembayaran harus JPG, PNG, atau PDF'
+                    'max_file_size' => 'Ukuran surat keterangan kerja maksimal 5MB',
+                    'ext_in' => 'Format surat keterangan kerja harus JPG, PNG, atau PDF'
                 ]
             ],
 
@@ -464,10 +455,10 @@ class RegisterController extends BaseController
                 }
             }
 
-            if (!empty($uploadResult['payment_proof_path'])) {
-                $paymentFullPath = WRITEPATH . 'uploads/' . $uploadResult['payment_proof_path'];
-                if (file_exists($paymentFullPath)) {
-                    unlink($paymentFullPath);
+            if (!empty($uploadResult['employment_letter_path'])) {
+                $letterFullPath = WRITEPATH . 'uploads/' . $uploadResult['employment_letter_path'];
+                if (file_exists($letterFullPath)) {
+                    unlink($letterFullPath);
                 }
             }
         } catch (\Exception $e) {
