@@ -49,23 +49,19 @@ class ProfileController extends BaseController
         try {
             // Get member profile with relations
             $memberModel = model('MemberProfileModel');
-            $member = $memberModel->select('member_profiles.*, 
+            $member = $memberModel->select('member_profiles.*,
                                            provinces.name as province_name,
                                            regions.name as region_name,
                                            universities.name as university_name,
-                                           prodi.name as prodi_name,
-                                           status_kepegawaian.name as status_kepegawaian_name,
-                                           pemberi_gaji.name as pemberi_gaji_name,
-                                           range_gaji.name as range_gaji_name,
-                                           jenis_pt.name as jenis_pt_name')
-                ->join('provinces', 'provinces.id = member_profiles.wilayah_id', 'left')
+                                           study_programs.name as study_program_name,
+                                           employment_statuses.name as employment_status_name,
+                                           salary_ranges.name as salary_range_name')
+                ->join('provinces', 'provinces.id = member_profiles.province_id', 'left')
                 ->join('regions', 'regions.id = member_profiles.region_id', 'left')
-                ->join('universities', 'universities.id = member_profiles.kampus_id', 'left')
-                ->join('prodi', 'prodi.id = member_profiles.prodi_id', 'left')
-                ->join('status_kepegawaian', 'status_kepegawaian.id = member_profiles.status_kepegawaian_id', 'left')
-                ->join('pemberi_gaji', 'pemberi_gaji.id = member_profiles.pemberi_gaji_id', 'left')
-                ->join('range_gaji', 'range_gaji.id = member_profiles.range_gaji_id', 'left')
-                ->join('jenis_pt', 'jenis_pt.id = member_profiles.jenis_pt_id', 'left')
+                ->join('universities', 'universities.id = member_profiles.university_id', 'left')
+                ->join('study_programs', 'study_programs.id = member_profiles.study_program_id', 'left')
+                ->join('employment_statuses', 'employment_statuses.id = member_profiles.employment_status_id', 'left')
+                ->join('salary_ranges', 'salary_ranges.id = member_profiles.salary_range_id', 'left')
                 ->where('member_profiles.user_id', $user->id)
                 ->first();
 
