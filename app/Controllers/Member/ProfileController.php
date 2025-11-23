@@ -3,7 +3,7 @@
 namespace App\Controllers\Member;
 
 use App\Controllers\BaseController;
-use App\Services\File\FileUploadService;
+use App\Services\FileUploadService;
 use CodeIgniter\HTTP\RedirectResponse;
 
 /**
@@ -347,11 +347,7 @@ class ProfileController extends BaseController
                 }
 
                 // Upload new photo
-                $uploadResult = $this->fileUploadService->uploadFile($foto, [
-                    'directory' => 'photos',
-                    'max_size' => 2048,
-                    'allowed_types' => ['jpg', 'jpeg', 'png']
-                ]);
+                $uploadResult = $this->fileUploadService->upload($foto, 'photo');
 
                 if (!$uploadResult['success']) {
                     return redirect()->back()
@@ -360,7 +356,7 @@ class ProfileController extends BaseController
 
                 // Update member profile
                 $memberModel->update($member->id, [
-                    'foto_path' => $uploadResult['data']['file_path'],
+                    'foto_path' => $uploadResult['data']['relative_path'],
                     'updated_at' => date('Y-m-d H:i:s')
                 ]);
 
