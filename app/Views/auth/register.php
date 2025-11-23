@@ -258,7 +258,7 @@
                                 <?php if (isset($salaryRanges)): ?>
                                     <?php foreach ($salaryRanges as $range): ?>
                                         <option value="<?= $range['id'] ?>" <?= old('salary_range_id') == $range['id'] ? 'selected' : '' ?>>
-                                            <?= esc($range['range_text']) ?>
+                                            <?= esc($range['name']) ?>
                                         </option>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
