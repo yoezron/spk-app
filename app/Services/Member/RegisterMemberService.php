@@ -288,9 +288,24 @@ class RegisterMemberService
                 throw new \Exception($errorMsg);
             }
 
-            log_message('info', 'User saved successfully. User ID: ' . ($user->id ?? 'N/A'));
+            // CRITICAL FIX: Reload user from database to get complete object with ID
+            $insertId = $users->getInsertID();
+            log_message('info', 'User insert ID: ' . $insertId);
 
-            // Get or create email identity
+            if (!$insertId) {
+                throw new \Exception('Failed to get insert ID after saving user');
+            }
+
+            // Get fresh user from database with ID populated
+            $user = $users->findById($insertId);
+
+            if (!$user) {
+                throw new \Exception('User saved but could not be retrieved from database. ID: ' . $insertId);
+            }
+
+            log_message('info', 'User reloaded successfully. User ID: ' . $user->id);
+
+            // Get or create email identity (now user has valid ID)
             log_message('info', 'Checking for existing email identity...');
             $emailIdentity = $user->getEmailIdentity();
 
