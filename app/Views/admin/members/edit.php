@@ -388,11 +388,13 @@
                         <label class="form-label">Role/Peran</label>
                         <select name="role" class="form-select">
                             <option value="">Pilih Role</option>
-                            <?php foreach ($roles as $role): ?>
-                                <option value="<?= is_object($role) ? $role->title : $role['title'] ?>">
-                                    <?= esc(is_object($role) ? $role->title : $role['title']) ?>
-                                </option>
-                            <?php endforeach; ?>
+                            <?php if (!empty($roles)): ?>
+                                <?php foreach ($roles as $role): ?>
+                                    <option value="<?= esc($role->title) ?>">
+                                        <?= esc($role->title) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </select>
                         <small class="form-text">Ubah role anggota (hanya Super Admin)</small>
                     </div>

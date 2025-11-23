@@ -20,7 +20,7 @@ class UserController extends BaseController
     {
         $this->db = \Config\Database::connect();
         $this->userModel = model('UserModel');
-        $this->groupModel = model('GroupModel');
+        $this->groupModel = model('RoleModel');
     }
 
     /**
