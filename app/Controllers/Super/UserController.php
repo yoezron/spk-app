@@ -119,7 +119,7 @@ class UserController extends BaseController
             ->select('auth_groups_users.group')
             ->select('auth_identities.secret as email')
             ->select('member_profiles.full_name, member_profiles.nik, member_profiles.gender, member_profiles.birth_place, member_profiles.birth_date')
-            ->select('member_profiles.whatsapp, member_profiles.phone, member_profiles.photo_url, member_profiles.member_number, member_profiles.membership_status')
+            ->select('member_profiles.whatsapp, member_profiles.phone, member_profiles.photo_path, member_profiles.member_number, member_profiles.membership_status')
             ->select('provinces.name as province_name')
             ->select('universities.name as university_name')
             ->join('auth_groups_users', 'users.id = auth_groups_users.user_id', 'left')
