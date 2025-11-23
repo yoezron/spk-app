@@ -87,11 +87,31 @@ class CustomRules
     }
 
     /**
+     * Valid Gender (Laki-laki or Perempuan)
+     *
+     * @param string $value
+     * @param string|null $error
+     * @return bool
+     */
+    public function valid_gender(string $value, ?string &$error = null): bool
+    {
+        // Trim whitespace
+        $value = trim($value);
+
+        if ($value === 'Laki-laki' || $value === 'Perempuan') {
+            return true;
+        }
+
+        $error = 'Jenis kelamin harus Laki-laki atau Perempuan';
+        return false;
+    }
+
+    /**
      * Valid NIDN/NIP
-     * 
+     *
      * NIDN: 10 digits
      * NIP: 18 digits
-     * 
+     *
      * @param string $value
      * @param string|null $error
      * @return bool
