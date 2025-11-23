@@ -7,7 +7,6 @@ use App\Services\Member\RegisterMemberService;
 use App\Models\ProvinceModel;
 use App\Models\EmploymentStatusModel;
 use App\Models\SalaryRangeModel;
-use App\Models\UniversityTypeModel;
 use CodeIgniter\HTTP\RedirectResponse;
 
 /**
@@ -26,7 +25,6 @@ class RegisterController extends BaseController
     protected $provinceModel;
     protected $employmentStatusModel;
     protected $salaryRangeModel;
-    protected $universityTypeModel;
 
     /**
      * Constructor
@@ -40,7 +38,6 @@ class RegisterController extends BaseController
         $this->provinceModel = new ProvinceModel();
         $this->employmentStatusModel = new EmploymentStatusModel();
         $this->salaryRangeModel = new SalaryRangeModel();
-        $this->universityTypeModel = new UniversityTypeModel();
     }
 
     /**
@@ -68,22 +65,23 @@ class RegisterController extends BaseController
                     ->findAll(),
                 'salaryRanges' => $this->salaryRangeModel
                     ->where('is_active', 1)
-                    ->orderBy('min_salary', 'ASC')
+                    ->orderBy('display_order', 'ASC')
                     ->findAll(),
-                'universityTypes' => $this->universityTypeModel
-                    ->where('is_active', 1)
-                    ->orderBy('name', 'ASC')
-                    ->findAll(),
-            ];
 
-            // Add payer data if model exists
-            if (class_exists('\App\Models\PayerModel')) {
-                $payerModel = new \App\Models\PayerModel();
-                $data['payers'] = $payerModel
-                    ->where('is_active', 1)
-                    ->orderBy('name', 'ASC')
-                    ->findAll();
-            }
+                // Static data for dropdowns (no database table)
+                'universityTypes' => [
+                    ['id' => 'PTN', 'name' => 'Perguruan Tinggi Negeri (PTN)'],
+                    ['id' => 'PTS', 'name' => 'Perguruan Tinggi Swasta (PTS)'],
+                    ['id' => 'PTKN', 'name' => 'Perguruan Tinggi Keagamaan Negeri'],
+                    ['id' => 'PTKS', 'name' => 'Perguruan Tinggi Keagamaan Swasta'],
+                ],
+                'payers' => [
+                    ['id' => 'PT', 'name' => 'Perguruan Tinggi'],
+                    ['id' => 'Yayasan', 'name' => 'Yayasan'],
+                    ['id' => 'Pemerintah', 'name' => 'Pemerintah'],
+                    ['id' => 'Lainnya', 'name' => 'Lainnya'],
+                ],
+            ];
 
             return view('auth/register', $data);
         } catch (\Exception $e) {
@@ -340,6 +338,14 @@ class RegisterController extends BaseController
                     'is_natural_no_zero' => 'Status kepegawaian tidak valid'
                 ]
             ],
+            'payer_id' => [
+                'label' => 'Pemberi Gaji',
+                'rules' => 'required|in_list[PT,Yayasan,Pemerintah,Lainnya]',
+                'errors' => [
+                    'required' => 'Pemberi gaji harus dipilih',
+                    'in_list' => 'Pemberi gaji tidak valid'
+                ]
+            ],
             'salary_range_id' => [
                 'label' => 'Range Gaji',
                 'rules' => 'required|is_natural_no_zero',
@@ -360,10 +366,10 @@ class RegisterController extends BaseController
             ],
             'university_type_id' => [
                 'label' => 'Jenis Perguruan Tinggi',
-                'rules' => 'required|is_natural_no_zero',
+                'rules' => 'required|in_list[PTN,PTS,PTKN,PTKS]',
                 'errors' => [
                     'required' => 'Jenis perguruan tinggi harus dipilih',
-                    'is_natural_no_zero' => 'Jenis perguruan tinggi tidak valid'
+                    'in_list' => 'Jenis perguruan tinggi tidak valid'
                 ]
             ],
             'university_id' => [
