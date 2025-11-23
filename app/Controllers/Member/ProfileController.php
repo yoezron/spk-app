@@ -34,10 +34,10 @@ class ProfileController extends BaseController
     /**
      * Display profile detail
      * Shows complete member information
-     * 
-     * @return string
+     *
+     * @return string|RedirectResponse
      */
-    public function index(): string
+    public function index(): string|RedirectResponse
     {
         // Check authentication
         if (!auth()->loggedIn()) {
@@ -92,10 +92,10 @@ class ProfileController extends BaseController
 
     /**
      * Display edit profile form
-     * 
-     * @return string
+     *
+     * @return string|RedirectResponse
      */
-    public function edit(): string
+    public function edit(): string|RedirectResponse
     {
         // Check authentication
         if (!auth()->loggedIn()) {
@@ -376,10 +376,10 @@ class ProfileController extends BaseController
 
     /**
      * Display change password form
-     * 
-     * @return string
+     *
+     * @return string|RedirectResponse
      */
-    public function changePassword(): string
+    public function changePassword(): string|RedirectResponse
     {
         // Check authentication
         if (!auth()->loggedIn()) {
@@ -467,10 +467,10 @@ class ProfileController extends BaseController
 
     /**
      * Display account settings
-     * 
-     * @return string
+     *
+     * @return string|RedirectResponse
      */
-    public function settings(): string
+    public function settings(): string|RedirectResponse
     {
         // Check authentication
         if (!auth()->loggedIn()) {
