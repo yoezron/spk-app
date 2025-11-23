@@ -119,25 +119,26 @@ class CustomRules
 
     /**
      * Valid Image Dimensions
-     * 
+     *
      * Check if uploaded image meets minimum dimension requirements
      *
-     * @param string|null $file
-     * @param string $params Format: "width,height" (e.g., "300,400")
-     * @param array $data
-     * @param string|null $error
+     * @param string|null $value The field value (not used for files)
+     * @param string|null $params Format: "width,height" (e.g., "300,400")
+     * @param array $data All form data
+     * @param string|null $error Error message reference
+     * @param string|null $field The field name (used to get the file)
      * @return bool
      */
-    public function min_image_dimensions(?string $file, string $params, array $data, ?string &$error = null): bool
+    public function min_image_dimensions(?string $value = null, ?string $params = null, array $data = [], ?string &$error = null, ?string $field = null): bool
     {
-        // If no file field specified, validation passes
-        if ($file === null) {
+        // If no field name provided, validation passes
+        if (!$field) {
             return true;
         }
 
-        // Get the file from request
+        // Get the file from request using field name
         $request = \Config\Services::request();
-        $uploadedFile = $request->getFile($file);
+        $uploadedFile = $request->getFile($field);
 
         if (!$uploadedFile || !$uploadedFile->isValid()) {
             return true; // Let other validation rules handle file validity
@@ -172,24 +173,25 @@ class CustomRules
 
     /**
      * Maximum Image Dimensions
-     * 
+     *
      * Check if uploaded image doesn't exceed maximum dimension requirements
      *
-     * @param string|null $file
-     * @param string $params Format: "width,height" (e.g., "4000,3000")
-     * @param array $data
-     * @param string|null $error
+     * @param string|null $value The field value (not used for files)
+     * @param string|null $params Format: "width,height" (e.g., "4000,3000")
+     * @param array $data All form data
+     * @param string|null $error Error message reference
+     * @param string|null $field The field name (used to get the file)
      * @return bool
      */
-    public function max_image_dimensions(?string $file, string $params, array $data, ?string &$error = null): bool
+    public function max_image_dimensions(?string $value = null, ?string $params = null, array $data = [], ?string &$error = null, ?string $field = null): bool
     {
-        // If no file field specified, validation passes
-        if ($file === null) {
+        // If no field name provided, validation passes
+        if (!$field) {
             return true;
         }
 
         $request = \Config\Services::request();
-        $uploadedFile = $request->getFile($file);
+        $uploadedFile = $request->getFile($field);
 
         if (!$uploadedFile || !$uploadedFile->isValid()) {
             return true;
@@ -220,25 +222,26 @@ class CustomRules
 
     /**
      * Image Aspect Ratio
-     * 
+     *
      * Check if image aspect ratio is within acceptable range
      * Useful for profile photos that need specific ratios
      *
-     * @param string|null $file
-     * @param string $params Format: "min_ratio,max_ratio" (e.g., "0.7,1.5" for portrait/square)
-     * @param array $data
-     * @param string|null $error
+     * @param string|null $value The field value (not used for files)
+     * @param string|null $params Format: "min_ratio,max_ratio" (e.g., "0.7,1.5" for portrait/square)
+     * @param array $data All form data
+     * @param string|null $error Error message reference
+     * @param string|null $field The field name (used to get the file)
      * @return bool
      */
-    public function image_aspect_ratio(?string $file, string $params, array $data, ?string &$error = null): bool
+    public function image_aspect_ratio(?string $value = null, ?string $params = null, array $data = [], ?string &$error = null, ?string $field = null): bool
     {
-        // If no file field specified, validation passes
-        if ($file === null) {
+        // If no field name provided, validation passes
+        if (!$field) {
             return true;
         }
 
         $request = \Config\Services::request();
-        $uploadedFile = $request->getFile($file);
+        $uploadedFile = $request->getFile($field);
 
         if (!$uploadedFile || !$uploadedFile->isValid()) {
             return true;
@@ -275,25 +278,26 @@ class CustomRules
 
     /**
      * Valid Image MIME Type (strict check)
-     * 
+     *
      * Validates actual image MIME type, not just extension
      * Prevents malicious files with fake extensions
      *
-     * @param string|null $file
-     * @param string $params Allowed MIME types (comma-separated)
-     * @param array $data
-     * @param string|null $error
+     * @param string|null $value The field value (not used for files)
+     * @param string|null $params Allowed MIME types (comma-separated)
+     * @param array $data All form data
+     * @param string|null $error Error message reference
+     * @param string|null $field The field name (used to get the file)
      * @return bool
      */
-    public function valid_image_mime(?string $file, string $params, array $data, ?string &$error = null): bool
+    public function valid_image_mime(?string $value = null, ?string $params = null, array $data = [], ?string &$error = null, ?string $field = null): bool
     {
-        // If no file field specified, validation passes
-        if ($file === null) {
+        // If no field name provided, validation passes
+        if (!$field) {
             return true;
         }
 
         $request = \Config\Services::request();
-        $uploadedFile = $request->getFile($file);
+        $uploadedFile = $request->getFile($field);
 
         if (!$uploadedFile || !$uploadedFile->isValid()) {
             return true;
@@ -327,21 +331,22 @@ class CustomRules
     /**
      * Maximum File Size (more flexible than built-in)
      *
-     * @param string|null $file
-     * @param string $params Max size in KB (e.g., "2048" for 2MB)
-     * @param array $data
-     * @param string|null $error
+     * @param string|null $value The field value (not used for files)
+     * @param string|null $params Max size in KB (e.g., "2048" for 2MB)
+     * @param array $data All form data
+     * @param string|null $error Error message reference
+     * @param string|null $field The field name (used to get the file)
      * @return bool
      */
-    public function max_file_size(?string $file, string $params, array $data, ?string &$error = null): bool
+    public function max_file_size(?string $value = null, ?string $params = null, array $data = [], ?string &$error = null, ?string $field = null): bool
     {
-        // If no file field specified, validation passes
-        if ($file === null) {
+        // If no field name provided, validation passes
+        if (!$field) {
             return true;
         }
 
         $request = \Config\Services::request();
-        $uploadedFile = $request->getFile($file);
+        $uploadedFile = $request->getFile($field);
 
         if (!$uploadedFile || !$uploadedFile->isValid()) {
             return true;

@@ -403,7 +403,7 @@ class RegisterController extends BaseController
             // File Uploads
             'photo' => [
                 'label' => 'Foto',
-                'rules' => 'uploaded[photo]|max_file_size[photo,2048]|valid_image_mime[photo,image/jpeg,image/jpg,image/png]|min_image_dimensions[photo,300,400]|max_image_dimensions[photo,4000,4000]',
+                'rules' => 'uploaded[photo]|max_file_size[2048]|valid_image_mime[image/jpeg,image/jpg,image/png]|min_image_dimensions[300,400]|max_image_dimensions[4000,4000]',
                 'errors' => [
                     'uploaded' => 'Foto harus diupload',
                     'max_file_size' => 'Ukuran foto maksimal 2MB',
@@ -414,7 +414,7 @@ class RegisterController extends BaseController
             ],
             'payment_proof' => [
                 'label' => 'Bukti Pembayaran',
-                'rules' => 'uploaded[payment_proof]|max_file_size[payment_proof,5120]|ext_in[payment_proof,jpg,jpeg,png,pdf]',
+                'rules' => 'uploaded[payment_proof]|max_file_size[5120]|ext_in[payment_proof,jpg,jpeg,png,pdf]',
                 'errors' => [
                     'uploaded' => 'Bukti pembayaran harus diupload',
                     'max_file_size' => 'Ukuran bukti pembayaran maksimal 5MB',
