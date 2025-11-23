@@ -3,7 +3,7 @@
 namespace App\Services;
 
 use App\Models\ForumThreadModel;
-use App\Models\ForumPostModel;
+use App\Models\ForumCommentModel;
 use App\Models\ForumCategoryModel;
 use App\Models\UserModel;
 use App\Services\Communication\NotificationService;
@@ -27,7 +27,7 @@ class ForumService
     protected $threadModel;
 
     /**
-     * @var ForumPostModel
+     * @var ForumCommentModel
      */
     protected $postModel;
 
@@ -57,7 +57,7 @@ class ForumService
     public function __construct()
     {
         $this->threadModel = new ForumThreadModel();
-        $this->postModel = new ForumPostModel();
+        $this->postModel = new ForumCommentModel();
         $this->categoryModel = new ForumCategoryModel();
         $this->userModel = new UserModel();
         $this->notificationService = new NotificationService();

@@ -6,7 +6,7 @@ use App\Controllers\BaseController;
 use App\Services\ForumService;
 use App\Services\Communication\NotificationService;
 use App\Models\ForumThreadModel;
-use App\Models\ForumPostModel;
+use App\Models\ForumCommentModel;
 use App\Models\ForumCategoryModel;
 use CodeIgniter\HTTP\ResponseInterface;
 
@@ -39,7 +39,7 @@ class ForumController extends BaseController
     protected $threadModel;
 
     /**
-     * @var ForumPostModel
+     * @var ForumCommentModel
      */
     protected $postModel;
 
@@ -56,7 +56,7 @@ class ForumController extends BaseController
         $this->forumService = new ForumService();
         $this->notificationService = new NotificationService();
         $this->threadModel = new ForumThreadModel();
-        $this->postModel = new ForumPostModel();
+        $this->postModel = new ForumCommentModel();
         $this->categoryModel = new ForumCategoryModel();
     }
 

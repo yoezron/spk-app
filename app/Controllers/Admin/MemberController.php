@@ -198,7 +198,7 @@ class MemberController extends BaseController
             ->join('auth_identities', 'auth_identities.user_id = users.id AND auth_identities.type = "email_password"', 'left')
             ->join('provinces', 'provinces.id = member_profiles.province_id', 'left')
             ->join('universities', 'universities.id = member_profiles.university_id', 'left')
-            ->where('member_profiles.membership_status', 'calon_anggota');
+            ->where('member_profiles.membership_status', 'pending');
 
         // Apply regional scope for Koordinator Wilayah
         if ($isKoordinator) {
