@@ -1009,7 +1009,7 @@
                     sampai <?= min($pager->getCurrentPage() * $pager->getPerPage(), $pager->getTotal()) ?>
                     dari <?= number_format($pager->getTotal()) ?> data
                 </div>
-                <?= $pager->links('default', 'custom_pagination') ?>
+                <?= $pager->links('default', 'default_full') ?>
             </div>
 
         <?php else: ?>
