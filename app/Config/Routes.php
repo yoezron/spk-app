@@ -320,7 +320,7 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'ro
         $routes->delete('categories/(:num)', 'ContentController::deleteCategory/$1');
     });
 
-    // Payment Management (ENHANCED)
+    // Payment Management (ENHANCED - Support both singular & plural)
     $routes->get('payments', 'PaymentController::index', ['filter' => 'permission:payment.view']);
     $routes->get('payments/pending', 'PaymentController::pending', ['filter' => 'permission:payment.verify']);
     $routes->get('payments/report', 'PaymentController::report', ['filter' => 'permission:payment.report']);
@@ -329,6 +329,16 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'ro
     $routes->post('payments/(:num)/reject', 'PaymentController::reject/$1', ['filter' => 'permission:payment.verify']);
     $routes->get('payments/export', 'PaymentController::export', ['filter' => 'permission:payment.export']);
     $routes->delete('payments/(:num)', 'PaymentController::delete/$1', ['filter' => 'permission:payment.delete']);
+
+    // Payment Management - Singular aliases (for backward compatibility)
+    $routes->get('payment', 'PaymentController::index', ['filter' => 'permission:payment.view']);
+    $routes->get('payment/pending', 'PaymentController::pending', ['filter' => 'permission:payment.verify']);
+    $routes->get('payment/report', 'PaymentController::report', ['filter' => 'permission:payment.report']);
+    $routes->get('payment/(:num)', 'PaymentController::detail/$1', ['filter' => 'permission:payment.view']);
+    $routes->post('payment/(:num)/verify', 'PaymentController::verify/$1', ['filter' => 'permission:payment.verify']);
+    $routes->post('payment/(:num)/reject', 'PaymentController::reject/$1', ['filter' => 'permission:payment.verify']);
+    $routes->get('payment/export', 'PaymentController::export', ['filter' => 'permission:payment.export']);
+    $routes->delete('payment/(:num)', 'PaymentController::delete/$1', ['filter' => 'permission:payment.delete']);
 
     // WhatsApp Groups
     $routes->get('wa-groups', 'WAGroupController::index', ['filter' => 'permission:wagroup.manage']);
