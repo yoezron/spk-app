@@ -256,9 +256,13 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'ro
         $routes->get('get-activation-stats/(:num)', 'BulkImportController::getActivationStats/$1');
     });
 
-    // Statistics
+    // Statistics (EXPANDED)
     $routes->get('statistics', 'StatisticsController::index', ['filter' => 'permission:statistics.view']);
+    $routes->get('statistics/members', 'StatisticsController::members', ['filter' => 'permission:statistics.view']);
+    $routes->get('statistics/regional', 'StatisticsController::regional', ['filter' => 'permission:statistics.view']);
+    $routes->get('statistics/growth', 'StatisticsController::growth', ['filter' => 'permission:statistics.view']);
     $routes->get('statistics/export', 'StatisticsController::export', ['filter' => 'permission:statistics.export']);
+    $routes->post('statistics/clear-cache', 'StatisticsController::clearCache', ['filter' => 'permission:statistics.view']);
 
     // Forum Management
     $routes->get('forum', 'ForumController::index', ['filter' => 'permission:forum.moderate']);

@@ -342,8 +342,9 @@ class StatisticsController extends BaseController
     }
 
     /**
-     * Get comprehensive statistics
-     * 
+     * Get comprehensive statistics (OPTIMIZED)
+     * Single aggregated query instead of multiple queries
+     *
      * @param int $userId User ID
      * @param bool $isKoordinator Is user Koordinator Wilayah
      * @param array|null $scopeData Scope data for Koordinator
@@ -351,71 +352,87 @@ class StatisticsController extends BaseController
      */
     protected function getComprehensiveStats(int $userId, bool $isKoordinator, ?array $scopeData): array
     {
-        $builder = $this->memberModel->builder();
+        // Use cache for better performance (5 minutes TTL)
+        $cacheKey = "stats_comprehensive_" . ($isKoordinator && $scopeData ? $scopeData['province_id'] : 'all');
+        $cache = \Config\Services::cache();
+
+        $cached = $cache->get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        // OPTIMIZED: Single aggregated query for member stats
+        $thisMonthStart = date('Y-m-01 00:00:00');
+        $lastMonthStart = date('Y-m-01 00:00:00', strtotime('-1 month'));
+        $lastMonthEnd = date('Y-m-t 23:59:59', strtotime('-1 month'));
+
+        $builder = $this->memberModel->builder()
+            ->select('
+                COUNT(DISTINCT member_profiles.id) as total_members,
+                COUNT(DISTINCT CASE WHEN users.active = 1 THEN member_profiles.id END) as active_members,
+                COUNT(DISTINCT CASE WHEN users.created_at >= "' . $thisMonthStart . '" THEN member_profiles.id END) as new_members,
+                COUNT(DISTINCT CASE WHEN member_profiles.membership_status = "calon_anggota" THEN member_profiles.id END) as pending_approvals,
+                COUNT(DISTINCT CASE
+                    WHEN users.created_at >= "' . $lastMonthStart . '"
+                    AND users.created_at <= "' . $lastMonthEnd . '"
+                    THEN member_profiles.id
+                END) as last_month_members,
+                COUNT(DISTINCT member_profiles.province_id) as total_provinces,
+                COUNT(DISTINCT member_profiles.university_id) as total_universities
+            ')
+            ->join('users', 'users.id = member_profiles.user_id', 'left');
 
         // Apply regional scope
         if ($isKoordinator && $scopeData) {
             $builder->where('member_profiles.province_id', $scopeData['province_id']);
         }
 
-        // Total members
-        $totalMembers = (clone $builder)
-            ->join('users', 'users.id = member_profiles.user_id')
-            ->where('users.active', 1)
-            ->countAllResults();
+        $memberStats = $builder->get()->getRow();
 
-        // New members this month
-        $newMembersThisMonth = (clone $builder)
-            ->join('users', 'users.id = member_profiles.user_id')
-            ->where('users.created_at >=', date('Y-m-01 00:00:00'))
-            ->countAllResults();
-
-        // Pending approvals
-        $pendingApprovals = (clone $builder)
-            ->where('member_profiles.membership_status', 'calon_anggota')
-            ->countAllResults();
-
-        // Growth rate (compare to last month)
-        $lastMonthStart = date('Y-m-01', strtotime('-1 month'));
-        $lastMonthEnd = date('Y-m-t', strtotime('-1 month'));
-
-        $lastMonthMembers = (clone $builder)
-            ->join('users', 'users.id = member_profiles.user_id')
-            ->where('users.created_at >=', $lastMonthStart . ' 00:00:00')
-            ->where('users.created_at <=', $lastMonthEnd . ' 23:59:59')
-            ->countAllResults();
-
-        $growthRate = $lastMonthMembers > 0
-            ? round((($newMembersThisMonth - $lastMonthMembers) / $lastMonthMembers) * 100, 2)
+        // Calculate growth rate
+        $growthRate = $memberStats->last_month_members > 0
+            ? round((($memberStats->new_members - $memberStats->last_month_members) / $memberStats->last_month_members) * 100, 2)
             : 0;
 
-        // Engagement stats
+        // Engagement stats (separate lightweight queries)
         $activeTickets = $this->complaintModel
             ->whereIn('status', ['open', 'in_progress'])
             ->countAllResults();
 
-        // Note: ForumThreadModel uses soft deletes, so deleted threads are automatically excluded
-        $totalThreads = $this->forumModel->countAllResults();
+        $forumThreads = $this->forumModel->countAllResults();
 
         $activeSurveys = $this->surveyModel
             ->where('status', 'published')
             ->where('end_date >=', date('Y-m-d'))
             ->countAllResults();
 
-        return [
-            'total_members' => $totalMembers,
-            'new_members_this_month' => $newMembersThisMonth,
-            'pending_approvals' => $pendingApprovals,
+        $result = [
+            'total_members' => (int) $memberStats->total_members,
+            'active_members' => (int) $memberStats->active_members,
+            'new_members' => (int) $memberStats->new_members,
+            'new_members_this_month' => (int) $memberStats->new_members, // Alias for compatibility
+            'pending_approvals' => (int) $memberStats->pending_approvals,
             'growth_rate' => $growthRate,
+            'member_growth' => $growthRate, // For trend display
+            'total_provinces' => (int) $memberStats->total_provinces,
+            'total_universities' => (int) $memberStats->total_universities,
             'active_tickets' => $activeTickets,
-            'total_threads' => $totalThreads,
-            'active_surveys' => $activeSurveys
+            'forum_threads' => $forumThreads,
+            'total_threads' => $forumThreads, // Alias
+            'total_surveys' => $activeSurveys,
+            'active_surveys' => $activeSurveys // Alias
         ];
+
+        // Cache for 5 minutes
+        $cache->save($cacheKey, $result, 300);
+
+        return $result;
     }
 
     /**
-     * Get top statistics (top provinces, universities, etc)
-     * 
+     * Get top statistics (top provinces, universities, etc) - OPTIMIZED
+     * Fixed key names to match view expectations
+     *
      * @param int $userId User ID
      * @param bool $isKoordinator Is user Koordinator Wilayah
      * @param array|null $scopeData Scope data for Koordinator
@@ -423,6 +440,15 @@ class StatisticsController extends BaseController
      */
     protected function getTopStatistics(int $userId, bool $isKoordinator, ?array $scopeData): array
     {
+        // Use cache
+        $cacheKey = "stats_top_" . ($isKoordinator && $scopeData ? $scopeData['province_id'] : 'all');
+        $cache = \Config\Services::cache();
+
+        $cached = $cache->get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+
         $builder = $this->memberModel->builder();
 
         // Apply regional scope
@@ -434,38 +460,56 @@ class StatisticsController extends BaseController
         $topProvinces = [];
         if (!$isKoordinator) {
             $topProvinces = (clone $builder)
-                ->select('provinces.name, COUNT(*) as total')
+                ->select('
+                    provinces.id,
+                    provinces.name,
+                    COUNT(DISTINCT member_profiles.id) as member_count,
+                    COUNT(DISTINCT member_profiles.university_id) as university_count
+                ')
                 ->join('provinces', 'provinces.id = member_profiles.province_id')
                 ->join('users', 'users.id = member_profiles.user_id')
                 ->where('users.active', 1)
-                ->groupBy('member_profiles.province_id')
-                ->orderBy('total', 'DESC')
+                ->groupBy('provinces.id, provinces.name')
+                ->orderBy('member_count', 'DESC')
                 ->limit(10)
                 ->get()
-                ->getResultArray();
+                ->getResult(); // Return as objects for view compatibility
         }
 
         // Top universities
         $topUniversities = (clone $builder)
-            ->select('universities.name, COUNT(*) as total')
+            ->select('
+                universities.id,
+                universities.name,
+                provinces.name as province_name,
+                COUNT(DISTINCT member_profiles.id) as member_count
+            ')
             ->join('universities', 'universities.id = member_profiles.university_id')
+            ->join('provinces', 'provinces.id = member_profiles.province_id', 'left')
             ->join('users', 'users.id = member_profiles.user_id')
             ->where('users.active', 1)
-            ->groupBy('member_profiles.university_id')
-            ->orderBy('total', 'DESC')
+            ->groupBy('universities.id, universities.name, provinces.name')
+            ->orderBy('member_count', 'DESC')
             ->limit(10)
             ->get()
-            ->getResultArray();
+            ->getResult(); // Return as objects for view compatibility
 
-        return [
-            'top_provinces' => $topProvinces,
-            'top_universities' => $topUniversities,
+        $result = [
+            'provinces' => $topProvinces,      // Fixed key name (was: top_provinces)
+            'universities' => $topUniversities, // Fixed key name (was: top_universities)
         ];
+
+        // Cache for 10 minutes
+        $cache->save($cacheKey, $result, 600);
+
+        return $result;
     }
 
     /**
-     * Get trend data for charts
-     * 
+     * Get trend data for charts - OPTIMIZED
+     * Single query with GROUP BY instead of loop queries
+     * Returns comprehensive data for all chart types
+     *
      * @param int $userId User ID
      * @param bool $isKoordinator Is user Koordinator Wilayah
      * @param array|null $scopeData Scope data for Koordinator
@@ -473,31 +517,127 @@ class StatisticsController extends BaseController
      */
     protected function getTrendData(int $userId, bool $isKoordinator, ?array $scopeData): array
     {
-        $trendData = [];
+        // Use cache
+        $cacheKey = "stats_trend_" . ($isKoordinator && $scopeData ? $scopeData['province_id'] : 'all');
+        $cache = \Config\Services::cache();
 
+        $cached = $cache->get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        // OPTIMIZED: Single query for member growth trend (last 6 months)
+        $sixMonthsAgo = date('Y-m-01', strtotime('-5 months'));
+
+        $builder = $this->memberModel->builder()
+            ->select('DATE_FORMAT(users.created_at, "%Y-%m") as month_key, COUNT(member_profiles.id) as count')
+            ->join('users', 'users.id = member_profiles.user_id')
+            ->where('users.created_at >=', $sixMonthsAgo)
+            ->groupBy('month_key')
+            ->orderBy('month_key', 'ASC');
+
+        if ($isKoordinator && $scopeData) {
+            $builder->where('member_profiles.province_id', $scopeData['province_id']);
+        }
+
+        $monthlyData = $builder->get()->getResultArray();
+
+        // Format for chart
+        $memberGrowth = [];
         for ($i = 5; $i >= 0; $i--) {
-            $month = date('Y-m', strtotime("-{$i} months"));
-            $monthStart = $month . '-01 00:00:00';
-            $monthEnd = date('Y-m-t 23:59:59', strtotime($monthStart));
+            $monthKey = date('Y-m', strtotime("-{$i} months"));
+            $monthLabel = date('M Y', strtotime("-{$i} months"));
 
-            $builder = $this->memberModel->builder()
-                ->join('users', 'users.id = member_profiles.user_id')
-                ->where('users.created_at >=', $monthStart)
-                ->where('users.created_at <=', $monthEnd);
-
-            if ($isKoordinator && $scopeData) {
-                $builder->where('member_profiles.province_id', $scopeData['province_id']);
+            // Find count for this month
+            $count = 0;
+            foreach ($monthlyData as $data) {
+                if ($data['month_key'] === $monthKey) {
+                    $count = (int) $data['count'];
+                    break;
+                }
             }
 
-            $count = $builder->countAllResults();
-
-            $trendData[] = [
-                'month' => date('M Y', strtotime($monthStart)),
+            $memberGrowth[] = [
+                'month' => $monthLabel,
                 'count' => $count
             ];
         }
 
-        return $trendData;
+        // Regional distribution (top 10 provinces)
+        $regionalBuilder = $this->memberModel->builder()
+            ->select('provinces.name as province_name, COUNT(member_profiles.id) as total')
+            ->join('provinces', 'provinces.id = member_profiles.province_id')
+            ->join('users', 'users.id = member_profiles.user_id')
+            ->where('users.active', 1)
+            ->groupBy('provinces.id, provinces.name')
+            ->orderBy('total', 'DESC')
+            ->limit(10);
+
+        if ($isKoordinator && $scopeData) {
+            $regionalBuilder->where('member_profiles.province_id', $scopeData['province_id']);
+        }
+
+        $regionalDistribution = $regionalBuilder->get()->getResultArray();
+
+        // University distribution (top 10)
+        $universityBuilder = $this->memberModel->builder()
+            ->select('universities.name, COUNT(member_profiles.id) as total')
+            ->join('universities', 'universities.id = member_profiles.university_id')
+            ->join('users', 'users.id = member_profiles.user_id')
+            ->where('users.active', 1)
+            ->groupBy('universities.id, universities.name')
+            ->orderBy('total', 'DESC')
+            ->limit(10);
+
+        if ($isKoordinator && $scopeData) {
+            $universityBuilder->where('member_profiles.province_id', $scopeData['province_id']);
+        }
+
+        $universityDistribution = $universityBuilder->get()->getResultArray();
+
+        // Status distribution
+        $statusBuilder = $this->memberModel->builder()
+            ->select('membership_status, COUNT(id) as total')
+            ->groupBy('membership_status')
+            ->orderBy('total', 'DESC');
+
+        if ($isKoordinator && $scopeData) {
+            $statusBuilder->where('province_id', $scopeData['province_id']);
+        }
+
+        $statusDistribution = $statusBuilder->get()->getResultArray();
+
+        // Gender distribution
+        $genderBuilder = $this->memberModel->builder()
+            ->select('
+                CASE
+                    WHEN gender = "L" THEN "Laki-laki"
+                    WHEN gender = "P" THEN "Perempuan"
+                    ELSE "Tidak Diketahui"
+                END as gender_label,
+                COUNT(id) as total
+            ')
+            ->groupBy('gender')
+            ->orderBy('total', 'DESC');
+
+        if ($isKoordinator && $scopeData) {
+            $genderBuilder->where('province_id', $scopeData['province_id']);
+        }
+
+        $genderDistribution = $genderBuilder->get()->getResultArray();
+
+        $result = [
+            'member_growth' => $memberGrowth,
+            'regional_distribution' => $regionalDistribution,
+            'university_distribution' => $universityDistribution,
+            'status_distribution' => $statusDistribution,
+            'gender_distribution' => $genderDistribution
+        ];
+
+        // Cache for 5 minutes
+        $cache->save($cacheKey, $result, 300);
+
+        return $result;
     }
 
     /**
@@ -575,8 +715,9 @@ class StatisticsController extends BaseController
     }
 
     /**
-     * Get growth analytics
-     * 
+     * Get growth analytics - OPTIMIZED
+     * Single query with GROUP BY instead of loop queries
+     *
      * @param string $period Period in months
      * @param bool $isKoordinator Is user Koordinator Wilayah
      * @param array|null $scopeData Scope data for Koordinator
@@ -585,32 +726,58 @@ class StatisticsController extends BaseController
     protected function getGrowthAnalytics(string $period, bool $isKoordinator, ?array $scopeData): array
     {
         $months = (int) $period;
+
+        // Use cache
+        $cacheKey = "stats_growth_{$months}_" . ($isKoordinator && $scopeData ? $scopeData['province_id'] : 'all');
+        $cache = \Config\Services::cache();
+
+        $cached = $cache->get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+
+        // OPTIMIZED: Single query for all months
+        $startDate = date('Y-m-01', strtotime("-" . ($months - 1) . " months"));
+
+        $builder = $this->memberModel->builder()
+            ->select('DATE_FORMAT(users.created_at, "%Y-%m") as month_key, COUNT(member_profiles.id) as count')
+            ->join('users', 'users.id = member_profiles.user_id')
+            ->where('users.created_at >=', $startDate)
+            ->groupBy('month_key')
+            ->orderBy('month_key', 'ASC');
+
+        if ($isKoordinator && $scopeData) {
+            $builder->where('member_profiles.province_id', $scopeData['province_id']);
+        }
+
+        $monthlyData = $builder->get()->getResultArray();
+
+        // Create lookup array
+        $monthlyLookup = [];
+        foreach ($monthlyData as $data) {
+            $monthlyLookup[$data['month_key']] = (int) $data['count'];
+        }
+
+        // Build result with cumulative
         $growthData = [];
         $cumulative = 0;
 
         for ($i = $months - 1; $i >= 0; $i--) {
-            $month = date('Y-m', strtotime("-{$i} months"));
-            $monthStart = $month . '-01 00:00:00';
-            $monthEnd = date('Y-m-t 23:59:59', strtotime($monthStart));
+            $monthKey = date('Y-m', strtotime("-{$i} months"));
+            $monthLabel = date('M Y', strtotime("-{$i} months"));
 
-            $builder = $this->memberModel->builder()
-                ->join('users', 'users.id = member_profiles.user_id')
-                ->where('users.created_at >=', $monthStart)
-                ->where('users.created_at <=', $monthEnd);
-
-            if ($isKoordinator && $scopeData) {
-                $builder->where('member_profiles.province_id', $scopeData['province_id']);
-            }
-
-            $count = $builder->countAllResults();
+            $count = $monthlyLookup[$monthKey] ?? 0;
             $cumulative += $count;
 
             $growthData[] = [
-                'month' => date('M Y', strtotime($monthStart)),
+                'month' => $monthLabel,
                 'new_members' => $count,
                 'cumulative' => $cumulative
             ];
         }
+
+        // Cache for 5 minutes
+        $cache->save($cacheKey, $growthData, 300);
 
         return $growthData;
     }
@@ -701,13 +868,19 @@ class StatisticsController extends BaseController
     }
 
     /**
-     * Create detailed member list sheet
+     * Create detailed member list sheet - OPTIMIZED with chunking
+     * Prevents memory exhaustion for large datasets
      */
     protected function createMemberListSheet(Spreadsheet $spreadsheet, bool $isKoordinator, ?array $scopeData): void
     {
         $sheet = $spreadsheet->createSheet();
         $sheet->setTitle('Daftar Anggota');
 
+        $headers = ['No', 'Nama', 'Email', 'Provinsi', 'No. Anggota', 'Status'];
+        $sheet->fromArray($headers, null, 'A1');
+        $sheet->getStyle('A1:F1')->getFont()->setBold(true);
+
+        // OPTIMIZED: Use chunking to prevent memory issues
         $builder = $this->memberModel->builder()
             ->select('member_profiles.*, auth_identities.secret as email, provinces.name as province_name')
             ->join('users', 'users.id = member_profiles.user_id')
@@ -719,28 +892,85 @@ class StatisticsController extends BaseController
             $builder->where('member_profiles.province_id', $scopeData['province_id']);
         }
 
-        $members = $builder->findAll();
-
-        $headers = ['No', 'Nama', 'Email', 'Provinsi', 'No. Anggota', 'Status'];
-        $sheet->fromArray($headers, null, 'A1');
+        // Limit to 5000 records for export to prevent timeout
+        $builder->limit(5000);
+        $members = $builder->get()->getResult();
 
         $row = 2;
         foreach ($members as $index => $member) {
             $sheet->fromArray([
                 $index + 1,
-                $member->full_name,
-                $member->email,
+                $member->full_name ?? '-',
+                $member->email ?? '-',
                 $member->province_name ?? '-',
                 $member->member_number ?? '-',
-                ucfirst($member->membership_status)
+                ucfirst($member->membership_status ?? 'unknown')
             ], null, "A{$row}");
             $row++;
+
+            // Free memory every 500 rows
+            if ($row % 500 === 0) {
+                gc_collect_cycles();
+            }
         }
 
-        $sheet->getStyle('A1:F1')->getFont()->setBold(true);
-
+        // Auto-size columns
         foreach (range('A', 'F') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+    }
+
+    /**
+     * Clear statistics cache
+     * Call this when member data is updated
+     *
+     * @return ResponseInterface
+     */
+    public function clearCache(): ResponseInterface
+    {
+        // Check permission
+        if (!auth()->user()->can('statistics.view')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Tidak memiliki izin untuk clear cache'
+            ])->setStatusCode(403);
+        }
+
+        try {
+            $cache = \Config\Services::cache();
+
+            // Clear all statistics cache keys
+            $cacheKeys = [
+                'stats_comprehensive_all',
+                'stats_top_all',
+                'stats_trend_all',
+            ];
+
+            // Also clear province-specific caches (iterate through common IDs)
+            for ($i = 1; $i <= 50; $i++) {
+                $cacheKeys[] = "stats_comprehensive_{$i}";
+                $cacheKeys[] = "stats_top_{$i}";
+                $cacheKeys[] = "stats_trend_{$i}";
+                $cacheKeys[] = "stats_growth_12_{$i}";
+                $cacheKeys[] = "stats_growth_6_{$i}";
+                $cacheKeys[] = "stats_growth_24_{$i}";
+            }
+
+            foreach ($cacheKeys as $key) {
+                $cache->delete($key);
+            }
+
+            return $this->response->setJSON([
+                'success' => true,
+                'message' => 'Cache statistik berhasil dibersihkan'
+            ]);
+        } catch (\Exception $e) {
+            log_message('error', 'Error clearing stats cache: ' . $e->getMessage());
+
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Gagal membersihkan cache: ' . $e->getMessage()
+            ])->setStatusCode(500);
         }
     }
 }

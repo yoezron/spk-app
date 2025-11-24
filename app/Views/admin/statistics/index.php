@@ -390,6 +390,9 @@
             <button type="button" class="btn btn-light" onclick="refreshData()">
                 <i class="bi bi-arrow-clockwise me-1"></i> Refresh
             </button>
+            <button type="button" class="btn btn-warning" onclick="clearStatsCache()">
+                <i class="bi bi-trash me-1"></i> Clear Cache
+            </button>
             <a href="<?= base_url('admin/statistics/export') ?>" class="btn btn-success">
                 <i class="bi bi-download me-1"></i> Export Report
             </a>
@@ -805,14 +808,14 @@
         // REGIONAL DISTRIBUTION CHART
         // ==========================================
         const regionalCtx = document.getElementById('regionalChart');
-        if (regionalCtx && trendData.regional_distribution) {
+        if (regionalCtx && trendData.regional_distribution && trendData.regional_distribution.length > 0) {
             new Chart(regionalCtx, {
                 type: 'bar',
                 data: {
                     labels: trendData.regional_distribution.map(item => item.province_name),
                     datasets: [{
                         label: 'Jumlah Anggota',
-                        data: trendData.regional_distribution.map(item => item.total),
+                        data: trendData.regional_distribution.map(item => parseInt(item.total)),
                         backgroundColor: '#667eea',
                         borderRadius: 6,
                         borderSkipped: false
@@ -825,6 +828,60 @@
                     plugins: {
                         legend: {
                             display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Anggota: ' + context.parsed.x.toLocaleString();
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            ticks: {
+                                callback: function(value) {
+                                    return value.toLocaleString();
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ==========================================
+        // UNIVERSITY DISTRIBUTION CHART
+        // ==========================================
+        const universityCtx = document.getElementById('universityChart');
+        if (universityCtx && trendData.university_distribution && trendData.university_distribution.length > 0) {
+            new Chart(universityCtx, {
+                type: 'bar',
+                data: {
+                    labels: trendData.university_distribution.map(item => item.name.substring(0, 30)),
+                    datasets: [{
+                        label: 'Jumlah Anggota',
+                        data: trendData.university_distribution.map(item => parseInt(item.total)),
+                        backgroundColor: '#27ae60',
+                        borderRadius: 6,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    indexAxis: 'y',
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return 'Anggota: ' + context.parsed.x.toLocaleString();
+                                }
+                            }
                         }
                     },
                     scales: {
@@ -845,13 +902,13 @@
         // STATUS DISTRIBUTION CHART
         // ==========================================
         const statusCtx = document.getElementById('statusChart');
-        if (statusCtx && trendData.status_distribution) {
+        if (statusCtx && trendData.status_distribution && trendData.status_distribution.length > 0) {
             new Chart(statusCtx, {
                 type: 'doughnut',
                 data: {
                     labels: trendData.status_distribution.map(item => item.membership_status),
                     datasets: [{
-                        data: trendData.status_distribution.map(item => item.total),
+                        data: trendData.status_distribution.map(item => parseInt(item.total)),
                         backgroundColor: [
                             '#667eea',
                             '#27ae60',
@@ -867,13 +924,57 @@
                     plugins: {
                         legend: {
                             position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    return context.label + ': ' + context.parsed.toLocaleString();
+                                }
+                            }
                         }
                     }
                 }
             });
         }
 
-        // Additional charts for university and gender can be added similarly
+        // ==========================================
+        // GENDER DISTRIBUTION CHART
+        // ==========================================
+        const genderCtx = document.getElementById('genderChart');
+        if (genderCtx && trendData.gender_distribution && trendData.gender_distribution.length > 0) {
+            new Chart(genderCtx, {
+                type: 'pie',
+                data: {
+                    labels: trendData.gender_distribution.map(item => item.gender_label || 'Unknown'),
+                    datasets: [{
+                        data: trendData.gender_distribution.map(item => parseInt(item.total)),
+                        backgroundColor: [
+                            '#667eea',
+                            '#e74c3c',
+                            '#95a5a6'
+                        ]
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                                    const percentage = ((context.parsed / total) * 100).toFixed(1);
+                                    return context.label + ': ' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
 
         console.log('✓ Statistics Dashboard initialized');
     });
@@ -886,12 +987,54 @@
     }
 
     // ==========================================
+    // CLEAR STATISTICS CACHE
+    // ==========================================
+    function clearStatsCache() {
+        if (!confirm('Apakah Anda yakin ingin membersihkan cache statistik?')) {
+            return;
+        }
+
+        // Show loading
+        const btn = event.target.closest('button');
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="bi bi-hourglass-split me-1"></i> Clearing...';
+
+        fetch('<?= base_url('admin/statistics/clear-cache') ?>', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                alert('✓ Cache berhasil dibersihkan! Halaman akan di-refresh.');
+                location.reload();
+            } else {
+                alert('✗ Error: ' + data.message);
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('✗ Terjadi kesalahan saat membersihkan cache');
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        });
+    }
+
+    // ==========================================
     // UPDATE GROWTH CHART
     // ==========================================
     function updateGrowthChart() {
         // Implementation for changing growth period
-        // You can make an AJAX call to get new data
-        console.log('Updating growth chart...');
+        const period = document.getElementById('growthPeriod').value;
+        // Reload with new period parameter
+        window.location.href = '<?= base_url('admin/statistics/growth') ?>?period=' + period;
     }
 </script>
 <?= $this->endSection() ?>
