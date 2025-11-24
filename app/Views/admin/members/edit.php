@@ -394,9 +394,15 @@
                                         <?= esc($role->title) ?>
                                     </option>
                                 <?php endforeach; ?>
+                            <?php else: ?>
+                                <!-- Debug: Roles is empty. Count: <?= is_array($roles) ? count($roles) : 'not array' ?> -->
                             <?php endif; ?>
                         </select>
-                        <small class="form-text">Ubah role anggota (hanya Super Admin)</small>
+                        <small class="form-text">Ubah role anggota (hanya Super Admin).
+                            <?php if (empty($roles)): ?>
+                                <span style="color: orange;">⚠ Roles tidak dimuat</span>
+                            <?php endif; ?>
+                        </small>
                     </div>
                 </div>
 
