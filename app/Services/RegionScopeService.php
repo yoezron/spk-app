@@ -525,7 +525,7 @@ class RegionScopeService
     /**
      * Validate scope access for user
      * Comprehensive validation for scope-based operations
-     * 
+     *
      * @param int $userId User ID to validate
      * @param array $data Data containing target province_id or member_id
      * @return array ['success' => bool, 'message' => string, 'data' => mixed]
@@ -591,6 +591,81 @@ class RegionScopeService
                 'message' => 'Gagal validasi scope: ' . $e->getMessage(),
                 'data' => null
             ];
+        }
+    }
+
+    /**
+     * Apply regional scope to payment queries
+     * Restricts query to payments from members in koordinator's province
+     *
+     * @param object $builder Query builder instance
+     * @param int $koordinatorId Koordinator user ID
+     * @return object Modified query builder
+     */
+    public function applyScopeToPayments($builder, int $koordinatorId)
+    {
+        try {
+            // Get koordinator's member profile
+            $koordinator = $this->memberModel->where('user_id', $koordinatorId)->first();
+
+            if (!$koordinator || !$koordinator->province_id) {
+                // If no province assigned, return empty result
+                $builder->where('1', '0'); // Always false condition
+                return $builder;
+            }
+
+            // Join with member_profiles if not already joined
+            $builder->join('member_profiles', 'member_profiles.user_id = payments.user_id', 'left');
+
+            // Filter by province
+            $builder->where('member_profiles.province_id', $koordinator->province_id);
+
+            return $builder;
+        } catch (\Exception $e) {
+            log_message('error', 'Error in RegionScopeService::applyScopeToPayments: ' . $e->getMessage());
+
+            // Return builder with no results on error
+            $builder->where('1', '0');
+            return $builder;
+        }
+    }
+
+    /**
+     * Check if koordinator can access specific payment
+     * Validates that payment belongs to member in koordinator's province
+     *
+     * @param int $koordinatorId User ID of koordinator
+     * @param int $paymentId Payment ID to check
+     * @return bool True if koordinator has access, false otherwise
+     */
+    public function canAccessPayment(int $koordinatorId, int $paymentId): bool
+    {
+        try {
+            // Get koordinator's member profile
+            $koordinator = $this->memberModel->where('user_id', $koordinatorId)->first();
+
+            if (!$koordinator || !$koordinator->province_id) {
+                return false;
+            }
+
+            // Get payment with member profile
+            $db = \Config\Database::connect();
+            $payment = $db->table('payments')
+                ->select('member_profiles.province_id')
+                ->join('member_profiles', 'member_profiles.user_id = payments.user_id', 'left')
+                ->where('payments.id', $paymentId)
+                ->get()
+                ->getRow();
+
+            if (!$payment) {
+                return false;
+            }
+
+            // Check if payment is in same province
+            return $koordinator->province_id === $payment->province_id;
+        } catch (\Exception $e) {
+            log_message('error', 'Error in RegionScopeService::canAccessPayment: ' . $e->getMessage());
+            return false;
         }
     }
 }

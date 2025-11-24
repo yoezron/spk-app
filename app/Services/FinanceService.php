@@ -112,6 +112,9 @@ class FinanceService
                 'type' => $payment->payment_type
             ]);
 
+            // Clear payment cache
+            $this->clearPaymentCache();
+
             return [
                 'success' => true,
                 'message' => 'Pembayaran berhasil diverifikasi.',
@@ -176,6 +179,9 @@ class FinanceService
                 'reason' => $reason
             ]);
 
+            // Clear payment cache
+            $this->clearPaymentCache();
+
             return [
                 'success' => true,
                 'message' => 'Pembayaran berhasil ditolak.',
@@ -197,8 +203,9 @@ class FinanceService
     }
 
     /**
-     * Get payment statistics
-     * 
+     * Get payment statistics - OPTIMIZED with caching
+     * Single aggregated query instead of multiple clones
+     *
      * @param int $year Year
      * @param int|null $month Month (optional)
      * @param int|null $userId User ID for regional scope (optional)
@@ -206,7 +213,18 @@ class FinanceService
      */
     public function getPaymentStatistics(int $year, ?int $month = null, ?int $userId = null): array
     {
+        // Use cache for better performance (5 minutes TTL)
+        $scopeId = $userId ?? 'all';
+        $cacheKey = "payment_stats_{$year}_" . ($month ?? 'all') . "_{$scopeId}";
+        $cache = \Config\Services::cache();
+
+        $cached = $cache->get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+
         try {
+            // OPTIMIZED: Single aggregated query for counts and totals
             $builder = $this->paymentModel->builder();
 
             // Apply regional scope if needed
@@ -223,49 +241,55 @@ class FinanceService
                 $builder->where('MONTH(payments.payment_date)', $month);
             }
 
-            // Total payments
-            $totalPayments = $builder->countAllResults(false);
+            // OPTIMIZED: Single query for all counts and basic stats
+            $stats = $builder->select('
+                COUNT(*) as total_payments,
+                COUNT(CASE WHEN status = "verified" THEN 1 END) as verified,
+                COUNT(CASE WHEN status = "pending" THEN 1 END) as pending,
+                COUNT(CASE WHEN status = "rejected" THEN 1 END) as rejected,
+                SUM(CASE WHEN status = "verified" THEN amount ELSE 0 END) as total_amount
+            ')->get()->getRow();
 
-            // Verified payments
-            $verifiedPayments = (clone $builder)->where('status', 'verified')->countAllResults(false);
-
-            // Pending payments
-            $pendingPayments = (clone $builder)->where('status', 'pending')->countAllResults(false);
-
-            // Rejected payments
-            $rejectedPayments = (clone $builder)->where('status', 'rejected')->countAllResults(false);
-
-            // Total amount (verified only)
-            $totalAmountResult = (clone $builder)
-                ->select('SUM(amount) as total')
-                ->where('status', 'verified')
-                ->get()
-                ->getRow();
-
-            $totalAmount = $totalAmountResult ? (float) $totalAmountResult->total : 0;
-
-            // Amount by payment type (verified only)
-            $amountByType = (clone $builder)
+            // Get amount by type (separate query, but only one)
+            $amountByType = $this->paymentModel->builder()
                 ->select('payment_type, SUM(amount) as total')
-                ->where('status', 'verified')
-                ->groupBy('payment_type')
-                ->get()
-                ->getResult();
+                ->where('YEAR(payment_date)', $year)
+                ->where('status', 'verified');
+
+            if ($month) {
+                $amountByType->where('MONTH(payment_date)', $month);
+            }
+
+            if ($userId) {
+                $user = $this->userModel->find($userId);
+                if ($user && in_array('koordinator', $user->getGroups())) {
+                    $amountByType = $this->regionScope->applyScopeToPayments($amountByType, $userId);
+                }
+            }
+
+            $typeResult = $amountByType->groupBy('payment_type')->get()->getResult();
 
             $typeBreakdown = [];
-            foreach ($amountByType as $type) {
+            foreach ($typeResult as $type) {
                 $typeBreakdown[$type->payment_type] = (float) $type->total;
             }
 
-            return [
-                'total_payments' => $totalPayments,
-                'verified' => $verifiedPayments,
-                'pending' => $pendingPayments,
-                'rejected' => $rejectedPayments,
-                'total_amount' => $totalAmount,
+            $result = [
+                'total_payments' => (int) $stats->total_payments,
+                'verified' => (int) $stats->verified,
+                'pending' => (int) $stats->pending,
+                'rejected' => (int) $stats->rejected,
+                'total_amount' => (float) $stats->total_amount,
                 'amount_by_type' => $typeBreakdown,
-                'verification_rate' => $totalPayments > 0 ? round(($verifiedPayments / $totalPayments) * 100, 2) : 0
+                'verification_rate' => $stats->total_payments > 0
+                    ? round(($stats->verified / $stats->total_payments) * 100, 2)
+                    : 0
             ];
+
+            // Cache for 5 minutes
+            $cache->save($cacheKey, $result, 300);
+
+            return $result;
         } catch (\Exception $e) {
             log_message('error', 'FinanceService::getPaymentStatistics - Error: ' . $e->getMessage());
             return [
@@ -359,8 +383,9 @@ class FinanceService
     }
 
     /**
-     * Get summary statistics
-     * 
+     * Get summary statistics - OPTIMIZED with caching
+     * Single aggregated query instead of multiple clones
+     *
      * @param int $year Year
      * @param int|null $month Month (optional)
      * @param int|null $userId User ID for regional scope (optional)
@@ -368,6 +393,16 @@ class FinanceService
      */
     public function getSummaryStatistics(int $year, ?int $month = null, ?int $userId = null): array
     {
+        // Use cache for better performance (10 minutes TTL)
+        $scopeId = $userId ?? 'all';
+        $cacheKey = "payment_summary_{$year}_" . ($month ?? 'all') . "_{$scopeId}";
+        $cache = \Config\Services::cache();
+
+        $cached = $cache->get($cacheKey);
+        if ($cached !== null) {
+            return $cached;
+        }
+
         try {
             $builder = $this->paymentModel->builder();
 
@@ -387,50 +422,29 @@ class FinanceService
                 $builder->where('MONTH(payments.payment_date)', $month);
             }
 
-            // Total verified amount
-            $totalResult = (clone $builder)
-                ->select('SUM(amount) as total, COUNT(*) as count')
-                ->get()
-                ->getRow();
+            // OPTIMIZED: Single query for all summary statistics
+            $stats = $builder->select('
+                SUM(amount) as total_amount,
+                COUNT(*) as total_count,
+                AVG(amount) as average_payment,
+                MAX(amount) as highest_payment,
+                MIN(amount) as lowest_payment,
+                COUNT(DISTINCT user_id) as active_members
+            ')->get()->getRow();
 
-            $totalAmount = $totalResult ? (float) $totalResult->total : 0;
-            $totalCount = $totalResult ? (int) $totalResult->count : 0;
-
-            // Average payment
-            $averagePayment = $totalCount > 0 ? $totalAmount / $totalCount : 0;
-
-            // Highest payment
-            $highestResult = (clone $builder)
-                ->select('MAX(amount) as highest')
-                ->get()
-                ->getRow();
-
-            $highestPayment = $highestResult ? (float) $highestResult->highest : 0;
-
-            // Lowest payment
-            $lowestResult = (clone $builder)
-                ->select('MIN(amount) as lowest')
-                ->get()
-                ->getRow();
-
-            $lowestPayment = $lowestResult ? (float) $lowestResult->lowest : 0;
-
-            // Count active paying members
-            $activeMembers = (clone $builder)
-                ->select('COUNT(DISTINCT user_id) as count')
-                ->get()
-                ->getRow();
-
-            $activeMembersCount = $activeMembers ? (int) $activeMembers->count : 0;
-
-            return [
-                'total_amount' => $totalAmount,
-                'total_count' => $totalCount,
-                'average_payment' => $averagePayment,
-                'highest_payment' => $highestPayment,
-                'lowest_payment' => $lowestPayment,
-                'active_members' => $activeMembersCount
+            $result = [
+                'total_amount' => $stats ? (float) $stats->total_amount : 0,
+                'total_count' => $stats ? (int) $stats->total_count : 0,
+                'average_payment' => $stats ? (float) $stats->average_payment : 0,
+                'highest_payment' => $stats ? (float) $stats->highest_payment : 0,
+                'lowest_payment' => $stats ? (float) $stats->lowest_payment : 0,
+                'active_members' => $stats ? (int) $stats->active_members : 0
             ];
+
+            // Cache for 10 minutes
+            $cache->save($cacheKey, $result, 600);
+
+            return $result;
         } catch (\Exception $e) {
             log_message('error', 'FinanceService::getSummaryStatistics - Error: ' . $e->getMessage());
             return [
@@ -543,7 +557,7 @@ class FinanceService
 
     /**
      * Validate payment amount
-     * 
+     *
      * @param float $amount Amount
      * @param string $type Payment type
      * @return array
@@ -571,5 +585,172 @@ class FinanceService
             'success' => true,
             'message' => 'Jumlah pembayaran valid.'
         ];
+    }
+
+    /**
+     * Clear payment statistics cache
+     * Call this when payments are verified/rejected or updated
+     *
+     * @return bool
+     */
+    public function clearPaymentCache(): bool
+    {
+        try {
+            $cache = \Config\Services::cache();
+
+            // Clear all payment cache keys
+            $cacheKeys = [];
+
+            // Years to clear (current + 5 years back)
+            for ($year = date('Y'); $year >= date('Y') - 5; $year--) {
+                // For each month
+                for ($month = 1; $month <= 12; $month++) {
+                    $cacheKeys[] = "payment_stats_{$year}_{$month}_all";
+                    $cacheKeys[] = "payment_stats_{$year}_all_all";
+                    $cacheKeys[] = "payment_summary_{$year}_{$month}_all";
+                    $cacheKeys[] = "payment_summary_{$year}_all_all";
+
+                    // For each possible user ID (up to 100 users)
+                    for ($userId = 1; $userId <= 100; $userId++) {
+                        $cacheKeys[] = "payment_stats_{$year}_{$month}_{$userId}";
+                        $cacheKeys[] = "payment_summary_{$year}_{$month}_{$userId}";
+                    }
+                }
+            }
+
+            foreach ($cacheKeys as $key) {
+                $cache->delete($key);
+            }
+
+            log_message('info', 'Payment cache cleared successfully');
+            return true;
+        } catch (\Exception $e) {
+            log_message('error', 'FinanceService::clearPaymentCache - Error: ' . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Bulk verify payments
+     * Verify multiple payments at once
+     *
+     * @param array $paymentIds Array of payment IDs
+     * @param int $verifierId User ID who verified
+     * @param string|null $notes Verification notes
+     * @return array
+     */
+    public function bulkVerifyPayments(array $paymentIds, int $verifierId, ?string $notes = null): array
+    {
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        try {
+            $successCount = 0;
+            $errorCount = 0;
+            $errors = [];
+
+            foreach ($paymentIds as $paymentId) {
+                $result = $this->verifyPayment($paymentId, $verifierId, $notes);
+
+                if ($result['success']) {
+                    $successCount++;
+                } else {
+                    $errorCount++;
+                    $errors[] = "Payment #{$paymentId}: {$result['message']}";
+                }
+            }
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                return [
+                    'success' => false,
+                    'message' => 'Transaction failed'
+                ];
+            }
+
+            // Clear cache after bulk operation
+            $this->clearPaymentCache();
+
+            return [
+                'success' => true,
+                'message' => "Berhasil verifikasi {$successCount} pembayaran" . ($errorCount > 0 ? ", {$errorCount} gagal" : ''),
+                'data' => [
+                    'success_count' => $successCount,
+                    'error_count' => $errorCount,
+                    'errors' => $errors
+                ]
+            ];
+        } catch (\Exception $e) {
+            $db->transRollback();
+            log_message('error', 'FinanceService::bulkVerifyPayments - Error: ' . $e->getMessage());
+
+            return [
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat bulk verify: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Bulk reject payments
+     * Reject multiple payments at once
+     *
+     * @param array $paymentIds Array of payment IDs
+     * @param int $verifierId User ID who rejected
+     * @param string $reason Rejection reason
+     * @return array
+     */
+    public function bulkRejectPayments(array $paymentIds, int $verifierId, string $reason): array
+    {
+        $db = \Config\Database::connect();
+        $db->transStart();
+
+        try {
+            $successCount = 0;
+            $errorCount = 0;
+            $errors = [];
+
+            foreach ($paymentIds as $paymentId) {
+                $result = $this->rejectPayment($paymentId, $verifierId, $reason);
+
+                if ($result['success']) {
+                    $successCount++;
+                } else {
+                    $errorCount++;
+                    $errors[] = "Payment #{$paymentId}: {$result['message']}";
+                }
+            }
+
+            $db->transComplete();
+
+            if ($db->transStatus() === false) {
+                return [
+                    'success' => false,
+                    'message' => 'Transaction failed'
+                ];
+            }
+
+            // Clear cache after bulk operation
+            $this->clearPaymentCache();
+
+            return [
+                'success' => true,
+                'message' => "Berhasil reject {$successCount} pembayaran" . ($errorCount > 0 ? ", {$errorCount} gagal" : ''),
+                'data' => [
+                    'success_count' => $successCount,
+                    'error_count' => $errorCount,
+                    'errors' => $errors
+                ]
+            ];
+        } catch (\Exception $e) {
+            $db->transRollback();
+            log_message('error', 'FinanceService::bulkRejectPayments - Error: ' . $e->getMessage());
+
+            return [
+                'success' => false,
+                'message' => 'Terjadi kesalahan saat bulk reject: ' . $e->getMessage()
+            ];
+        }
     }
 }
