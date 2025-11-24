@@ -609,14 +609,7 @@ class StatisticsController extends BaseController
 
         // Gender distribution
         $genderBuilder = $this->memberModel->builder()
-            ->select('
-                CASE
-                    WHEN gender = "L" THEN "Laki-laki"
-                    WHEN gender = "P" THEN "Perempuan"
-                    ELSE "Tidak Diketahui"
-                END as gender_label,
-                COUNT(id) as total
-            ')
+            ->select('gender, COUNT(id) as total')
             ->groupBy('gender')
             ->orderBy('total', 'DESC');
 
@@ -624,7 +617,23 @@ class StatisticsController extends BaseController
             $genderBuilder->where('province_id', $scopeData['province_id']);
         }
 
-        $genderDistribution = $genderBuilder->get()->getResultArray();
+        $genderRaw = $genderBuilder->get()->getResultArray();
+
+        // Format gender labels in PHP (more compatible)
+        $genderDistribution = [];
+        foreach ($genderRaw as $item) {
+            $label = 'Tidak Diketahui';
+            if ($item['gender'] === 'L') {
+                $label = 'Laki-laki';
+            } elseif ($item['gender'] === 'P') {
+                $label = 'Perempuan';
+            }
+
+            $genderDistribution[] = [
+                'gender_label' => $label,
+                'total' => $item['total']
+            ];
+        }
 
         $result = [
             'member_growth' => $memberGrowth,
