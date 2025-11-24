@@ -20,7 +20,7 @@ class SurveyModel extends Model
     protected $primaryKey       = 'id';
     protected $useAutoIncrement = true;
     protected $returnType       = 'object';
-    protected $useSoftDeletes   = true;
+    protected $useSoftDeletes   = false; // Disabled: surveys table doesn't have deleted_at column
     protected $protectFields    = true;
     protected $allowedFields    = [
         'title',
@@ -46,7 +46,7 @@ class SurveyModel extends Model
     protected $dateFormat    = 'datetime';
     protected $createdField  = 'created_at';
     protected $updatedField  = 'updated_at';
-    protected $deletedField  = 'deleted_at';
+    // protected $deletedField  = 'deleted_at'; // Not used: soft deletes disabled
 
     // Validation
     protected $validationRules = [
