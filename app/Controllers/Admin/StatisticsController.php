@@ -457,20 +457,9 @@ class StatisticsController extends BaseController
             ->get()
             ->getResultArray();
 
-        // Position type distribution
-        $positionTypes = (clone $builder)
-            ->select('position_type, COUNT(*) as total')
-            ->join('users', 'users.id = member_profiles.user_id')
-            ->where('users.active', 1)
-            ->groupBy('position_type')
-            ->orderBy('total', 'DESC')
-            ->get()
-            ->getResultArray();
-
         return [
             'top_provinces' => $topProvinces,
             'top_universities' => $topUniversities,
-            'position_types' => $positionTypes
         ];
     }
 
