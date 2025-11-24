@@ -320,12 +320,15 @@ $routes->group('admin', ['namespace' => 'App\Controllers\Admin', 'filter' => 'ro
         $routes->delete('categories/(:num)', 'ContentController::deleteCategory/$1');
     });
 
-    // Payment Management
-    $routes->get('payments', 'PaymentController::index', ['filter' => 'permission:payment.manage']);
+    // Payment Management (ENHANCED)
+    $routes->get('payments', 'PaymentController::index', ['filter' => 'permission:payment.view']);
     $routes->get('payments/pending', 'PaymentController::pending', ['filter' => 'permission:payment.verify']);
+    $routes->get('payments/report', 'PaymentController::report', ['filter' => 'permission:payment.report']);
+    $routes->get('payments/(:num)', 'PaymentController::detail/$1', ['filter' => 'permission:payment.view']);
     $routes->post('payments/(:num)/verify', 'PaymentController::verify/$1', ['filter' => 'permission:payment.verify']);
     $routes->post('payments/(:num)/reject', 'PaymentController::reject/$1', ['filter' => 'permission:payment.verify']);
     $routes->get('payments/export', 'PaymentController::export', ['filter' => 'permission:payment.export']);
+    $routes->delete('payments/(:num)', 'PaymentController::delete/$1', ['filter' => 'permission:payment.delete']);
 
     // WhatsApp Groups
     $routes->get('wa-groups', 'WAGroupController::index', ['filter' => 'permission:wagroup.manage']);
