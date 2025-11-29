@@ -49,7 +49,7 @@ $generalSettings = $settings['App\\Config\\General'] ?? [];
                         <p class="text-muted">No logo uploaded</p>
                     <?php endif; ?>
                 </div>
-                <form action="<?= base_url('super/settings/upload-logo') ?>" method="POST" enctype="multipart/form-data" id="logoUploadForm">
+                <form action="<?= base_url('super/settings/upload/logo') ?>" method="POST" enctype="multipart/form-data" id="logoUploadForm">
                     <?= csrf_field() ?>
                     <div class="input-group">
                         <input type="file"

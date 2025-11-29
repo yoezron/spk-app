@@ -4,4 +4,5 @@
 # But keep directory structure
 !.gitignore
 !.gitkeep
+!index.html
 !*/
