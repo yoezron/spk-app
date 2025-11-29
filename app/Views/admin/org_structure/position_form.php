@@ -48,9 +48,9 @@ $formAction = $isEdit
                             <option value="">-- Pilih Unit --</option>
                             <?php if (!empty($units) && is_array($units)): ?>
                                 <?php foreach ($units as $u): ?>
-                                    <option value="<?= $u['id'] ?>"
-                                            <?= old('unit_id', $position['unit_id'] ?? $unit_id ?? '') == $u['id'] ? 'selected' : '' ?>>
-                                        <?= str_repeat('—', ($u['level'] ?? 1) - 1) ?> <?= esc($u['name']) ?>
+                                    <option value="<?= $u->id ?>"
+                                            <?= old('unit_id', $position['unit_id'] ?? $unit_id ?? '') == $u->id ? 'selected' : '' ?>>
+                                        <?= str_repeat('—', ($u->level ?? 1) - 1) ?> <?= esc($u->name) ?>
                                     </option>
                                 <?php endforeach; ?>
                             <?php endif; ?>
@@ -144,9 +144,9 @@ $formAction = $isEdit
                             <option value="">-- Tidak Ada Atasan (Top Position) --</option>
                             <?php if (!empty($positions) && is_array($positions)): ?>
                                 <?php foreach ($positions as $pos): ?>
-                                    <option value="<?= $pos['id'] ?>"
-                                            <?= old('reports_to', $position['reports_to'] ?? '') == $pos['id'] ? 'selected' : '' ?>>
-                                        <?= esc($pos['title']) ?> (<?= esc($pos['unit_name'] ?? '') ?>)
+                                    <option value="<?= $pos->id ?>"
+                                            <?= old('reports_to', $position['reports_to'] ?? '') == $pos->id ? 'selected' : '' ?>>
+                                        <?= esc($pos->title) ?> (<?= esc($pos->unit_name ?? '') ?>)
                                     </option>
                                 <?php endforeach; ?>
                             <?php endif; ?>
