@@ -134,29 +134,29 @@
                                     <tr>
                                         <td><?= $index + 1 ?></td>
                                         <td>
-                                            <?php if ($univ['code']): ?>
-                                                <span class="badge bg-secondary"><?= esc($univ['code']) ?></span>
+                                            <?php if ($univ->code): ?>
+                                                <span class="badge bg-secondary"><?= esc($univ->code) ?></span>
                                             <?php else: ?>
                                                 <span class="text-muted">-</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td><strong><?= esc($univ['name']) ?></strong></td>
+                                        <td><strong><?= esc($univ->name) ?></strong></td>
                                         <td>
                                             <?php
-                                            $badgeClass = match ($univ['type']) {
+                                            $badgeClass = match ($univ->type) {
                                                 'Negeri' => 'bg-success',
                                                 'Swasta' => 'bg-primary',
                                                 'Kedinasan' => 'bg-warning',
                                                 default => 'bg-secondary'
                                             };
                                             ?>
-                                            <span class="badge <?= $badgeClass ?>"><?= esc($univ['type']) ?></span>
+                                            <span class="badge <?= $badgeClass ?>"><?= esc($univ->type) ?></span>
                                         </td>
                                         <td>
-                                            <small class="text-muted"><?= esc($univ['address'] ?? '-') ?></small>
+                                            <small class="text-muted"><?= esc($univ->address ?? '-') ?></small>
                                         </td>
                                         <td class="text-center">
-                                            <span class="badge bg-primary"><?= number_format($univ['member_count']) ?></span>
+                                            <span class="badge bg-primary"><?= number_format($univ->member_count) ?></span>
                                         </td>
                                         <td class="text-center">
                                             <button type="button" class="btn btn-sm btn-warning"
@@ -164,7 +164,7 @@
                                                 <i class="fas fa-edit"></i>
                                             </button>
                                             <button type="button" class="btn btn-sm btn-danger"
-                                                onclick='deleteUniversity(<?= $univ['id'] ?>, "<?= esc($univ['name']) ?>")'>
+                                                onclick='deleteUniversity(<?= $univ->id ?>, "<?= esc($univ->name) ?>")'>
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </td>
