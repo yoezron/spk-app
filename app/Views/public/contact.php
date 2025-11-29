@@ -77,7 +77,9 @@
         }
 
         .navbar-brand img {
-            height: 40px;
+            max-height: 40px;
+            max-width: 150px;
+            object-fit: contain;
         }
 
         .nav-link {
@@ -475,8 +477,15 @@
     <nav class="navbar navbar-expand-lg sticky-top">
         <div class="container">
             <a class="navbar-brand" href="<?= base_url() ?>">
-                <img src="<?= base_url('assets/images/logo.png') ?>" alt="SPK Logo">
-                SPK Indonesia
+                <?php
+                $logo = app_logo();
+                if ($logo):
+                ?>
+                    <img src="<?= esc($logo) ?>" alt="<?= esc(app_name()) ?>" style="max-height: 40px; object-fit: contain;">
+                <?php else: ?>
+                    <i class="bi bi-building"></i>
+                    <?= esc(app_name()) ?>
+                <?php endif; ?>
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -487,16 +496,16 @@
                         <a class="nav-link" href="<?= base_url() ?>">Home</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="<?= base_url('tentang') ?>">Tentang</a>
+                        <a class="nav-link" href="<?= base_url('about') ?>">Tentang</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="<?= base_url('blog') ?>">Berita</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link active" href="<?= base_url('kontak') ?>">Kontak</a>
+                        <a class="nav-link active" href="<?= base_url('contact') ?>">Kontak</a>
                     </li>
                     <li class="nav-item ms-3">
-                        <a class="btn btn-register" href="<?= base_url('register') ?>">Daftar Anggota</a>
+                        <a class="btn btn-register" href="<?= base_url('auth/register') ?>">Daftar Anggota</a>
                     </li>
                 </ul>
             </div>
@@ -874,9 +883,17 @@
         <div class="container">
             <div class="row">
                 <div class="col-lg-4 mb-4">
-                    <h5>Serikat Pekerja Kampus</h5>
+                    <?php
+                    $logo = app_logo();
+                    if ($logo):
+                    ?>
+                        <div class="mb-3">
+                            <img src="<?= esc($logo) ?>" alt="<?= esc(app_name()) ?>" style="max-height: 50px; object-fit: contain; filter: brightness(0) invert(1);">
+                        </div>
+                    <?php endif; ?>
+                    <h5><?= esc(app_name()) ?></h5>
                     <p style="color: #bdc3c7; line-height: 1.6;">
-                        Organisasi serikat pekerja kampus yang memperjuangkan hak dan kesejahteraan pekerja kampus di seluruh Indonesia.
+                        <?= esc(app_tagline()) ?>
                     </p>
                     <div class="social-links">
                         <a href="#" class="social-link"><i class="bi bi-facebook"></i></a>
@@ -890,19 +907,20 @@
                     <h5>Quick Links</h5>
                     <ul>
                         <li><a href="<?= base_url() ?>">Home</a></li>
-                        <li><a href="<?= base_url('tentang') ?>">Tentang Kami</a></li>
-                        <li><a href="<?= base_url('manifesto') ?>">Manifesto</a></li>
+                        <li><a href="<?= base_url('about') ?>">Tentang Kami</a></li>
                         <li><a href="<?= base_url('blog') ?>">Berita</a></li>
+                        <li><a href="<?= base_url('contact') ?>">Kontak</a></li>
                     </ul>
                 </div>
 
                 <div class="col-lg-2 col-md-6 mb-4">
                     <h5>Anggota</h5>
                     <ul>
-                        <li><a href="<?= base_url('register') ?>">Daftar</a></li>
-                        <li><a href="<?= base_url('login') ?>">Login</a></li>
-                        <li><a href="<?= base_url('member/profile') ?>">Profil</a></li>
-                        <li><a href="<?= base_url('member/complaints') ?>">Pengaduan</a></li>
+                        <li><a href="<?= base_url('auth/register') ?>">Daftar</a></li>
+                        <li><a href="<?= base_url('auth/login') ?>">Login</a></li>
+                        <?php if (auth()->loggedIn()): ?>
+                            <li><a href="<?= user_dashboard_url() ?>">Dashboard</a></li>
+                        <?php endif; ?>
                     </ul>
                 </div>
 
@@ -932,7 +950,7 @@
             <hr style="border-color: rgba(255,255,255,0.1); margin: 30px 0 20px 0;">
 
             <div class="text-center" style="color: #bdc3c7;">
-                <p>&copy; <?= date('Y') ?> Serikat Pekerja Kampus Indonesia. All rights reserved.</p>
+                <p>&copy; <?= date('Y') ?> <?= esc(app_name()) ?>. All rights reserved.</p>
             </div>
         </div>
     </footer>
