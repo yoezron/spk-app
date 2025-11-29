@@ -234,8 +234,8 @@
                                 <option value="">-- Pilih Status --</option>
                                 <?php if (isset($employmentStatuses)): ?>
                                     <?php foreach ($employmentStatuses as $status): ?>
-                                        <option value="<?= $status['id'] ?>" <?= old('employment_status_id') == $status['id'] ? 'selected' : '' ?>>
-                                            <?= esc($status['name']) ?>
+                                        <option value="<?= $status->id ?>" <?= old('employment_status_id') == $status->id ? 'selected' : '' ?>>
+                                            <?= esc($status->name) ?>
                                         </option>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
@@ -260,8 +260,8 @@
                                 <option value="">-- Pilih Range Gaji --</option>
                                 <?php if (isset($salaryRanges)): ?>
                                     <?php foreach ($salaryRanges as $range): ?>
-                                        <option value="<?= $range['id'] ?>" <?= old('salary_range_id') == $range['id'] ? 'selected' : '' ?>>
-                                            <?= esc($range['name']) ?>
+                                        <option value="<?= $range->id ?>" <?= old('salary_range_id') == $range->id ? 'selected' : '' ?>>
+                                            <?= esc($range->name) ?>
                                         </option>
                                     <?php endforeach; ?>
                                 <?php endif; ?>
@@ -282,8 +282,8 @@
                             <option value="">-- Pilih Provinsi --</option>
                             <?php if (isset($provinces)): ?>
                                 <?php foreach ($provinces as $province): ?>
-                                    <option value="<?= $province['id'] ?>" <?= old('province_id') == $province['id'] ? 'selected' : '' ?>>
-                                        <?= esc($province['name']) ?>
+                                    <option value="<?= $province->id ?>" <?= old('province_id') == $province->id ? 'selected' : '' ?>>
+                                        <?= esc($province->name) ?>
                                     </option>
                                 <?php endforeach; ?>
                             <?php endif; ?>

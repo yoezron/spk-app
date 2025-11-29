@@ -122,9 +122,9 @@ $formAction = $isEdit
                             <option value="">-- Tidak Ada Parent (Root Level) --</option>
                             <?php if (!empty($units) && is_array($units)): ?>
                                 <?php foreach ($units as $u): ?>
-                                    <option value="<?= $u['id'] ?>"
-                                            <?= old('parent_id', $unit['parent_id'] ?? '') == $u['id'] ? 'selected' : '' ?>>
-                                        <?= str_repeat('—', ($u['level'] ?? 1) - 1) ?> <?= esc($u['name']) ?>
+                                    <option value="<?= $u->id ?>"
+                                            <?= old('parent_id', $unit['parent_id'] ?? '') == $u->id ? 'selected' : '' ?>>
+                                        <?= str_repeat('—', ($u->level ?? 1) - 1) ?> <?= esc($u->name) ?>
                                     </option>
                                 <?php endforeach; ?>
                             <?php endif; ?>
