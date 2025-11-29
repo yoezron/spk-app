@@ -414,18 +414,33 @@
                 <!-- Contact Info -->
                 <div class="col-lg-3 col-md-6 mb-4">
                     <h5 class="footer-title">Kontak</h5>
+                    <?php
+                    $contact_address = get_setting('App\\Config\\General', 'contact_address', 'Jl. Kampus No. 123, Jakarta, Indonesia');
+                    $contact_email = get_setting('App\\Config\\General', 'contact_email', 'info@spk.or.id');
+                    $contact_phone = get_setting('App\\Config\\General', 'contact_phone', '+62 21 1234 5678');
+                    ?>
+                    <?php if (!empty($contact_address)): ?>
                     <div class="d-flex align-items-start mb-3">
                         <i class="material-icons-outlined me-2">location_on</i>
-                        <span>Jl. Kampus No. 123<br>Jakarta, Indonesia</span>
+                        <span><?= esc($contact_address) ?></span>
                     </div>
+                    <?php endif; ?>
+                    <?php if (!empty($contact_email)): ?>
                     <div class="d-flex align-items-center mb-3">
                         <i class="material-icons-outlined me-2">email</i>
-                        <span>info@spk.or.id</span>
+                        <a href="mailto:<?= esc($contact_email) ?>" style="color: inherit; text-decoration: none;">
+                            <?= esc($contact_email) ?>
+                        </a>
                     </div>
+                    <?php endif; ?>
+                    <?php if (!empty($contact_phone)): ?>
                     <div class="d-flex align-items-center">
                         <i class="material-icons-outlined me-2">phone</i>
-                        <span>+62 21 1234 5678</span>
+                        <a href="tel:<?= esc($contact_phone) ?>" style="color: inherit; text-decoration: none;">
+                            <?= esc($contact_phone) ?>
+                        </a>
                     </div>
+                    <?php endif; ?>
                 </div>
             </div>
 
