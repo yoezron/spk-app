@@ -268,8 +268,15 @@
     <nav class="navbar navbar-expand-lg navbar-public">
         <div class="container">
             <a class="navbar-brand" href="<?= base_url('/') ?>">
-                <i class="material-icons-outlined">group</i>
-                <span>SPK</span>
+                <?php
+                $logo = app_logo();
+                if ($logo):
+                ?>
+                    <img src="<?= esc($logo) ?>" alt="<?= esc(app_name()) ?>" style="max-height: 40px; max-width: 150px; object-fit: contain;">
+                <?php else: ?>
+                    <i class="material-icons-outlined">group</i>
+                    <span><?= esc(app_name()) ?></span>
+                <?php endif; ?>
             </a>
 
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -363,10 +370,17 @@
             <div class="row">
                 <!-- About -->
                 <div class="col-lg-4 col-md-6 mb-4">
-                    <h5 class="footer-title">Tentang SPK</h5>
+                    <?php
+                    $logo = app_logo();
+                    if ($logo):
+                    ?>
+                        <div class="mb-3">
+                            <img src="<?= esc($logo) ?>" alt="<?= esc(app_name()) ?>" style="max-height: 60px; max-width: 200px; object-fit: contain; filter: brightness(0) invert(1);">
+                        </div>
+                    <?php endif; ?>
+                    <h5 class="footer-title"><?= esc(app_name()) ?></h5>
                     <p style="line-height: 1.8;">
-                        Serikat Pekerja Kampus adalah organisasi perjuangan yang berdiri untuk
-                        memperjuangkan kesejahteraan dan hak-hak pekerja di lingkungan pendidikan tinggi.
+                        <?= esc(app_tagline()) ?>
                     </p>
                     <div class="footer-social">
                         <a href="#" title="Facebook"><i class="material-icons">facebook</i></a>

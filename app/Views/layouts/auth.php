@@ -85,15 +85,22 @@
         }
 
         .auth-logo {
-            width: 80px;
-            height: 80px;
+            max-width: 200px;
+            min-height: 60px;
             background: #ffffff;
-            border-radius: 50%;
+            border-radius: 12px;
             margin: 0 auto 20px;
             display: flex;
             align-items: center;
             justify-content: center;
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            padding: 10px 20px;
+        }
+
+        .auth-logo img {
+            max-height: 50px;
+            max-width: 100%;
+            object-fit: contain;
         }
 
         .auth-logo i {
@@ -259,8 +266,13 @@
             }
 
             .auth-logo {
-                width: 60px;
-                height: 60px;
+                max-width: 160px;
+                min-height: 50px;
+                padding: 8px 15px;
+            }
+
+            .auth-logo img {
+                max-height: 40px;
             }
 
             .auth-logo i {
@@ -425,13 +437,13 @@
                 <div class="auth-logo">
                     <?php $logo = app_logo(); ?>
                     <?php if ($logo): ?>
-                        <img src="<?= $logo ?>" alt="<?= app_name() ?>" style="max-height: 80px; max-width: 200px;">
+                        <img src="<?= esc($logo) ?>" alt="<?= esc(app_name()) ?>">
                     <?php else: ?>
                         <i class="material-icons-outlined">group</i>
                     <?php endif; ?>
                 </div>
                 <h1 class="auth-title"><?= esc($pageTitle ?? 'Formulir Pendaftaran') ?></h1>
-                <p class="auth-subtitle"><?= app_tagline() ?></p>
+                <p class="auth-subtitle"><?= esc(app_tagline()) ?></p>
             </div>
 
             <!-- Auth Body -->
