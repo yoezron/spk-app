@@ -53,7 +53,12 @@ $hasMemberPortalAccess = $currentUser->inGroup('superadmin') || $currentUser->in
         <div class="app-sidebar">
             <div class="logo">
                 <a href="<?= base_url('admin/dashboard') ?>" class="logo-icon">
-                    <span class="logo-text">SPK Admin</span>
+                    <?php $logo = app_logo(); ?>
+                    <?php if ($logo): ?>
+                        <img src="<?= $logo ?>" alt="<?= app_name() ?>" style="max-height: 40px; max-width: 150px;">
+                    <?php else: ?>
+                        <span class="logo-text"><?= app_name() ?> Admin</span>
+                    <?php endif; ?>
                 </a>
                 <div class="sidebar-user-switcher user-activity-online">
                     <a href="<?= base_url('member/profile') ?>">

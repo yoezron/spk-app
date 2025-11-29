@@ -60,7 +60,12 @@ $membershipStatus = $memberProfile->membership_status ?? 'pending';
         <div class="app-sidebar">
             <div class="logo">
                 <a href="<?= base_url('member/dashboard') ?>" class="logo-icon">
-                    <span class="logo-text">SPK Portal</span>
+                    <?php $logo = app_logo(); ?>
+                    <?php if ($logo): ?>
+                        <img src="<?= $logo ?>" alt="<?= app_name() ?>" style="max-height: 40px; max-width: 150px;">
+                    <?php else: ?>
+                        <span class="logo-text"><?= app_name() ?> Portal</span>
+                    <?php endif; ?>
                 </a>
                 <div class="sidebar-user-switcher user-activity-online">
                     <a href="<?= base_url('member/profile') ?>">

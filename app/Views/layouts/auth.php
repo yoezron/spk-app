@@ -423,10 +423,15 @@
             <!-- Auth Header -->
             <div class="auth-header">
                 <div class="auth-logo">
-                    <i class="material-icons-outlined">group</i>
+                    <?php $logo = app_logo(); ?>
+                    <?php if ($logo): ?>
+                        <img src="<?= $logo ?>" alt="<?= app_name() ?>" style="max-height: 80px; max-width: 200px;">
+                    <?php else: ?>
+                        <i class="material-icons-outlined">group</i>
+                    <?php endif; ?>
                 </div>
                 <h1 class="auth-title"><?= esc($pageTitle ?? 'Formulir Pendaftaran') ?></h1>
-                <p class="auth-subtitle">Sistem Informasi Anggota SPK</p>
+                <p class="auth-subtitle"><?= app_tagline() ?></p>
             </div>
 
             <!-- Auth Body -->
