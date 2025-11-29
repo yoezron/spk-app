@@ -2,7 +2,7 @@
 $generalSettings = $settings['App\\Config\\General'] ?? [];
 ?>
 
-<form action="<?= base_url('super/settings/update/general') ?>" method="POST" enctype="multipart/form-data">
+<form action="<?= base_url('super/settings/update/general') ?>" method="POST">
     <?= csrf_field() ?>
 
     <div class="row">
@@ -49,12 +49,21 @@ $generalSettings = $settings['App\\Config\\General'] ?? [];
                         <p class="text-muted">No logo uploaded</p>
                     <?php endif; ?>
                 </div>
-                <input type="file"
-                    class="form-control"
-                    id="logo"
-                    name="logo"
-                    accept="image/png,image/jpeg,image/jpg">
-                <small class="text-muted">Max size: 2MB. Format: JPG, PNG</small>
+                <form action="<?= base_url('super/settings/upload-logo') ?>" method="POST" enctype="multipart/form-data" id="logoUploadForm">
+                    <?= csrf_field() ?>
+                    <div class="input-group">
+                        <input type="file"
+                            class="form-control"
+                            id="logo"
+                            name="logo"
+                            accept="image/png,image/jpeg,image/jpg"
+                            required>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-upload me-1"></i> Upload
+                        </button>
+                    </div>
+                    <small class="text-muted">Max size: 2MB. Format: JPG, PNG</small>
+                </form>
             </div>
 
             <hr class="my-4">

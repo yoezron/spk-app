@@ -222,14 +222,19 @@ $hasMemberPortalAccess = $currentUser->inGroup('anggota') || $currentUser->inGro
         <div class="app-sidebar">
             <div class="logo">
                 <a href="<?= base_url('super/dashboard') ?>" class="logo-icon">
-                    <span class="logo-text">SPK System</span>
+                    <?php $logo = app_logo(); ?>
+                    <?php if ($logo): ?>
+                        <img src="<?= esc($logo) ?>" alt="<?= esc(app_name()) ?>" style="max-height: 40px; max-width: 150px; object-fit: contain;">
+                    <?php else: ?>
+                        <span class="logo-text"><?= esc(app_name()) ?> System</span>
+                    <?php endif; ?>
                 </a>
                 <div class="sidebar-user-switcher user-activity-online">
                     <a href="<?= base_url('member/profile') ?>">
                         <?php if ($currentUser && !empty($currentUser->photo)): ?>
-                            <img src="<?= base_url('uploads/photos/' . esc($currentUser->photo)) ?>" alt="User">
+                            <img src="<?= base_url('uploads/photos/' . esc($currentUser->photo)) ?>" alt="<?= esc($currentUser->full_name ?? 'User') ?>">
                         <?php else: ?>
-                            <img src="<?= base_url('assets/images/avatars/avatar.png') ?>" alt="User">
+                            <img src="<?= base_url('assets/images/avatars/avatar.png') ?>" alt="User Avatar">
                         <?php endif; ?>
                         <span class="activity-indicator"></span>
                         <span class="user-info-text">

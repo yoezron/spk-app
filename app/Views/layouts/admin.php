@@ -53,18 +53,23 @@ $hasMemberPortalAccess = $currentUser->inGroup('superadmin') || $currentUser->in
         <div class="app-sidebar">
             <div class="logo">
                 <a href="<?= base_url('admin/dashboard') ?>" class="logo-icon">
-                    <span class="logo-text">SPK Admin</span>
+                    <?php $logo = app_logo(); ?>
+                    <?php if ($logo): ?>
+                        <img src="<?= esc($logo) ?>" alt="<?= esc(app_name()) ?>" style="max-height: 40px; max-width: 150px; object-fit: contain;">
+                    <?php else: ?>
+                        <span class="logo-text"><?= esc(app_name()) ?> Admin</span>
+                    <?php endif; ?>
                 </a>
                 <div class="sidebar-user-switcher user-activity-online">
                     <a href="<?= base_url('member/profile') ?>">
-                        <?php if ($currentUser && isset($currentUser->photo)): ?>
-                            <img src="<?= base_url('uploads/photos/' . $currentUser->photo) ?>" alt="User">
+                        <?php if ($currentUser && !empty($currentUser->photo)): ?>
+                            <img src="<?= base_url('uploads/photos/' . esc($currentUser->photo)) ?>" alt="<?= esc($currentUser->full_name ?? 'User') ?>">
                         <?php else: ?>
-                            <img src="<?= base_url('assets/images/avatars/avatar.png') ?>" alt="User">
+                            <img src="<?= base_url('assets/images/avatars/avatar.png') ?>" alt="User Avatar">
                         <?php endif; ?>
                         <span class="activity-indicator"></span>
                         <span class="user-info-text">
-                            <?= esc($currentUser->full_name ?? $currentUser->username) ?><br>
+                            <?= esc($currentUser->full_name ?? $currentUser->username ?? 'Admin') ?><br>
                             <span class="user-state-info">Pengurus SPK</span>
                         </span>
                     </a>
@@ -473,9 +478,9 @@ $hasMemberPortalAccess = $currentUser->inGroup('superadmin') || $currentUser->in
                                 <!-- User Menu -->
                                 <li class="nav-item hidden-on-mobile">
                                     <a class="nav-link" href="#" data-bs-toggle="dropdown">
-                                        <?php if ($currentUser && isset($currentUser->photo)): ?>
-                                            <img src="<?= base_url('uploads/photos/' . $currentUser->photo) ?>"
-                                                alt="User" style="width: 32px; height: 32px; border-radius: 50%;">
+                                        <?php if ($currentUser && !empty($currentUser->photo)): ?>
+                                            <img src="<?= base_url('uploads/photos/' . esc($currentUser->photo)) ?>"
+                                                alt="<?= esc($currentUser->full_name ?? 'User') ?>" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover;">
                                         <?php else: ?>
                                             <i class="material-icons">account_circle</i>
                                         <?php endif; ?>
