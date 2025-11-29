@@ -2,6 +2,51 @@
 $generalSettings = $settings['App\\Config\\General'] ?? [];
 ?>
 
+<!-- Logo Upload Section (Separate Form) -->
+<div class="row mb-4">
+    <div class="col-md-12">
+        <div class="card">
+            <div class="card-body">
+                <h6 class="fw-bold mb-3"><i class="fas fa-image me-2"></i>Application Logo</h6>
+                <div class="row">
+                    <div class="col-md-3">
+                        <?php if (!empty($generalSettings['logo_path'])): ?>
+                            <img src="<?= base_url($generalSettings['logo_path']) ?>" alt="Logo" class="img-thumbnail" style="max-height: 120px; max-width: 100%;">
+                        <?php else: ?>
+                            <div class="text-center p-4 border rounded bg-light">
+                                <i class="fas fa-image fa-3x text-muted mb-2"></i>
+                                <p class="text-muted mb-0 small">No logo uploaded</p>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="col-md-9">
+                        <form action="<?= base_url('super/settings/upload/logo') ?>" method="POST" enctype="multipart/form-data" id="logoUploadForm">
+                            <?= csrf_field() ?>
+                            <label class="form-label">Upload New Logo</label>
+                            <div class="input-group mb-2">
+                                <input type="file"
+                                    class="form-control"
+                                    id="logo"
+                                    name="logo"
+                                    accept="image/png,image/jpeg,image/jpg"
+                                    required>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-upload me-1"></i> Upload Logo
+                                </button>
+                            </div>
+                            <small class="text-muted">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Max size: 2MB. Accepted formats: JPG, JPEG, PNG
+                            </small>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- General Settings Form -->
 <form action="<?= base_url('super/settings/update/general') ?>" method="POST">
     <?= csrf_field() ?>
 
@@ -38,32 +83,6 @@ $generalSettings = $settings['App\\Config\\General'] ?? [];
                     id="app_description"
                     name="app_description"
                     rows="3"><?= old('app_description', $generalSettings['app_description'] ?? '') ?></textarea>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Logo</label>
-                <div class="mb-2">
-                    <?php if (!empty($generalSettings['logo_path'])): ?>
-                        <img src="<?= base_url($generalSettings['logo_path']) ?>" alt="Logo" class="img-thumbnail" style="max-height: 100px;">
-                    <?php else: ?>
-                        <p class="text-muted">No logo uploaded</p>
-                    <?php endif; ?>
-                </div>
-                <form action="<?= base_url('super/settings/upload/logo') ?>" method="POST" enctype="multipart/form-data" id="logoUploadForm">
-                    <?= csrf_field() ?>
-                    <div class="input-group">
-                        <input type="file"
-                            class="form-control"
-                            id="logo"
-                            name="logo"
-                            accept="image/png,image/jpeg,image/jpg"
-                            required>
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-upload me-1"></i> Upload
-                        </button>
-                    </div>
-                    <small class="text-muted">Max size: 2MB. Format: JPG, PNG</small>
-                </form>
             </div>
 
             <hr class="my-4">
