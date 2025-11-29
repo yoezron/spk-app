@@ -224,17 +224,17 @@ $hasMemberPortalAccess = $currentUser->inGroup('anggota') || $currentUser->inGro
                 <a href="<?= base_url('super/dashboard') ?>" class="logo-icon">
                     <?php $logo = app_logo(); ?>
                     <?php if ($logo): ?>
-                        <img src="<?= $logo ?>" alt="<?= app_name() ?>" style="max-height: 40px; max-width: 150px;">
+                        <img src="<?= esc($logo) ?>" alt="<?= esc(app_name()) ?>" style="max-height: 40px; max-width: 150px; object-fit: contain;">
                     <?php else: ?>
-                        <span class="logo-text"><?= app_name() ?> System</span>
+                        <span class="logo-text"><?= esc(app_name()) ?> System</span>
                     <?php endif; ?>
                 </a>
                 <div class="sidebar-user-switcher user-activity-online">
                     <a href="<?= base_url('member/profile') ?>">
                         <?php if ($currentUser && !empty($currentUser->photo)): ?>
-                            <img src="<?= base_url('uploads/photos/' . esc($currentUser->photo)) ?>" alt="User">
+                            <img src="<?= base_url('uploads/photos/' . esc($currentUser->photo)) ?>" alt="<?= esc($currentUser->full_name ?? 'User') ?>">
                         <?php else: ?>
-                            <img src="<?= base_url('assets/images/avatars/avatar.png') ?>" alt="User">
+                            <img src="<?= base_url('assets/images/avatars/avatar.png') ?>" alt="User Avatar">
                         <?php endif; ?>
                         <span class="activity-indicator"></span>
                         <span class="user-info-text">
