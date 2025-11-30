@@ -90,7 +90,7 @@ class CardController extends BaseController
                 'canDownload' => $cardStatus['status'] !== 'expired'
             ];
 
-            return view('member/card/qrcode', $data);
+            return view('member/card/index', $data);
         } catch (\Exception $e) {
             log_message('error', 'Error loading member card: ' . $e->getMessage());
 
@@ -160,6 +160,61 @@ class CardController extends BaseController
 
             return redirect()->to('/member/card')
                 ->with('error', 'Terjadi kesalahan saat mengunduh kartu anggota.');
+        }
+    }
+
+    /**
+     * Display card preview (for full screen view/print)
+     *
+     * @return string|RedirectResponse
+     */
+    public function preview(): string|RedirectResponse
+    {
+        // Check authentication
+        if (!auth()->loggedIn()) {
+            return redirect()->to('/login');
+        }
+
+        $user = auth()->user();
+
+        try {
+            // Get member profile with relations
+            $memberModel = model('MemberProfileModel');
+            $member = $memberModel->select('member_profiles.*,
+                                           provinces.name as province_name,
+                                           universities.name as university_name')
+                ->join('provinces', 'provinces.id = member_profiles.province_id', 'left')
+                ->join('universities', 'universities.id = member_profiles.university_id', 'left')
+                ->where('member_profiles.user_id', $user->id)
+                ->first();
+
+            if (!$member) {
+                return redirect()->to('/member/dashboard')
+                    ->with('error', 'Profil tidak ditemukan.');
+            }
+
+            // Generate verification token if not exists
+            $verificationToken = $member->card_verification_token ?? $this->generateVerificationToken($member->id);
+            $qrCodeData = base_url('verify/' . $verificationToken);
+
+            // Get card status
+            $cardStatus = $this->getCardStatus($member);
+
+            $data = [
+                'title' => 'Preview Kartu Anggota',
+                'pageTitle' => 'Preview Kartu Anggota',
+                'member' => $member,
+                'qrCodeData' => $qrCodeData,
+                'verificationToken' => $verificationToken,
+                'cardStatus' => $cardStatus
+            ];
+
+            return view('member/card/preview', $data);
+        } catch (\Exception $e) {
+            log_message('error', 'Error loading card preview: ' . $e->getMessage());
+
+            return redirect()->to('/member/card')
+                ->with('error', 'Terjadi kesalahan saat memuat preview kartu.');
         }
     }
 
