@@ -180,32 +180,46 @@ class DashboardController extends BaseController
             }
 
             // Forum posts count
-            $forumPostModel = model('ForumPostModel');
-            $stats['forum_posts_count'] = $forumPostModel->where('user_id', $userId)
-                ->countAllResults();
+            try {
+                $forumPostModel = model('ForumPostModel');
+                $stats['forum_posts_count'] = $forumPostModel ? $forumPostModel->where('user_id', $userId)->countAllResults() : 0;
+            } catch (\Exception $e) {
+                $stats['forum_posts_count'] = 0;
+            }
 
             // Forum threads created
-            $forumThreadModel = model('ForumThreadModel');
-            $stats['forum_threads_count'] = $forumThreadModel->where('created_by', $userId)
-                ->countAllResults();
+            try {
+                $forumThreadModel = model('ForumThreadModel');
+                $stats['forum_threads_count'] = $forumThreadModel ? $forumThreadModel->where('created_by', $userId)->countAllResults() : 0;
+            } catch (\Exception $e) {
+                $stats['forum_threads_count'] = 0;
+            }
 
             // Surveys completed
-            $surveyResponseModel = model('SurveyResponseModel');
-            $stats['surveys_completed'] = $surveyResponseModel->where('user_id', $userId)
-                ->countAllResults();
+            try {
+                $surveyResponseModel = model('SurveyResponseModel');
+                $stats['surveys_completed'] = $surveyResponseModel ? $surveyResponseModel->where('user_id', $userId)->countAllResults() : 0;
+            } catch (\Exception $e) {
+                $stats['surveys_completed'] = 0;
+            }
 
             // Complaints/tickets
-            $complaintModel = model('ComplaintModel');
-            $stats['tickets_total'] = $complaintModel->where('user_id', $userId)
-                ->countAllResults();
-
-            $stats['tickets_open'] = $complaintModel->where('user_id', $userId)
-                ->whereIn('status', ['open', 'in_progress'])
-                ->countAllResults();
-
-            $stats['tickets_closed'] = $complaintModel->where('user_id', $userId)
-                ->where('status', 'closed')
-                ->countAllResults();
+            try {
+                $complaintModel = model('ComplaintModel');
+                if ($complaintModel) {
+                    $stats['tickets_total'] = $complaintModel->where('user_id', $userId)->countAllResults();
+                    $stats['tickets_open'] = $complaintModel->where('user_id', $userId)->whereIn('status', ['open', 'in_progress'])->countAllResults();
+                    $stats['tickets_closed'] = $complaintModel->where('user_id', $userId)->where('status', 'closed')->countAllResults();
+                } else {
+                    $stats['tickets_total'] = 0;
+                    $stats['tickets_open'] = 0;
+                    $stats['tickets_closed'] = 0;
+                }
+            } catch (\Exception $e) {
+                $stats['tickets_total'] = 0;
+                $stats['tickets_open'] = 0;
+                $stats['tickets_closed'] = 0;
+            }
 
             return $stats;
         } catch (\Exception $e) {
