@@ -197,7 +197,7 @@ class CardGeneratorService
         try {
             // Get member with complete data
             $member = $this->memberModel
-                ->select('member_profiles.*, users.username, users.email')
+                ->select('member_profiles.*, users.username, users.email, users.active')
                 ->join('users', 'users.id = member_profiles.user_id')
                 ->where('member_profiles.user_id', $userId)
                 ->first();
@@ -210,11 +210,11 @@ class CardGeneratorService
                 ];
             }
 
-            // Check if member is active
-            if ($member->membership_status !== 'active') {
+            // Check if user account is active
+            if (!$member->active) {
                 return [
                     'success' => false,
-                    'message' => 'Hanya anggota aktif yang dapat mencetak kartu',
+                    'message' => 'Akun tidak aktif. Silakan hubungi pengurus.',
                     'data' => null
                 ];
             }
@@ -477,10 +477,10 @@ HTML;
 
     /**
      * Save card to storage
-     * 
+     *
      * @param int $userId User ID
      * @param string $pdfContent PDF content
-     * @return string File path
+     * @return string Absolute file path
      */
     protected function saveCard(int $userId, string $pdfContent): string
     {
@@ -495,7 +495,8 @@ HTML;
 
         file_put_contents($filePath, $pdfContent);
 
-        return 'uploads/cards/' . $filename;
+        // Return absolute path for download
+        return $filePath;
     }
 
     /**
@@ -580,17 +581,28 @@ HTML;
     }
 
     /**
-     * Calculate card validity date (2 years from join date)
-     * 
-     * @param string $joinDate Join date
+     * Calculate card validity date (3 years from join date)
+     *
+     * @param string|null $joinDate Join date
      * @return string Validity date (formatted)
      */
-    protected function calculateValidityDate(string $joinDate): string
+    protected function calculateValidityDate(?string $joinDate): string
     {
-        $date = new \DateTime($joinDate);
-        $date->modify('+2 years');
+        if (empty($joinDate)) {
+            // Default to 3 years from now if no join date
+            $date = new \DateTime();
+            $date->modify('+3 years');
+            return $date->format('d/m/Y');
+        }
 
-        return $date->format('d/m/Y');
+        try {
+            $date = new \DateTime($joinDate);
+            $date->modify('+3 years');
+            return $date->format('d/m/Y');
+        } catch (\Exception $e) {
+            log_message('error', 'Invalid join date: ' . $joinDate);
+            return 'N/A';
+        }
     }
 
     /**
