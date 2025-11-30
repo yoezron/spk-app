@@ -116,6 +116,10 @@ $routes->group('member', ['namespace' => 'App\Controllers\Member', 'filter' => '
     $routes->get('card', 'CardController::index', ['as' => 'member.card']);
     $routes->get('card/download', 'CardController::download');
     $routes->get('card/preview', 'CardController::preview');
+    $routes->get('card/qrcode', 'CardController::qrcode');
+    $routes->get('card/history', 'CardController::history');
+    $routes->get('card/renew', 'CardController::renew');
+    $routes->post('card/renew', 'CardController::submitRenewal');
 
     // Payment & Dues
     $routes->get('payment', 'PaymentController::index', ['as' => 'member.payment']);
