@@ -26,15 +26,20 @@ class AuditLogModel extends Model
         'user_id',
         'module',
         'action',
-        'description',
-        'record_id',
+        'action_description',
+        'entity_type',
+        'entity_id',
+        'entity_name',
         'old_values',
         'new_values',
-        'ip_address',
-        'user_agent',
+        'changed_fields',
         'url',
         'method',
-        'status'
+        'ip_address',
+        'user_agent',
+        'severity',
+        'tags',
+        'metadata'
     ];
 
     // Dates
@@ -45,29 +50,27 @@ class AuditLogModel extends Model
 
     // Validation
     protected $validationRules = [
-        'module' => 'required|max_length[50]',
         'action' => 'required|max_length[50]',
-        'description' => 'required|max_length[500]',
+        'action_description' => 'permit_empty|max_length[65535]',
+        'module' => 'permit_empty|max_length[50]',
+        'entity_type' => 'permit_empty|max_length[100]',
         'ip_address' => 'permit_empty|max_length[45]',
         'method' => 'permit_empty|in_list[GET,POST,PUT,PATCH,DELETE]',
-        'status' => 'permit_empty|in_list[success,failed,warning]',
+        'severity' => 'permit_empty|in_list[low,medium,high,critical]',
     ];
 
     protected $validationMessages = [
-        'module' => [
-            'required' => 'Module harus diisi',
-        ],
         'action' => [
             'required' => 'Action harus diisi',
         ],
-        'description' => [
-            'required' => 'Description harus diisi',
+        'action_description' => [
+            'max_length' => 'Deskripsi terlalu panjang',
         ],
     ];
 
     // Callbacks
     protected $allowCallbacks = true;
-    protected $beforeInsert   = ['setDefaultStatus'];
+    protected $beforeInsert   = ['setDefaultSeverity'];
 
     // ========================================
     // RELATIONSHIPS
@@ -138,7 +141,7 @@ class AuditLogModel extends Model
 
         if (!empty($filters['search'])) {
             $builder->groupStart()
-                ->like('audit_logs.description', $filters['search'])
+                ->like('audit_logs.action_description', $filters['search'])
                 ->orLike('audit_logs.module', $filters['search'])
                 ->orLike('audit_logs.action', $filters['search'])
                 ->groupEnd();
@@ -186,7 +189,7 @@ class AuditLogModel extends Model
 
         if (!empty($filters['search'])) {
             $builder->groupStart()
-                ->like('description', $filters['search'])
+                ->like('action_description', $filters['search'])
                 ->orLike('module', $filters['search'])
                 ->orLike('action', $filters['search'])
                 ->groupEnd();
@@ -465,7 +468,7 @@ class AuditLogModel extends Model
     public function search(string $keyword)
     {
         return $this->groupStart()
-            ->like('description', $keyword)
+            ->like('action_description', $keyword)
             ->orLike('module', $keyword)
             ->orLike('action', $keyword)
             ->orLike('ip_address', $keyword)
@@ -842,8 +845,8 @@ class AuditLogModel extends Model
             'user_id' => $userId,
             'module' => 'authentication',
             'action' => $action,
-            'description' => $description,
-            'status' => $status,
+            'action_description' => $description,
+            'severity' => $status === 'failed' ? 'high' : 'low',
         ]);
     }
 
@@ -872,11 +875,11 @@ class AuditLogModel extends Model
             'user_id' => $userId,
             'module' => $module,
             'action' => $action,
-            'record_id' => $recordId,
-            'description' => $description,
+            'entity_id' => $recordId,
+            'action_description' => $description,
             'old_values' => $oldValues ? json_encode($oldValues) : null,
             'new_values' => $newValues ? json_encode($newValues) : null,
-            'status' => 'success',
+            'severity' => 'low',
         ]);
     }
 
@@ -964,15 +967,15 @@ class AuditLogModel extends Model
     // ========================================
 
     /**
-     * Set default status before insert
-     * 
+     * Set default severity before insert
+     *
      * @param array $data
      * @return array
      */
-    protected function setDefaultStatus(array $data): array
+    protected function setDefaultSeverity(array $data): array
     {
-        if (!isset($data['data']['status'])) {
-            $data['data']['status'] = 'success';
+        if (!isset($data['data']['severity'])) {
+            $data['data']['severity'] = 'low';
         }
 
         return $data;

@@ -376,6 +376,7 @@ $routes->group('super', ['namespace' => 'App\Controllers\Super', 'filter' => 'ro
         $routes->post('(:num)/force-reset-password', 'UserController::forceResetPassword/$1');
         $routes->post('(:num)/delete', 'UserController::delete/$1');
         $routes->delete('(:num)', 'UserController::delete/$1');
+        $routes->get('permissions-by-role/(:any)', 'UserController::getPermissionsByRole/$1');
     });
 
     // Role Management
