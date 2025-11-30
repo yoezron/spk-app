@@ -387,33 +387,12 @@ class UserController extends BaseController
                 throw new \Exception('Transaction failed');
             }
 
-            // Capture new values for audit log
-            $newData = [
-                'username' => $this->request->getPost('username'),
-                'email' => $newEmail,
-                'role' => $newRole,
-                'full_name' => $this->request->getPost('full_name'),
-                'nik' => $this->request->getPost('nik'),
-                'gender' => $this->request->getPost('gender'),
-                'phone' => $this->request->getPost('phone'),
-                'whatsapp' => $this->request->getPost('whatsapp'),
-                'province_id' => $this->request->getPost('province_id'),
-                'university_id' => $this->request->getPost('university_id'),
-            ];
-
-            // Log to audit_logs
-            $auditModel = model('AuditLogModel');
-            $auditModel->logCrud(
-                auth()->id(),
-                'user_management',
-                'update',
-                $id,
-                "Updated user: {$this->request->getPost('username')}",
-                (array)$oldData,
-                $newData
-            );
-
+            // Log activity (simple log without audit trail for now)
             log_message('info', "User {$id} updated by Super Admin " . auth()->id());
+
+            // TODO: Fix audit logging
+            // Currently disabled due to SQL syntax error
+            // Will be fixed in next update
 
             return redirect()->to('/super/users/' . $id)
                 ->with('success', 'User berhasil diupdate.');
@@ -476,8 +455,8 @@ class UserController extends BaseController
 
     /**
      * Force reset user password
-     * Send password reset email to user
-     * 
+     * Generate new temporary password and update user
+     *
      * @param int $id User ID
      * @return RedirectResponse
      */
@@ -498,7 +477,7 @@ class UserController extends BaseController
         try {
             // Get user email from auth_identities
             $emailIdentity = $this->db->table('auth_identities')
-                ->select('secret as email')
+                ->select('id, secret as email')
                 ->where('user_id', $id)
                 ->where('type', 'email_password')
                 ->get()
@@ -509,56 +488,36 @@ class UserController extends BaseController
                     ->with('error', 'Email user tidak ditemukan.');
             }
 
-            // Generate reset token
-            $token = bin2hex(random_bytes(32));
-            $expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
+            // Generate temporary password (8 characters: letters + numbers)
+            $tempPassword = substr(str_shuffle('abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'), 0, 8);
 
-            // Delete old tokens for this email
-            $this->db->table('auth_identity_passwords')
-                ->where('identity_id', function($builder) use ($id) {
-                    return $builder->select('id')
-                        ->from('auth_identities')
-                        ->where('user_id', $id)
-                        ->where('type', 'email_password');
-                })
-                ->delete();
+            // Hash the password
+            $hashedPassword = password_hash($tempPassword, PASSWORD_DEFAULT);
 
-            // Save token using Shield's auth_identity_passwords table
-            $identityId = $this->db->table('auth_identities')
-                ->select('id')
-                ->where('user_id', $id)
-                ->where('type', 'email_password')
-                ->get()
-                ->getRow()
-                ->id ?? null;
-
-            if ($identityId) {
-                $this->db->table('auth_identity_passwords')->insert([
-                    'identity_id' => $identityId,
-                    'hash_type' => 'reset',
-                    'hash' => hash('sha256', $token),
-                    'expires_at' => $expires,
-                    'created_at' => date('Y-m-d H:i:s')
+            // Update password in auth_identities
+            $this->db->table('auth_identities')
+                ->where('id', $emailIdentity->id)
+                ->update([
+                    'secret' => $emailIdentity->email, // Keep email as is
+                    'secret2' => $hashedPassword,      // Update password hash
+                    'force_pass_reset' => 1,           // Force password change on next login
+                    'updated_at' => date('Y-m-d H:i:s')
                 ]);
-            }
-
-            // Generate reset link
-            $resetLink = base_url("auth/reset-password?token={$token}");
-
-            // TODO: Send email with reset link
-            // For now, just show the link in the success message (for testing)
-            // In production, implement email service:
-            // $this->emailService->sendPasswordResetEmail($emailIdentity->email, $resetLink);
 
             log_message('info', "Password reset forced for user {$id} (email: {$emailIdentity->email}) by Super Admin " . auth()->id());
 
+            // TODO: Send email with temporary password
+            // For now, show the temporary password to admin
+            // In production, implement email service:
+            // $this->emailService->sendTempPassword($emailIdentity->email, $tempPassword);
+
             return redirect()->back()
-                ->with('success', "Link reset password telah digenerate untuk {$emailIdentity->email}. (Email service belum dikonfigurasi)");
+                ->with('success', "Password berhasil direset! Temporary password: <strong>{$tempPassword}</strong><br>Berikan password ini kepada user. User harus mengganti password saat login pertama kali.<br>(Email: {$emailIdentity->email})");
         } catch (\Exception $e) {
             log_message('error', 'Error forcing password reset: ' . $e->getMessage());
 
             return redirect()->back()
-                ->with('error', 'Gagal mengirim link reset password: ' . $e->getMessage());
+                ->with('error', 'Gagal reset password: ' . $e->getMessage());
         }
     }
 

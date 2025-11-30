@@ -804,30 +804,36 @@ class AuditLogModel extends Model
 
     /**
      * Log user action
-     * 
+     *
      * @param array $data Log data
      * @return int|false Log ID or false
      */
     public function logAction(array $data)
     {
-        // Add request info if not provided
-        if (!isset($data['ip_address'])) {
-            $data['ip_address'] = service('request')->getIPAddress();
-        }
+        try {
+            // Add request info if not provided
+            if (!isset($data['ip_address'])) {
+                $data['ip_address'] = service('request')->getIPAddress();
+            }
 
-        if (!isset($data['user_agent'])) {
-            $data['user_agent'] = service('request')->getUserAgent()->getAgentString();
-        }
+            if (!isset($data['user_agent'])) {
+                $userAgent = service('request')->getUserAgent();
+                $data['user_agent'] = is_object($userAgent) ? $userAgent->getAgentString() : '';
+            }
 
-        if (!isset($data['url'])) {
-            $data['url'] = current_url();
-        }
+            if (!isset($data['url'])) {
+                $data['url'] = current_url();
+            }
 
-        if (!isset($data['method'])) {
-            $data['method'] = service('request')->getMethod();
-        }
+            if (!isset($data['method'])) {
+                $data['method'] = strtoupper(service('request')->getMethod());
+            }
 
-        return $this->insert($data);
+            return $this->insert($data);
+        } catch (\Exception $e) {
+            log_message('error', 'AuditLog insert failed: ' . $e->getMessage());
+            return false;
+        }
     }
 
     /**
