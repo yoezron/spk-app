@@ -139,14 +139,23 @@ class UserController extends BaseController
         // Get user permissions based on their role
         $permissions = [];
         if ($user->group) {
-            $permissions = $this->db->table('auth_permissions')
-                ->select('auth_permissions.id, auth_permissions.name, auth_permissions.description')
-                ->join('auth_groups_permissions', 'auth_permissions.id = auth_groups_permissions.permission_id')
-                ->join('auth_groups', 'auth_groups_permissions.group = auth_groups.title')
-                ->where('auth_groups.title', $user->group)
-                ->orderBy('auth_permissions.name', 'ASC')
+            // Get group ID first
+            $groupId = $this->db->table('auth_groups')
+                ->select('id')
+                ->where('title', $user->group)
                 ->get()
-                ->getResult();
+                ->getRow()
+                ->id ?? null;
+
+            if ($groupId) {
+                $permissions = $this->db->table('auth_permissions')
+                    ->select('auth_permissions.id, auth_permissions.name, auth_permissions.description')
+                    ->join('auth_groups_permissions', 'auth_permissions.id = auth_groups_permissions.permission_id')
+                    ->where('auth_groups_permissions.group_id', $groupId)
+                    ->orderBy('auth_permissions.name', 'ASC')
+                    ->get()
+                    ->getResult();
+            }
         }
 
         // Get recent activity logs
@@ -185,7 +194,11 @@ class UserController extends BaseController
             ->select('users.id, users.username, users.active, users.created_at, users.updated_at')
             ->select('auth_groups_users.group')
             ->select('auth_identities.secret as email')
-            ->select('member_profiles.*')
+            ->select('member_profiles.full_name, member_profiles.nik, member_profiles.gender')
+            ->select('member_profiles.birth_place, member_profiles.birth_date')
+            ->select('member_profiles.phone, member_profiles.whatsapp')
+            ->select('member_profiles.province_id, member_profiles.university_id')
+            ->select('member_profiles.photo_path, member_profiles.member_number, member_profiles.membership_status')
             ->join('auth_groups_users', 'users.id = auth_groups_users.user_id', 'left')
             ->join('auth_identities', 'users.id = auth_identities.user_id AND auth_identities.type = "email_password"', 'left')
             ->join('member_profiles', 'users.id = member_profiles.user_id', 'left')
@@ -573,12 +586,25 @@ class UserController extends BaseController
         }
 
         try {
+            // Get group ID first
+            $group = $this->db->table('auth_groups')
+                ->select('id')
+                ->where('title', $role)
+                ->get()
+                ->getRow();
+
+            if (!$group) {
+                return $this->response->setJSON([
+                    'success' => false,
+                    'message' => 'Role tidak ditemukan.'
+                ])->setStatusCode(404);
+            }
+
             // Get permissions for this role
             $permissions = $this->db->table('auth_permissions')
                 ->select('auth_permissions.id, auth_permissions.name, auth_permissions.description')
                 ->join('auth_groups_permissions', 'auth_permissions.id = auth_groups_permissions.permission_id')
-                ->join('auth_groups', 'auth_groups_permissions.group = auth_groups.title')
-                ->where('auth_groups.title', $role)
+                ->where('auth_groups_permissions.group_id', $group->id)
                 ->orderBy('auth_permissions.name', 'ASC')
                 ->get()
                 ->getResult();
