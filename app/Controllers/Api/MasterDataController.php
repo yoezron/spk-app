@@ -108,4 +108,34 @@ class MasterDataController extends BaseController
             ]);
         }
     }
+
+    /**
+     * Get study programs by university ID (URL parameter version)
+     * Used by member profile edit page
+     *
+     * @param int $universityId University ID from URL segment
+     * @return ResponseInterface
+     */
+    public function getStudyProgramsByUniversity(int $universityId): ResponseInterface
+    {
+        try {
+            if (!$universityId) {
+                return $this->response->setJSON([]);
+            }
+
+            $studyPrograms = $this->studyProgramModel
+                ->select('id, name, level, faculty')
+                ->where('university_id', $universityId)
+                ->where('is_active', 1)
+                ->orderBy('name', 'ASC')
+                ->findAll();
+
+            // Return simple array format expected by the frontend
+            return $this->response->setJSON($studyPrograms);
+        } catch (\Exception $e) {
+            log_message('error', 'Error fetching study programs by university: ' . $e->getMessage());
+
+            return $this->response->setJSON([]);
+        }
+    }
 }
