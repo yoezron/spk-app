@@ -100,6 +100,9 @@ class DashboardController extends BaseController
             // Check account status and warnings
             $accountWarnings = $this->checkAccountWarnings($user, $member);
 
+            // Get general statistics
+            $generalStats = $this->getGeneralStatistics();
+
             $data = [
                 'title' => 'Dashboard - Serikat Pekerja Kampus',
                 'pageTitle' => 'Dashboard',
@@ -110,10 +113,11 @@ class DashboardController extends BaseController
 
                 // Statistics
                 'personalStats' => $personalStats,
+                'statistics' => $generalStats,
 
                 // Notifications
-                'notifications' => $notifications['data'] ?? [],
-                'unreadCount' => $unreadCount['count'] ?? 0,
+                'notifications' => $notifications,
+                'unreadCount' => $unreadCount,
 
                 // Activities
                 'recentActivities' => $recentActivities,
@@ -253,8 +257,9 @@ class DashboardController extends BaseController
                         $activities[] = [
                             'type' => 'forum_post',
                             'icon' => 'message-square',
-                            'title' => 'Membalas thread: ' . $post->thread_title,
-                            'time' => $post->created_at,
+                            'title' => 'Membalas thread',
+                            'description' => $post->thread_title,
+                            'created_at' => $post->created_at,
                             'url' => base_url('member/forum/thread/' . $post->thread_id)
                         ];
                     }
@@ -277,8 +282,9 @@ class DashboardController extends BaseController
                         $activities[] = [
                             'type' => 'survey',
                             'icon' => 'clipboard-check',
-                            'title' => 'Mengisi survei: ' . $response->survey_title,
-                            'time' => $response->created_at,
+                            'title' => 'Mengisi survei',
+                            'description' => $response->survey_title,
+                            'created_at' => $response->created_at,
                             'url' => base_url('member/surveys/' . $response->survey_id)
                         ];
                     }
@@ -299,8 +305,9 @@ class DashboardController extends BaseController
                         $activities[] = [
                             'type' => 'ticket',
                             'icon' => 'alert-circle',
-                            'title' => 'Ticket: ' . $ticket->subject,
-                            'time' => $ticket->created_at,
+                            'title' => 'Membuat pengaduan',
+                            'description' => $ticket->subject,
+                            'created_at' => $ticket->created_at,
                             'url' => base_url('member/complaints/' . $ticket->id),
                             'status' => $ticket->status
                         ];
@@ -310,10 +317,10 @@ class DashboardController extends BaseController
                 log_message('error', 'Error getting recent tickets: ' . $e->getMessage());
             }
 
-            // Sort by time (most recent first)
+            // Sort by created_at (most recent first)
             if (!empty($activities)) {
                 usort($activities, function ($a, $b) {
-                    return strtotime($b['time']) - strtotime($a['time']);
+                    return strtotime($b['created_at']) - strtotime($a['created_at']);
                 });
 
                 // Return only top 10
@@ -535,6 +542,88 @@ class DashboardController extends BaseController
                 'success' => false,
                 'message' => 'Error updating notifications'
             ]);
+        }
+    }
+
+    /**
+     * Get general statistics for dashboard
+     * Returns overall system statistics (total members, pending, surveys, etc.)
+     *
+     * @return array
+     */
+    protected function getGeneralStatistics(): array
+    {
+        try {
+            $stats = [];
+
+            // Get total members
+            $memberModel = model('MemberProfileModel');
+            if ($memberModel) {
+                $stats['total_members'] = $memberModel->countAllResults(false);
+
+                // Get new members this month
+                $firstDayOfMonth = date('Y-m-01');
+                $stats['new_members_this_month'] = $memberModel
+                    ->where('created_at >=', $firstDayOfMonth)
+                    ->countAllResults();
+            } else {
+                $stats['total_members'] = 0;
+                $stats['new_members_this_month'] = 0;
+            }
+
+            // Get pending members (calon anggota)
+            try {
+                $db = \Config\Database::connect();
+                $builder = $db->table('auth_groups_users');
+                $builder->select('auth_groups_users.user_id')
+                    ->join('auth_groups', 'auth_groups.id = auth_groups_users.group')
+                    ->where('auth_groups.title', 'Calon Anggota');
+                $stats['pending_members'] = $builder->countAllResults();
+            } catch (\Exception $e) {
+                log_message('error', 'Error getting pending members: ' . $e->getMessage());
+                $stats['pending_members'] = 0;
+            }
+
+            // Get active surveys
+            try {
+                $surveyModel = model('SurveyModel');
+                if ($surveyModel) {
+                    $stats['active_surveys'] = $surveyModel
+                        ->where('status', 'active')
+                        ->where('start_date <=', date('Y-m-d'))
+                        ->where('end_date >=', date('Y-m-d'))
+                        ->countAllResults();
+                } else {
+                    $stats['active_surveys'] = 0;
+                }
+            } catch (\Exception $e) {
+                log_message('error', 'Error getting active surveys: ' . $e->getMessage());
+                $stats['active_surveys'] = 0;
+            }
+
+            // Get total forum threads
+            try {
+                $forumThreadModel = model('ForumThreadModel');
+                if ($forumThreadModel) {
+                    $stats['total_threads'] = $forumThreadModel->countAllResults();
+                } else {
+                    $stats['total_threads'] = 0;
+                }
+            } catch (\Exception $e) {
+                log_message('error', 'Error getting forum threads: ' . $e->getMessage());
+                $stats['total_threads'] = 0;
+            }
+
+            return $stats;
+        } catch (\Exception $e) {
+            log_message('error', 'Error getting general statistics: ' . $e->getMessage());
+            return [
+                'total_members' => 0,
+                'new_members_this_month' => 0,
+                'pending_members' => 0,
+                'active_surveys' => 0,
+                'total_threads' => 0
+            ];
         }
     }
 }
