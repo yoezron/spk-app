@@ -136,17 +136,18 @@ class UserController extends BaseController
                 ->with('error', 'User tidak ditemukan.');
         }
 
-        // Get user permissions
-        $permissions = $this->db->table('auth_groups_permissions')
-            ->select('auth_permissions.name, auth_permissions.description')
-            ->join('auth_permissions', 'auth_groups_permissions.permission_id = auth_permissions.id')
-            ->where('auth_groups_permissions.group_id', function ($builder) use ($user) {
-                return $builder->select('id')
-                    ->from('auth_groups')
-                    ->where('title', $user->group);
-            })
-            ->get()
-            ->getResult();
+        // Get user permissions based on their role
+        $permissions = [];
+        if ($user->group) {
+            $permissions = $this->db->table('auth_permissions')
+                ->select('auth_permissions.id, auth_permissions.name, auth_permissions.description')
+                ->join('auth_groups_permissions', 'auth_permissions.id = auth_groups_permissions.permission_id')
+                ->join('auth_groups', 'auth_groups_permissions.group = auth_groups.title')
+                ->where('auth_groups.title', $user->group)
+                ->orderBy('auth_permissions.name', 'ASC')
+                ->get()
+                ->getResult();
+        }
 
         // Get recent activity logs
         $activities = $this->db->table('audit_logs')
@@ -354,33 +355,69 @@ class UserController extends BaseController
         }
 
         try {
+            // Get user email from auth_identities
+            $emailIdentity = $this->db->table('auth_identities')
+                ->select('secret as email')
+                ->where('user_id', $id)
+                ->where('type', 'email_password')
+                ->get()
+                ->getRow();
+
+            if (!$emailIdentity || !$emailIdentity->email) {
+                return redirect()->back()
+                    ->with('error', 'Email user tidak ditemukan.');
+            }
+
             // Generate reset token
             $token = bin2hex(random_bytes(32));
             $expires = date('Y-m-d H:i:s', strtotime('+1 hour'));
 
-            // Save token
-            $this->db->table('auth_reset_tokens')->insert([
-                'email' => $user->email,
-                'token' => hash('sha256', $token),
-                'expires_at' => $expires,
-                'created_at' => date('Y-m-d H:i:s')
-            ]);
+            // Delete old tokens for this email
+            $this->db->table('auth_identity_passwords')
+                ->where('identity_id', function($builder) use ($id) {
+                    return $builder->select('id')
+                        ->from('auth_identities')
+                        ->where('user_id', $id)
+                        ->where('type', 'email_password');
+                })
+                ->delete();
 
-            // Send email (implement with your email service)
-            $resetLink = base_url("reset-password?token={$token}");
+            // Save token using Shield's auth_identity_passwords table
+            $identityId = $this->db->table('auth_identities')
+                ->select('id')
+                ->where('user_id', $id)
+                ->where('type', 'email_password')
+                ->get()
+                ->getRow()
+                ->id ?? null;
+
+            if ($identityId) {
+                $this->db->table('auth_identity_passwords')->insert([
+                    'identity_id' => $identityId,
+                    'hash_type' => 'reset',
+                    'hash' => hash('sha256', $token),
+                    'expires_at' => $expires,
+                    'created_at' => date('Y-m-d H:i:s')
+                ]);
+            }
+
+            // Generate reset link
+            $resetLink = base_url("auth/reset-password?token={$token}");
 
             // TODO: Send email with reset link
-            // $this->emailService->sendPasswordResetEmail($user->email, $resetLink);
+            // For now, just show the link in the success message (for testing)
+            // In production, implement email service:
+            // $this->emailService->sendPasswordResetEmail($emailIdentity->email, $resetLink);
 
-            log_message('info', "Password reset forced for user {$id} by Super Admin " . auth()->id());
+            log_message('info', "Password reset forced for user {$id} (email: {$emailIdentity->email}) by Super Admin " . auth()->id());
 
             return redirect()->back()
-                ->with('success', 'Link reset password telah dikirim ke email user.');
+                ->with('success', "Link reset password telah digenerate untuk {$emailIdentity->email}. (Email service belum dikonfigurasi)");
         } catch (\Exception $e) {
             log_message('error', 'Error forcing password reset: ' . $e->getMessage());
 
             return redirect()->back()
-                ->with('error', 'Gagal mengirim link reset password.');
+                ->with('error', 'Gagal mengirim link reset password: ' . $e->getMessage());
         }
     }
 
