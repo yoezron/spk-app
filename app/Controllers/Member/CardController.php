@@ -138,7 +138,7 @@ class CardController extends BaseController
             }
 
             // Generate PDF card
-            $result = $this->cardService->generateCard($member->id);
+            $result = $this->cardService->generate($user->id, ['save' => true]);
 
             if (!$result['success']) {
                 return redirect()->to('/member/card')
