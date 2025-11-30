@@ -169,7 +169,7 @@ class UserController extends BaseController
 
     /**
      * Show edit user form
-     * 
+     *
      * @param int $id User ID
      * @return string|RedirectResponse
      */
@@ -180,19 +180,23 @@ class UserController extends BaseController
             return redirect()->back()->with('error', 'Akses ditolak.');
         }
 
-        // Get user
-        $user = $this->userModel->find($id);
+        // Get user with complete data
+        $user = $this->db->table('users')
+            ->select('users.id, users.username, users.active, users.created_at, users.updated_at')
+            ->select('auth_groups_users.group')
+            ->select('auth_identities.secret as email')
+            ->select('member_profiles.*')
+            ->join('auth_groups_users', 'users.id = auth_groups_users.user_id', 'left')
+            ->join('auth_identities', 'users.id = auth_identities.user_id AND auth_identities.type = "email_password"', 'left')
+            ->join('member_profiles', 'users.id = member_profiles.user_id', 'left')
+            ->where('users.id', $id)
+            ->get()
+            ->getRow();
 
         if (!$user) {
             return redirect()->to('/super/users')
                 ->with('error', 'User tidak ditemukan.');
         }
-
-        // Get user group
-        $userGroup = $this->db->table('auth_groups_users')
-            ->where('user_id', $id)
-            ->get()
-            ->getRow();
 
         // Get all roles
         $roles = $this->db->table('auth_groups')
@@ -200,11 +204,27 @@ class UserController extends BaseController
             ->get()
             ->getResult();
 
+        // Get provinces for dropdown
+        $provinces = $this->db->table('provinces')
+            ->where('is_active', 1)
+            ->orderBy('name', 'ASC')
+            ->get()
+            ->getResult();
+
+        // Get universities for dropdown
+        $universities = $this->db->table('universities')
+            ->where('is_active', 1)
+            ->orderBy('name', 'ASC')
+            ->get()
+            ->getResult();
+
         $data = [
             'title' => 'Edit User',
             'user' => $user,
-            'userGroup' => $userGroup ? $userGroup->group : null,
+            'userGroup' => $user->group ?? null,
             'roles' => $roles,
+            'provinces' => $provinces,
+            'universities' => $universities,
             'validation' => \Config\Services::validation()
         ];
 
@@ -213,7 +233,7 @@ class UserController extends BaseController
 
     /**
      * Update user
-     * 
+     *
      * @param int $id User ID
      * @return RedirectResponse
      */
@@ -224,10 +244,28 @@ class UserController extends BaseController
             return redirect()->back()->with('error', 'Akses ditolak.');
         }
 
+        // Get current user email for unique validation
+        $currentEmail = $this->db->table('auth_identities')
+            ->select('secret as email')
+            ->where('user_id', $id)
+            ->where('type', 'email_password')
+            ->get()
+            ->getRow();
+
         // Validation rules
         $rules = [
-            'username' => "required|min_length[3]|is_unique[users.username,id,{$id}]",
-            'role' => 'required'
+            'username' => "required|min_length[3]|max_length[30]|alpha_dash|is_unique[users.username,id,{$id}]",
+            'email' => "required|valid_email|is_unique[auth_identities.secret,user_id,{$id}]",
+            'role' => 'required|in_list[superadmin,pengurus,koordinator,anggota,calon_anggota]',
+            'full_name' => 'permit_empty|max_length[255]',
+            'nik' => 'permit_empty|exact_length[16]|numeric',
+            'gender' => 'permit_empty|in_list[L,P]',
+            'birth_place' => 'permit_empty|max_length[100]',
+            'birth_date' => 'permit_empty|valid_date',
+            'phone' => 'permit_empty|max_length[20]',
+            'whatsapp' => 'permit_empty|max_length[20]',
+            'province_id' => 'permit_empty|integer',
+            'university_id' => 'permit_empty|integer',
         ];
 
         if (!$this->validate($rules)) {
@@ -243,27 +281,92 @@ class UserController extends BaseController
                 ->with('error', 'User tidak ditemukan.');
         }
 
+        // Prevent changing own role
+        if ($id == auth()->id() && $this->request->getPost('role') !== $this->db->table('auth_groups_users')->where('user_id', $id)->get()->getRow()->group) {
+            return redirect()->back()
+                ->withInput()
+                ->with('error', 'Anda tidak dapat mengubah role Anda sendiri.');
+        }
+
         try {
             $this->db->transStart();
+
+            // Capture old values for audit log
+            $oldData = $this->db->table('users')
+                ->select('users.username, auth_identities.secret as email, auth_groups_users.group as role')
+                ->select('member_profiles.full_name, member_profiles.nik, member_profiles.gender')
+                ->select('member_profiles.phone, member_profiles.whatsapp, member_profiles.province_id, member_profiles.university_id')
+                ->join('auth_identities', 'users.id = auth_identities.user_id AND auth_identities.type = "email_password"', 'left')
+                ->join('auth_groups_users', 'users.id = auth_groups_users.user_id', 'left')
+                ->join('member_profiles', 'users.id = member_profiles.user_id', 'left')
+                ->where('users.id', $id)
+                ->get()
+                ->getRow();
 
             // Update username
             $this->userModel->update($id, [
                 'username' => $this->request->getPost('username')
             ]);
 
+            // Update email in auth_identities
+            $newEmail = $this->request->getPost('email');
+            if ($currentEmail && $currentEmail->email !== $newEmail) {
+                $this->db->table('auth_identities')
+                    ->where('user_id', $id)
+                    ->where('type', 'email_password')
+                    ->update(['secret' => $newEmail]);
+            }
+
             // Update role
             $newRole = $this->request->getPost('role');
-
-            // Remove old role
-            $this->db->table('auth_groups_users')
+            $currentRole = $this->db->table('auth_groups_users')
                 ->where('user_id', $id)
-                ->delete();
+                ->get()
+                ->getRow();
 
-            // Add new role
-            $this->db->table('auth_groups_users')->insert([
-                'user_id' => $id,
-                'group' => $newRole
-            ]);
+            if (!$currentRole || $currentRole->group !== $newRole) {
+                // Remove old role
+                $this->db->table('auth_groups_users')
+                    ->where('user_id', $id)
+                    ->delete();
+
+                // Add new role
+                $this->db->table('auth_groups_users')->insert([
+                    'user_id' => $id,
+                    'group' => $newRole
+                ]);
+            }
+
+            // Update or insert member profile
+            $memberProfile = $this->db->table('member_profiles')
+                ->where('user_id', $id)
+                ->get()
+                ->getRow();
+
+            $profileData = [
+                'full_name' => $this->request->getPost('full_name'),
+                'nik' => $this->request->getPost('nik'),
+                'gender' => $this->request->getPost('gender'),
+                'birth_place' => $this->request->getPost('birth_place'),
+                'birth_date' => $this->request->getPost('birth_date'),
+                'phone' => $this->request->getPost('phone'),
+                'whatsapp' => $this->request->getPost('whatsapp'),
+                'province_id' => $this->request->getPost('province_id') ?: null,
+                'university_id' => $this->request->getPost('university_id') ?: null,
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+
+            if ($memberProfile) {
+                // Update existing profile
+                $this->db->table('member_profiles')
+                    ->where('user_id', $id)
+                    ->update($profileData);
+            } else {
+                // Create new profile
+                $profileData['user_id'] = $id;
+                $profileData['created_at'] = date('Y-m-d H:i:s');
+                $this->db->table('member_profiles')->insert($profileData);
+            }
 
             $this->db->transComplete();
 
@@ -271,7 +374,32 @@ class UserController extends BaseController
                 throw new \Exception('Transaction failed');
             }
 
-            // Log activity
+            // Capture new values for audit log
+            $newData = [
+                'username' => $this->request->getPost('username'),
+                'email' => $newEmail,
+                'role' => $newRole,
+                'full_name' => $this->request->getPost('full_name'),
+                'nik' => $this->request->getPost('nik'),
+                'gender' => $this->request->getPost('gender'),
+                'phone' => $this->request->getPost('phone'),
+                'whatsapp' => $this->request->getPost('whatsapp'),
+                'province_id' => $this->request->getPost('province_id'),
+                'university_id' => $this->request->getPost('university_id'),
+            ];
+
+            // Log to audit_logs
+            $auditModel = model('AuditLogModel');
+            $auditModel->logCrud(
+                auth()->id(),
+                'user_management',
+                'update',
+                $id,
+                "Updated user: {$this->request->getPost('username')}",
+                (array)$oldData,
+                $newData
+            );
+
             log_message('info', "User {$id} updated by Super Admin " . auth()->id());
 
             return redirect()->to('/super/users/' . $id)
@@ -418,6 +546,54 @@ class UserController extends BaseController
 
             return redirect()->back()
                 ->with('error', 'Gagal mengirim link reset password: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Get permissions by role (AJAX endpoint)
+     *
+     * @param string $role Role name
+     * @return ResponseInterface
+     */
+    public function getPermissionsByRole(string $role = null): ResponseInterface
+    {
+        // CRITICAL: Check Super Admin permission
+        if (!auth()->user()->inGroup('superadmin')) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Akses ditolak.'
+            ])->setStatusCode(403);
+        }
+
+        if (!$role) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Role tidak valid.'
+            ])->setStatusCode(400);
+        }
+
+        try {
+            // Get permissions for this role
+            $permissions = $this->db->table('auth_permissions')
+                ->select('auth_permissions.id, auth_permissions.name, auth_permissions.description')
+                ->join('auth_groups_permissions', 'auth_permissions.id = auth_groups_permissions.permission_id')
+                ->join('auth_groups', 'auth_groups_permissions.group = auth_groups.title')
+                ->where('auth_groups.title', $role)
+                ->orderBy('auth_permissions.name', 'ASC')
+                ->get()
+                ->getResult();
+
+            return $this->response->setJSON([
+                'success' => true,
+                'role' => $role,
+                'permissions' => $permissions,
+                'count' => count($permissions)
+            ]);
+        } catch (\Exception $e) {
+            return $this->response->setJSON([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ])->setStatusCode(500);
         }
     }
 
