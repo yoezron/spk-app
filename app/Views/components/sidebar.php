@@ -71,13 +71,18 @@ function isMenuActive($url)
  */
 function renderMenuItem($item, $level = 0)
 {
+    // Convert array to object if necessary
+    if (is_array($item)) {
+        $item = (object) $item;
+    }
+
     $hasChildren = isset($item->children) && count($item->children) > 0;
     $isActive = isMenuActive($item->url ?? '');
     $activeClass = $isActive ? 'active-page' : '';
 
-    // Check permission if required
-    if (!empty($item->required_permission)) {
-        if (!auth()->user()->can($item->required_permission)) {
+    // Check permission if required - use permission_key field
+    if (!empty($item->permission_key)) {
+        if (!auth()->user()->can($item->permission_key)) {
             return '';
         }
     }
@@ -88,7 +93,7 @@ function renderMenuItem($item, $level = 0)
         // Parent menu with children
         $collapseId = 'menu-' . $item->id;
         echo '<a href="#" data-bs-toggle="collapse" data-bs-target="#' . $collapseId . '">';
-        echo '<i class="' . esc($item->icon ?? 'material-icons-two-tone') . '">' . ($item->icon_text ?? 'circle') . '</i>';
+        echo '<i class="material-icons-two-tone">' . esc($item->icon ?? 'circle') . '</i>';
         echo esc($item->title);
         echo '<i class="material-icons has-sub-menu">keyboard_arrow_right</i>';
         echo '</a>';
@@ -107,7 +112,7 @@ function renderMenuItem($item, $level = 0)
         $target = !empty($item->target) ? ' target="' . esc($item->target) . '"' : '';
 
         echo '<a href="' . $url . '"' . $target . ' class="' . ($isActive ? 'active' : '') . '">';
-        echo '<i class="' . esc($item->icon ?? 'material-icons-two-tone') . '">' . ($item->icon_text ?? 'circle') . '</i>';
+        echo '<i class="material-icons-two-tone">' . esc($item->icon ?? 'circle') . '</i>';
         echo esc($item->title);
 
         // Badge (if any)

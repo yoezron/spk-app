@@ -72,14 +72,14 @@ class MenuService
             // Build tree structure recursively
             $tree = [];
             foreach ($menus as $menu) {
-                $menuItem = (array) $menu;
+                $menuItem = clone $menu;
 
                 // Get children recursively
                 $children = $this->getMenuTree($menu->id, $activeOnly);
                 if ($children['success'] && !empty($children['data'])) {
-                    $menuItem['children'] = $children['data'];
+                    $menuItem->children = $children['data'];
                 } else {
-                    $menuItem['children'] = [];
+                    $menuItem->children = [];
                 }
 
                 $tree[] = $menuItem;
@@ -148,18 +148,19 @@ class MenuService
                     }
                 }
 
-                $menuItem = (array) $menu;
+                // Keep menu as object for consistency
+                $menuItem = clone $menu;
 
                 // Get children recursively
                 $children = $this->getMenuForUser($userId, $menu->id);
                 if ($children['success'] && !empty($children['data'])) {
-                    $menuItem['children'] = $children['data'];
+                    $menuItem->children = $children['data'];
                 } else {
-                    $menuItem['children'] = [];
+                    $menuItem->children = [];
                 }
 
                 // Add menu item if it has children or no permission required or user has permission
-                if (!empty($menuItem['children']) || empty($menu->permission_key) || $user->can($menu->permission_key)) {
+                if (!empty($menuItem->children) || empty($menu->permission_key) || $user->can($menu->permission_key)) {
                     $filteredMenus[] = $menuItem;
                 }
             }
