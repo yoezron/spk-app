@@ -230,18 +230,46 @@
         font-weight: 600;
         font-size: 14px;
         text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .action-btn::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        opacity: 0;
+        transition: opacity 0.3s ease;
+        z-index: -1;
     }
 
     .action-btn:hover {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         border-color: #667eea;
         transform: translateY(-4px);
         box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
     }
 
+    .action-btn:hover::before {
+        opacity: 1;
+    }
+
     .action-btn i {
-        font-size: 32px;
+        font-size: 36px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        transition: all 0.3s ease;
+    }
+
+    .action-btn:hover i {
+        -webkit-text-fill-color: white;
+        transform: scale(1.1);
     }
 
     /* Activity Card */
@@ -716,27 +744,27 @@
     <h4><i class="bi bi-lightning-charge-fill"></i> Aksi Cepat</h4>
     <div class="action-grid">
         <a href="<?= base_url('member/profile') ?>" class="action-btn">
-            <i class="bi bi-person-circle"></i>
+            <i class="bi bi-person-badge-fill"></i>
             <span>Lihat Profil</span>
         </a>
         <a href="<?= base_url('member/card') ?>" class="action-btn">
-            <i class="bi bi-credit-card-2-front"></i>
+            <i class="bi bi-credit-card-fill"></i>
             <span>Kartu Anggota</span>
         </a>
         <a href="<?= base_url('member/forum') ?>" class="action-btn">
-            <i class="bi bi-chat-square-text"></i>
+            <i class="bi bi-chat-dots-fill"></i>
             <span>Forum Diskusi</span>
         </a>
         <a href="<?= base_url('member/survey') ?>" class="action-btn">
-            <i class="bi bi-clipboard-data"></i>
+            <i class="bi bi-clipboard2-check-fill"></i>
             <span>Ikuti Survey</span>
         </a>
         <a href="<?= base_url('member/complaint') ?>" class="action-btn">
-            <i class="bi bi-exclamation-circle"></i>
+            <i class="bi bi-megaphone-fill"></i>
             <span>Buat Pengaduan</span>
         </a>
         <a href="<?= base_url('member/profile/edit') ?>" class="action-btn">
-            <i class="bi bi-pencil-square"></i>
+            <i class="bi bi-pencil-fill"></i>
             <span>Edit Profil</span>
         </a>
     </div>
