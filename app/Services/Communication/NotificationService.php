@@ -500,7 +500,7 @@ class NotificationService
     /**
      * Get unread notification count for user
      * Returns total number of unread notifications
-     * 
+     *
      * @param int $userId User ID
      * @return int Unread notification count
      */
@@ -518,6 +518,51 @@ class NotificationService
         } catch (\Exception $e) {
             log_message('error', 'Error in NotificationService::getUnreadCount: ' . $e->getMessage());
             return 0;
+        }
+    }
+
+    /**
+     * Get user notifications with options
+     * Returns notifications based on provided options (limit, include_read, etc.)
+     *
+     * @param int $userId User ID
+     * @param array $options Options array with keys: 'limit', 'include_read'
+     * @return array Array of notification objects
+     */
+    public function getUserNotifications(int $userId, array $options = []): array
+    {
+        try {
+            $builder = $this->db->table($this->table);
+
+            // Apply user filter
+            $builder->where('user_id', $userId);
+
+            // Apply read/unread filter
+            if (!isset($options['include_read']) || !$options['include_read']) {
+                $builder->where('is_read', 0);
+            }
+
+            // Apply limit
+            $limit = $options['limit'] ?? 10;
+            $builder->limit($limit);
+
+            // Order by created date (newest first)
+            $builder->orderBy('created_at', 'DESC');
+
+            // Get notifications
+            $notifications = $builder->get()->getResultArray();
+
+            // Parse JSON data field
+            foreach ($notifications as &$notification) {
+                if (!empty($notification['data'])) {
+                    $notification['data'] = json_decode($notification['data'], true);
+                }
+            }
+
+            return $notifications;
+        } catch (\Exception $e) {
+            log_message('error', 'Error in NotificationService::getUserNotifications: ' . $e->getMessage());
+            return [];
         }
     }
 }
