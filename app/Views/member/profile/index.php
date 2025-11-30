@@ -377,7 +377,7 @@
 <div class="profile-header">
     <div class="container-fluid">
         <div class="profile-avatar-section">
-            <img src="<?= !empty($member->photo) ? esc($member->photo) : base_url('assets/images/default-avatar.png') ?>"
+            <img src="<?= !empty($member->photo_path) ? base_url(esc($member->photo_path)) : base_url('assets/images/default-avatar.png') ?>"
                 alt="<?= esc($member->full_name) ?>"
                 class="profile-avatar">
 
