@@ -114,7 +114,7 @@ class ProfileController extends BaseController
 
             // Set default values for fields that might not exist in database
             $defaultFields = [
-                'religion', 'marital_status', 'employment_type', 'photo',
+                'religion', 'marital_status', 'employment_type', 'photo_path',
                 'birth_place', 'birth_date', 'nik', 'position', 'employee_id'
             ];
 
@@ -134,7 +134,9 @@ class ProfileController extends BaseController
                 // Master data
                 'provinces' => $this->loadMasterData('ProvinceModel', 'name'),
                 'regencies' => $this->loadRegenciesByProvince($member->province_id ?? null),
-                'universities' => $this->loadUniversitiesByProvince($member->province_id ?? null),
+                // Load ALL universities (not filtered by province) to ensure current university always appears
+                'universities' => $this->loadAllUniversities(),
+                // Load ALL study programs (not filtered by university) to ensure current program always appears
                 'study_programs' => $this->loadStudyProgramsByUniversity($member->university_id ?? null),
                 'employment_statuses' => $this->loadMasterData('EmploymentStatusModel', 'name'),
                 'salary_ranges' => $this->loadMasterData('SalaryRangeModel', 'min_amount'),
@@ -229,6 +231,25 @@ class ProfileController extends BaseController
                                    ->findAll();
         } catch (\Throwable $e) {
             log_message('error', 'Failed loading universities for province ' . $provinceId . ': ' . $e->getMessage());
+            return [];
+        }
+    }
+
+    /**
+     * Load all active universities (not filtered by province)
+     * This ensures member's current university always appears in dropdown
+     *
+     * @return array
+     */
+    protected function loadAllUniversities(): array
+    {
+        try {
+            $universityModel = model('UniversityModel');
+            return $universityModel->where('is_active', 1)
+                                   ->orderBy('name', 'ASC')
+                                   ->findAll();
+        } catch (\Throwable $e) {
+            log_message('error', 'Failed loading universities: ' . $e->getMessage());
             return [];
         }
     }
@@ -458,12 +479,12 @@ class ProfileController extends BaseController
                 $photo->move(WRITEPATH . '../public/uploads/profiles', $newName);
 
                 // Delete old photo if exists
-                if (!empty($member->photo) && file_exists(FCPATH . $member->photo)) {
-                    @unlink(FCPATH . $member->photo);
+                if (!empty($member->photo_path) && file_exists(FCPATH . $member->photo_path)) {
+                    @unlink(FCPATH . $member->photo_path);
                 }
 
                 // Add photo path to update data
-                $updateData['photo'] = 'uploads/profiles/' . $newName;
+                $updateData['photo_path'] = 'uploads/profiles/' . $newName;
             }
 
             // Update profile
