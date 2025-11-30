@@ -276,29 +276,57 @@ class ProfileController extends BaseController
                 'label' => 'Nama Lengkap',
                 'rules' => 'required|min_length[3]|max_length[255]'
             ],
+            'nik' => [
+                'label' => 'NIK',
+                'rules' => 'required|exact_length[16]|numeric'
+            ],
+            'nidn_nip' => [
+                'label' => 'NIDN/NIP',
+                'rules' => 'permit_empty|max_length[30]'
+            ],
+            'birth_place' => [
+                'label' => 'Tempat Lahir',
+                'rules' => 'required|max_length[100]'
+            ],
+            'birth_date' => [
+                'label' => 'Tanggal Lahir',
+                'rules' => 'required|valid_date'
+            ],
             'gender' => [
                 'label' => 'Jenis Kelamin',
                 'rules' => 'required|in_list[Laki-laki,Perempuan]'
             ],
+            'religion' => [
+                'label' => 'Agama',
+                'rules' => 'required|in_list[Islam,Kristen,Katolik,Hindu,Buddha,Konghucu]'
+            ],
             'phone' => [
                 'label' => 'Nomor Telepon',
-                'rules' => 'permit_empty|max_length[20]'
+                'rules' => 'required|max_length[20]'
             ],
             'whatsapp' => [
                 'label' => 'Nomor WhatsApp',
-                'rules' => 'permit_empty|max_length[20]'
+                'rules' => 'required|max_length[20]'
             ],
             'address' => [
                 'label' => 'Alamat',
-                'rules' => 'permit_empty|max_length[500]'
+                'rules' => 'required|max_length[500]'
             ],
             'province_id' => [
                 'label' => 'Provinsi',
-                'rules' => 'permit_empty|is_natural_no_zero'
+                'rules' => 'required|is_natural_no_zero'
             ],
             'regency_id' => [
                 'label' => 'Kabupaten/Kota',
-                'rules' => 'permit_empty|is_natural_no_zero'
+                'rules' => 'required|is_natural_no_zero'
+            ],
+            'university_id' => [
+                'label' => 'Kampus',
+                'rules' => 'required|is_natural_no_zero'
+            ],
+            'employment_type' => [
+                'label' => 'Jenis Kepegawaian',
+                'rules' => 'required|in_list[Dosen Tetap,Dosen Tidak Tetap,Tendik Tetap,Tendik Tidak Tetap,Honorer]'
             ],
             'employment_status_id' => [
                 'label' => 'Status Kepegawaian',
@@ -312,13 +340,41 @@ class ProfileController extends BaseController
                 'label' => 'Range Gaji',
                 'rules' => 'permit_empty|is_natural_no_zero'
             ],
-            'university_id' => [
-                'label' => 'Universitas',
-                'rules' => 'permit_empty|is_natural_no_zero'
-            ],
             'study_program_id' => [
                 'label' => 'Program Studi',
                 'rules' => 'permit_empty|is_natural_no_zero'
+            ],
+            'marital_status' => [
+                'label' => 'Status Pernikahan',
+                'rules' => 'permit_empty|in_list[Belum Menikah,Menikah,Cerai]'
+            ],
+            'postal_code' => [
+                'label' => 'Kode Pos',
+                'rules' => 'permit_empty|exact_length[5]|numeric'
+            ],
+            'employee_id' => [
+                'label' => 'Nomor Induk Pegawai',
+                'rules' => 'permit_empty|max_length[50]'
+            ],
+            'job_position' => [
+                'label' => 'Jabatan',
+                'rules' => 'permit_empty|max_length[100]'
+            ],
+            'work_start_date' => [
+                'label' => 'Tanggal Mulai Bekerja',
+                'rules' => 'permit_empty|valid_date'
+            ],
+            'join_date' => [
+                'label' => 'Tanggal Bergabung SPK',
+                'rules' => 'permit_empty|valid_date'
+            ],
+            'skills' => [
+                'label' => 'Keahlian/Kompetensi',
+                'rules' => 'permit_empty|max_length[1000]'
+            ],
+            'motivation' => [
+                'label' => 'Motivasi Bergabung',
+                'rules' => 'permit_empty|max_length[1000]'
             ]
         ];
 
@@ -340,38 +396,83 @@ class ProfileController extends BaseController
                     ->with('error', 'Profil tidak ditemukan.');
             }
 
-            // Prepare update data
+            // Prepare update data - convert empty strings to null for optional fields
             $updateData = [
                 'full_name' => $this->request->getPost('full_name'),
                 'nik' => $this->request->getPost('nik'),
-                'nidn_nip' => $this->request->getPost('nidn_nip'),
-                'employee_id' => $this->request->getPost('employee_id'),
+                'nidn_nip' => $this->request->getPost('nidn_nip') ?: null,
+                'employee_id' => $this->request->getPost('employee_id') ?: null,
                 'gender' => $this->request->getPost('gender'),
                 'religion' => $this->request->getPost('religion'),
-                'marital_status' => $this->request->getPost('marital_status'),
+                'marital_status' => $this->request->getPost('marital_status') ?: null,
                 'birth_place' => $this->request->getPost('birth_place'),
                 'birth_date' => $this->request->getPost('birth_date'),
                 'phone' => $this->request->getPost('phone'),
                 'whatsapp' => $this->request->getPost('whatsapp'),
                 'address' => $this->request->getPost('address'),
-                'province_id' => $this->request->getPost('province_id'),
-                'regency_id' => $this->request->getPost('regency_id'),
-                'postal_code' => $this->request->getPost('postal_code'),
-                'university_id' => $this->request->getPost('university_id'),
-                'study_program_id' => $this->request->getPost('study_program_id'),
+                'province_id' => $this->request->getPost('province_id') ?: null,
+                'regency_id' => $this->request->getPost('regency_id') ?: null,
+                'postal_code' => $this->request->getPost('postal_code') ?: null,
+                'university_id' => $this->request->getPost('university_id') ?: null,
+                'study_program_id' => $this->request->getPost('study_program_id') ?: null,
                 'employment_type' => $this->request->getPost('employment_type'),
-                'employment_status_id' => $this->request->getPost('employment_status_id'),
-                'salary_payer' => $this->request->getPost('salary_payer'),
-                'salary_range_id' => $this->request->getPost('salary_range_id'),
-                'job_position' => $this->request->getPost('job_position'),
-                'work_start_date' => $this->request->getPost('work_start_date'),
-                'join_date' => $this->request->getPost('join_date'),
-                'skills' => $this->request->getPost('skills'),
-                'motivation' => $this->request->getPost('motivation')
+                'employment_status_id' => $this->request->getPost('employment_status_id') ?: null,
+                'salary_payer' => $this->request->getPost('salary_payer') ?: null,
+                'salary_range_id' => $this->request->getPost('salary_range_id') ?: null,
+                'job_position' => $this->request->getPost('job_position') ?: null,
+                'work_start_date' => $this->request->getPost('work_start_date') ?: null,
+                'join_date' => $this->request->getPost('join_date') ?: null,
+                'skills' => $this->request->getPost('skills') ?: null,
+                'motivation' => $this->request->getPost('motivation') ?: null
             ];
 
+            // Handle photo upload if provided
+            $photo = $this->request->getFile('photo');
+            if ($photo && $photo->isValid() && !$photo->hasMoved()) {
+                // Validate photo
+                if (!$photo->isValid()) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error', 'File foto tidak valid.');
+                }
+
+                // Check file size (max 2MB)
+                if ($photo->getSizeByUnit('mb') > 2) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error', 'Ukuran foto maksimal 2MB.');
+                }
+
+                // Check file type
+                $allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+                if (!in_array($photo->getMimeType(), $allowedTypes)) {
+                    return redirect()->back()
+                        ->withInput()
+                        ->with('error', 'Format foto harus JPG atau PNG.');
+                }
+
+                // Generate unique filename
+                $newName = 'profile_' . $user->id . '_' . time() . '.' . $photo->getExtension();
+
+                // Move file to uploads/profiles directory
+                $photo->move(WRITEPATH . '../public/uploads/profiles', $newName);
+
+                // Delete old photo if exists
+                if (!empty($member->photo) && file_exists(FCPATH . $member->photo)) {
+                    @unlink(FCPATH . $member->photo);
+                }
+
+                // Add photo path to update data
+                $updateData['photo'] = 'uploads/profiles/' . $newName;
+            }
+
             // Update profile
-            $memberModel->update($member->id, $updateData);
+            if (!$memberModel->update($member->id, $updateData)) {
+                log_message('error', 'Failed to update member profile: ' . json_encode($memberModel->errors()));
+                return redirect()->back()
+                    ->withInput()
+                    ->with('error', 'Gagal memperbarui profil: ' . implode(', ', $memberModel->errors()));
+            }
 
             return redirect()->to('/member/profile')
                 ->with('success', 'Profil berhasil diperbarui.');

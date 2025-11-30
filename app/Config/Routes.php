@@ -499,12 +499,14 @@ $routes->group('api', ['namespace' => 'App\Controllers\Api'], function ($routes)
     $routes->get('provinces', 'MasterDataController::getProvinces');
     $routes->get('regencies', 'MasterDataController::getRegencies');
     $routes->get('regencies/province/(:num)', 'MasterDataController::getRegenciesByProvince/$1');
+    $routes->get('regencies/(:num)', 'MasterDataController::getRegenciesByProvince/$1'); // Alias for member profile edit
     $routes->get('districts', 'MasterDataController::getDistricts');
     $routes->get('villages', 'MasterDataController::getVillages');
     $routes->get('universities', 'MasterDataController::getUniversities');
     $routes->get('universities/search', 'MasterDataController::searchUniversities');
     $routes->get('study-programs', 'MasterDataController::getStudyPrograms');
     $routes->get('study-programs/university/(:num)', 'MasterDataController::getStudyProgramsByUniversity/$1');
+    $routes->get('study-programs/(:num)', 'MasterDataController::getStudyProgramsByUniversity/$1'); // Alias for member profile edit
 
     // Cache Management (Admin only)
     $routes->get('cache/clear', 'MasterDataController::clearCache', ['filter' => 'permission:master.manage']);
