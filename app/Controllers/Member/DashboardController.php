@@ -240,65 +240,87 @@ class DashboardController extends BaseController
             $activities = [];
 
             // Get recent forum posts (last 5)
-            $forumPostModel = model('ForumPostModel');
-            $recentPosts = $forumPostModel->select('forum_posts.*, forum_threads.title as thread_title')
-                ->join('forum_threads', 'forum_threads.id = forum_posts.thread_id')
-                ->where('forum_posts.user_id', $userId)
-                ->orderBy('forum_posts.created_at', 'DESC')
-                ->findAll(5);
+            try {
+                $forumPostModel = model('ForumPostModel');
+                if ($forumPostModel) {
+                    $recentPosts = $forumPostModel->select('forum_posts.*, forum_threads.title as thread_title')
+                        ->join('forum_threads', 'forum_threads.id = forum_posts.thread_id')
+                        ->where('forum_posts.user_id', $userId)
+                        ->orderBy('forum_posts.created_at', 'DESC')
+                        ->findAll(5);
 
-            foreach ($recentPosts as $post) {
-                $activities[] = [
-                    'type' => 'forum_post',
-                    'icon' => 'message-square',
-                    'title' => 'Membalas thread: ' . $post->thread_title,
-                    'time' => $post->created_at,
-                    'url' => base_url('member/forum/thread/' . $post->thread_id)
-                ];
+                    foreach ($recentPosts as $post) {
+                        $activities[] = [
+                            'type' => 'forum_post',
+                            'icon' => 'message-square',
+                            'title' => 'Membalas thread: ' . $post->thread_title,
+                            'time' => $post->created_at,
+                            'url' => base_url('member/forum/thread/' . $post->thread_id)
+                        ];
+                    }
+                }
+            } catch (\Exception $e) {
+                log_message('error', 'Error getting forum posts: ' . $e->getMessage());
             }
 
             // Get recent survey responses (last 3)
-            $surveyResponseModel = model('SurveyResponseModel');
-            $recentSurveys = $surveyResponseModel->select('survey_responses.*, surveys.title as survey_title')
-                ->join('surveys', 'surveys.id = survey_responses.survey_id')
-                ->where('survey_responses.user_id', $userId)
-                ->orderBy('survey_responses.created_at', 'DESC')
-                ->findAll(3);
+            try {
+                $surveyResponseModel = model('SurveyResponseModel');
+                if ($surveyResponseModel) {
+                    $recentSurveys = $surveyResponseModel->select('survey_responses.*, surveys.title as survey_title')
+                        ->join('surveys', 'surveys.id = survey_responses.survey_id')
+                        ->where('survey_responses.user_id', $userId)
+                        ->orderBy('survey_responses.created_at', 'DESC')
+                        ->findAll(3);
 
-            foreach ($recentSurveys as $response) {
-                $activities[] = [
-                    'type' => 'survey',
-                    'icon' => 'clipboard-check',
-                    'title' => 'Mengisi survei: ' . $response->survey_title,
-                    'time' => $response->created_at,
-                    'url' => base_url('member/surveys/' . $response->survey_id)
-                ];
+                    foreach ($recentSurveys as $response) {
+                        $activities[] = [
+                            'type' => 'survey',
+                            'icon' => 'clipboard-check',
+                            'title' => 'Mengisi survei: ' . $response->survey_title,
+                            'time' => $response->created_at,
+                            'url' => base_url('member/surveys/' . $response->survey_id)
+                        ];
+                    }
+                }
+            } catch (\Exception $e) {
+                log_message('error', 'Error getting survey responses: ' . $e->getMessage());
             }
 
             // Get recent tickets (last 3)
-            $complaintModel = model('ComplaintModel');
-            $recentTickets = $complaintModel->where('user_id', $userId)
-                ->orderBy('created_at', 'DESC')
-                ->findAll(3);
+            try {
+                $complaintModel = model('ComplaintModel');
+                if ($complaintModel) {
+                    $recentTickets = $complaintModel->where('user_id', $userId)
+                        ->orderBy('created_at', 'DESC')
+                        ->findAll(3);
 
-            foreach ($recentTickets as $ticket) {
-                $activities[] = [
-                    'type' => 'ticket',
-                    'icon' => 'alert-circle',
-                    'title' => 'Ticket: ' . $ticket->subject,
-                    'time' => $ticket->created_at,
-                    'url' => base_url('member/complaints/' . $ticket->id),
-                    'status' => $ticket->status
-                ];
+                    foreach ($recentTickets as $ticket) {
+                        $activities[] = [
+                            'type' => 'ticket',
+                            'icon' => 'alert-circle',
+                            'title' => 'Ticket: ' . $ticket->subject,
+                            'time' => $ticket->created_at,
+                            'url' => base_url('member/complaints/' . $ticket->id),
+                            'status' => $ticket->status
+                        ];
+                    }
+                }
+            } catch (\Exception $e) {
+                log_message('error', 'Error getting recent tickets: ' . $e->getMessage());
             }
 
             // Sort by time (most recent first)
-            usort($activities, function ($a, $b) {
-                return strtotime($b['time']) - strtotime($a['time']);
-            });
+            if (!empty($activities)) {
+                usort($activities, function ($a, $b) {
+                    return strtotime($b['time']) - strtotime($a['time']);
+                });
 
-            // Return only top 10
-            return array_slice($activities, 0, 10);
+                // Return only top 10
+                return array_slice($activities, 0, 10);
+            }
+
+            return [];
         } catch (\Exception $e) {
             log_message('error', 'Error getting recent activities: ' . $e->getMessage());
             return [];
