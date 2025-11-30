@@ -534,34 +534,35 @@
             </p>
 
             <!-- Contact Cards -->
+            <?php
+            $contact_address = get_setting('App\\Config\\General', 'contact_address', 'Jl. Pekerja Kampus No. 123, Jakarta Pusat 10110');
+            $contact_email = get_setting('App\\Config\\General', 'contact_email', 'info@spk.or.id');
+            $contact_phone = get_setting('App\\Config\\General', 'contact_phone', '+62 21 2345 6789');
+            ?>
             <div class="contact-cards">
+                <?php if (!empty($contact_email)): ?>
                 <div class="contact-card email">
                     <div class="contact-icon">
                         <i class="bi bi-envelope-fill"></i>
                     </div>
                     <h4>Email</h4>
                     <p>Kirim email ke kami</p>
-                    <a href="mailto:info@spk.or.id">info@spk.or.id</a>
+                    <a href="mailto:<?= esc($contact_email) ?>"><?= esc($contact_email) ?></a>
                 </div>
+                <?php endif; ?>
 
+                <?php if (!empty($contact_phone)): ?>
                 <div class="contact-card phone">
                     <div class="contact-icon">
                         <i class="bi bi-telephone-fill"></i>
                     </div>
                     <h4>Telepon</h4>
                     <p>Senin - Jumat, 09:00 - 17:00</p>
-                    <a href="tel:+622123456789">+62 21 2345 6789</a>
+                    <a href="tel:<?= esc(str_replace([' ', '-'], '', $contact_phone)) ?>"><?= esc($contact_phone) ?></a>
                 </div>
+                <?php endif; ?>
 
-                <div class="contact-card whatsapp">
-                    <div class="contact-icon">
-                        <i class="bi bi-whatsapp"></i>
-                    </div>
-                    <h4>WhatsApp</h4>
-                    <p>Chat langsung dengan kami</p>
-                    <a href="https://wa.me/6281234567890" target="_blank">+62 812 3456 7890</a>
-                </div>
-
+                <?php if (!empty($contact_address)): ?>
                 <div class="contact-card address">
                     <div class="contact-icon">
                         <i class="bi bi-geo-alt-fill"></i>
@@ -570,6 +571,7 @@
                     <p>Kunjungi kantor kami</p>
                     <a href="#map">Lihat di Peta</a>
                 </div>
+                <?php endif; ?>
             </div>
 
             <div class="row mt-5">
@@ -765,9 +767,7 @@
                                 Alamat Kantor
                             </h6>
                             <p style="color: #6c757d; font-size: 14px; margin: 0;">
-                                Jl. Pekerja Kampus No. 123<br>
-                                Jakarta Pusat 10110<br>
-                                DKI Jakarta, Indonesia
+                                <?= !empty($contact_address) ? nl2br(esc($contact_address)) : 'Alamat belum diatur' ?>
                             </p>
                         </div>
 
@@ -926,23 +926,34 @@
 
                 <div class="col-lg-4 mb-4">
                     <h5>Kontak</h5>
+                    <?php
+                    $contact_address = get_setting('App\\Config\\General', 'contact_address', 'Jl. Pekerja Kampus No. 123, Jakarta');
+                    $contact_email = get_setting('App\\Config\\General', 'contact_email', 'info@spk.or.id');
+                    $contact_phone = get_setting('App\\Config\\General', 'contact_phone', '+62 21 2345 6789');
+                    ?>
                     <ul>
+                        <?php if (!empty($contact_address)): ?>
                         <li>
                             <i class="bi bi-geo-alt-fill me-2"></i>
-                            Jl. Pekerja Kampus No. 123, Jakarta
+                            <?= esc($contact_address) ?>
                         </li>
+                        <?php endif; ?>
+                        <?php if (!empty($contact_email)): ?>
                         <li>
                             <i class="bi bi-envelope-fill me-2"></i>
-                            info@spk.or.id
+                            <a href="mailto:<?= esc($contact_email) ?>" style="color: inherit; text-decoration: none;">
+                                <?= esc($contact_email) ?>
+                            </a>
                         </li>
+                        <?php endif; ?>
+                        <?php if (!empty($contact_phone)): ?>
                         <li>
                             <i class="bi bi-telephone-fill me-2"></i>
-                            +62 21 2345 6789
+                            <a href="tel:<?= esc($contact_phone) ?>" style="color: inherit; text-decoration: none;">
+                                <?= esc($contact_phone) ?>
+                            </a>
                         </li>
-                        <li>
-                            <i class="bi bi-whatsapp me-2"></i>
-                            +62 812 3456 7890
-                        </li>
+                        <?php endif; ?>
                     </ul>
                 </div>
             </div>
