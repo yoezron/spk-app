@@ -109,7 +109,8 @@ $routes->group('member', ['namespace' => 'App\Controllers\Member', 'filter' => '
     $routes->get('profile/edit', 'ProfileController::edit');
     $routes->post('profile/update', 'ProfileController::update');
     $routes->post('profile/upload-photo', 'ProfileController::uploadPhoto');
-    $routes->post('profile/change-password', 'ProfileController::changePassword');
+    $routes->get('profile/change-password', 'ProfileController::changePassword');
+    $routes->post('profile/update-password', 'ProfileController::updatePassword');
 
     // Member Card
     $routes->get('card', 'CardController::index', ['as' => 'member.card']);
