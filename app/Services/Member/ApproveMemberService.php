@@ -71,7 +71,7 @@ class ApproveMemberService
             }
 
             // 2. Check if user is pending approval
-            if (!$user->inGroup('Calon Anggota')) {
+            if (!$user->inGroup('calon_anggota')) {
                 return [
                     'success' => false,
                     'message' => 'User bukan calon anggota atau sudah disetujui',
@@ -106,8 +106,8 @@ class ApproveMemberService
             // 5. Activate user account
             $this->userModel->update($userId, ['active' => 1]);
 
-            // 6. Change role from "Calon Anggota" to "Anggota"
-            $roleChanged = $this->changeRole($userId, 'Calon Anggota', 'Anggota');
+            // 6. Change role from "calon_anggota" to "anggota"
+            $roleChanged = $this->changeRole($userId, 'calon_anggota', 'anggota');
 
             if (!$roleChanged['success']) {
                 throw new \Exception($roleChanged['message']);
@@ -138,7 +138,7 @@ class ApproveMemberService
                     'user_id' => $userId,
                     'member_id' => $member->id,
                     'member_number' => $member->member_number,
-                    'new_role' => 'Anggota',
+                    'new_role' => 'anggota',
                     'approved_by' => $approvedBy,
                     'approved_at' => date('Y-m-d H:i:s')
                 ]
@@ -184,7 +184,7 @@ class ApproveMemberService
             }
 
             // 2. Check if user is pending approval
-            if (!$user->inGroup('Calon Anggota')) {
+            if (!$user->inGroup('calon_anggota')) {
                 return [
                     'success' => false,
                     'message' => 'User bukan calon anggota',
@@ -505,8 +505,8 @@ class ApproveMemberService
             return false;
         }
 
-        // Only Super Admin and Pengurus can approve members
-        return $user->inGroup('Super Admin') || $user->inGroup('Pengurus');
+        // Only superadmin and pengurus can approve members
+        return $user->inGroup('superadmin') || $user->inGroup('pengurus');
     }
 
     /**
