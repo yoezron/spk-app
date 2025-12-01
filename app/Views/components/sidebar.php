@@ -194,7 +194,7 @@ function renderMenuItem($item, $level = 0)
                 </a>
             </li>
             <li>
-                <a href="<?= base_url('auth/logout') ?>" onclick="return confirm('Apakah Anda yakin ingin keluar?')">
+                <a href="<?= base_url('logout') ?>" onclick="return confirm('Apakah Anda yakin ingin keluar?')">
                     <i class="material-icons-two-tone">logout</i>Logout
                 </a>
             </li>
