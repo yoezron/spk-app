@@ -172,7 +172,7 @@ $hasMemberPortalAccess = $currentUser->inGroup('superadmin') || $currentUser->in
                                             <hr class="dropdown-divider">
                                         </li>
                                         <li>
-                                            <a class="dropdown-item" href="<?= base_url('auth/logout') ?>"
+                                            <a class="dropdown-item" href="<?= base_url('logout') ?>"
                                                 onclick="return confirm('Apakah Anda yakin ingin keluar?')">
                                                 <i class="material-icons-outlined">logout</i> Logout
                                             </a>
