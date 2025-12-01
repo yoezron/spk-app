@@ -186,6 +186,33 @@ function renderMenuItem($item, $level = 0)
                 <?php endforeach; ?>
             <?php endif; ?>
 
+            <!-- View Switcher (Pengurus & Super Admin Only) -->
+            <?php
+            $canSwitchView = $currentUser->inGroup('pengurus') || $currentUser->inGroup('superadmin');
+            $isInAdminArea = strpos(uri_string(), 'admin/') === 0 || strpos(uri_string(), 'super/') === 0;
+            $isInMemberArea = strpos(uri_string(), 'member/') === 0;
+            ?>
+            <?php if ($canSwitchView && ($isInAdminArea || $isInMemberArea)): ?>
+                <li class="sidebar-title">Beralih Tampilan</li>
+                <?php if ($isInAdminArea): ?>
+                    <!-- Link to Member View -->
+                    <li>
+                        <a href="<?= base_url('member/dashboard') ?>" class="view-switcher-link">
+                            <i class="material-icons-two-tone">person_outline</i>Portal Anggota
+                            <span class="badge rounded-pill badge-info float-end">Member</span>
+                        </a>
+                    </li>
+                <?php else: ?>
+                    <!-- Link to Admin View -->
+                    <li>
+                        <a href="<?= base_url('admin/dashboard') ?>" class="view-switcher-link">
+                            <i class="material-icons-two-tone">admin_panel_settings</i>Panel Admin
+                            <span class="badge rounded-pill badge-primary float-end">Admin</span>
+                        </a>
+                    </li>
+                <?php endif; ?>
+            <?php endif; ?>
+
             <!-- Always show logout -->
             <li class="sidebar-title">Akun</li>
             <li>
@@ -238,6 +265,23 @@ function renderMenuItem($item, $level = 0)
     .accordion-menu i.material-icons-outlined {
         margin-right: 10px;
         vertical-align: middle;
+    }
+
+    /* View Switcher Link in Sidebar */
+    .view-switcher-link {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        border-left: 3px solid #667eea !important;
+        font-weight: 500 !important;
+    }
+
+    .view-switcher-link:hover {
+        background: linear-gradient(135deg, rgba(102, 126, 234, 0.2) 0%, rgba(118, 75, 162, 0.2) 100%);
+        border-left-color: #764ba2 !important;
+    }
+
+    .view-switcher-link .badge {
+        font-size: 10px;
+        padding: 4px 8px;
     }
 
     /* Sidebar user section */
