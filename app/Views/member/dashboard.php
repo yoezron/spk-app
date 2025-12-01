@@ -648,52 +648,55 @@
     <?php endforeach; ?>
 <?php endif; ?>
 
-<!-- Statistics Cards - General System Stats -->
-<h5 class="mb-3" style="font-weight: 700; color: #2d3748;">
-    <i class="bi bi-bar-chart-fill"></i> Statistik Sistem
-</h5>
-<div class="stats-grid">
-    <div class="stat-card primary">
-        <div class="stat-icon">
-            <i class="bi bi-people-fill"></i>
-        </div>
-        <div class="stat-label">Total Anggota</div>
-        <div class="stat-value"><?= number_format($statistics['total_members'] ?? 0) ?></div>
-        <?php if (!empty($statistics['new_members_this_month'])): ?>
-            <div class="stat-change positive">
-                <i class="bi bi-arrow-up"></i>
-                +<?= $statistics['new_members_this_month'] ?> bulan ini
+<!-- Statistics Cards - General System Stats (ONLY for Pengurus/Super Admin) -->
+<?php if (!empty($isAdmin)): ?>
+    <h5 class="mb-3" style="font-weight: 700; color: #2d3748;">
+        <i class="bi bi-bar-chart-fill"></i> Statistik Sistem
+        <small class="badge bg-purple text-white ms-2">Admin View</small>
+    </h5>
+    <div class="stats-grid">
+        <div class="stat-card primary">
+            <div class="stat-icon">
+                <i class="bi bi-people-fill"></i>
             </div>
-        <?php endif; ?>
-    </div>
-
-    <div class="stat-card warning">
-        <div class="stat-icon">
-            <i class="bi bi-hourglass-split"></i>
+            <div class="stat-label">Total Anggota</div>
+            <div class="stat-value"><?= number_format($statistics['total_members'] ?? 0) ?></div>
+            <?php if (!empty($statistics['new_members_this_month'])): ?>
+                <div class="stat-change positive">
+                    <i class="bi bi-arrow-up"></i>
+                    +<?= $statistics['new_members_this_month'] ?> bulan ini
+                </div>
+            <?php endif; ?>
         </div>
-        <div class="stat-label">Calon Anggota</div>
-        <div class="stat-value"><?= number_format($statistics['pending_members'] ?? 0) ?></div>
-        <div class="stat-change">Menunggu verifikasi</div>
-    </div>
 
-    <div class="stat-card info">
-        <div class="stat-icon">
-            <i class="bi bi-clipboard-check"></i>
+        <div class="stat-card warning">
+            <div class="stat-icon">
+                <i class="bi bi-hourglass-split"></i>
+            </div>
+            <div class="stat-label">Calon Anggota</div>
+            <div class="stat-value"><?= number_format($statistics['pending_members'] ?? 0) ?></div>
+            <div class="stat-change">Menunggu verifikasi</div>
         </div>
-        <div class="stat-label">Survey Aktif</div>
-        <div class="stat-value"><?= number_format($statistics['active_surveys'] ?? 0) ?></div>
-        <div class="stat-change">Dapat diikuti</div>
-    </div>
 
-    <div class="stat-card success">
-        <div class="stat-icon">
-            <i class="bi bi-chat-left-dots-fill"></i>
+        <div class="stat-card info">
+            <div class="stat-icon">
+                <i class="bi bi-clipboard-check"></i>
+            </div>
+            <div class="stat-label">Survey Aktif</div>
+            <div class="stat-value"><?= number_format($statistics['active_surveys'] ?? 0) ?></div>
+            <div class="stat-change">Dapat diikuti</div>
         </div>
-        <div class="stat-label">Forum Diskusi</div>
-        <div class="stat-value"><?= number_format($statistics['total_threads'] ?? 0) ?></div>
-        <div class="stat-change">Total thread</div>
+
+        <div class="stat-card success">
+            <div class="stat-icon">
+                <i class="bi bi-chat-left-dots-fill"></i>
+            </div>
+            <div class="stat-label">Forum Diskusi</div>
+            <div class="stat-value"><?= number_format($statistics['total_threads'] ?? 0) ?></div>
+            <div class="stat-change">Total thread</div>
+        </div>
     </div>
-</div>
+<?php endif; ?>
 
 <!-- Personal Quick Stats -->
 <?php if (!empty($quickStats)): ?>

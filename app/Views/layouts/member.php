@@ -51,6 +51,43 @@ $membershipStatus = $memberProfile->membership_status ?? 'pending';
     <!-- Additional CSS -->
     <?= $this->renderSection('styles') ?>
 
+    <!-- View Switcher Styles -->
+    <style>
+        .view-switcher-btn {
+            display: flex !important;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 16px !important;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white !important;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+
+        .view-switcher-btn:hover {
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
+            transform: translateY(-1px);
+            color: white !important;
+        }
+
+        .view-switcher-btn i {
+            font-size: 20px;
+        }
+
+        .view-switcher-text {
+            font-size: 13px;
+            white-space: nowrap;
+        }
+
+        .bg-purple {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        }
+    </style>
+
     <link rel="icon" type="image/png" sizes="32x32" href="<?= base_url('assets/images/spk-icon.png') ?>" />
 </head>
 
@@ -257,6 +294,20 @@ $membershipStatus = $memberProfile->membership_status ?? 'pending';
                                         <i class="material-icons">search</i>
                                     </a>
                                 </li>
+
+                                <!-- View Switcher (Pengurus & Super Admin Only) -->
+                                <?php
+                                $canSwitchView = $currentUser->inGroup('pengurus') || $currentUser->inGroup('superadmin');
+                                ?>
+                                <?php if ($canSwitchView): ?>
+                                    <li class="nav-item hidden-on-mobile">
+                                        <a class="nav-link view-switcher-btn" href="<?= base_url('admin/dashboard') ?>"
+                                           title="Beralih ke Panel Admin" data-bs-toggle="tooltip">
+                                            <i class="material-icons-outlined">admin_panel_settings</i>
+                                            <span class="view-switcher-text">Panel Admin</span>
+                                        </a>
+                                    </li>
+                                <?php endif; ?>
 
                                 <!-- Notifications -->
                                 <li class="nav-item hidden-on-mobile">
