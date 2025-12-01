@@ -1,7 +1,19 @@
 # ✅ Checklist: Sidebar Menu untuk Role Pengurus
 
 ## 🔍 Masalah
-Role Pengurus sudah memiliki **57 permissions** yang di-assign, tetapi tidak semua menu muncul di sidebar.
+
+Ada 2 masalah utama yang mungkin dialami:
+
+### Masalah A: Login Redirect ke Dashboard yang Salah
+- User login sebagai **Pengurus** tapi di-redirect ke `/member/dashboard`
+- Seharusnya di-redirect ke `/admin/dashboard`
+- **Lihat**: `FIX_PENGURUS_LOGIN_REDIRECT.md` untuk solusi
+
+### Masalah B: Menu Tidak Muncul di Sidebar
+- Role Pengurus sudah memiliki **57 permissions** yang di-assign
+- Tapi tidak semua menu muncul di sidebar
+
+---
 
 ## 📊 Data Permission Pengurus
 Berdasarkan tabel `auth_groups_permissions`:
@@ -12,6 +24,24 @@ Berdasarkan tabel `auth_groups_permissions`:
 ---
 
 ## 🔧 Langkah Diagnosis
+
+### STEP 0: ⚠️ CEK LOGIN REDIRECT DULU (PALING PENTING!)
+
+**Masalah:** Login sebagai Pengurus tapi masuk ke `/member/dashboard`
+
+**Quick Check:**
+1. Login sebagai user dengan role Pengurus
+2. Perhatikan URL setelah login:
+   - ❌ Jika: `http://localhost:8080/member/dashboard` → **ADA MASALAH!**
+   - ✅ Jika: `http://localhost:8080/admin/dashboard` → **OK, lanjut STEP 1**
+
+**Jika redirect SALAH:**
+👉 **STOP!** Baca dan ikuti: **`FIX_PENGURUS_LOGIN_REDIRECT.md`**
+
+**Mengapa ini penting?**
+Karena kalau redirect salah, sidebar yang muncul adalah **member sidebar**, bukan **admin sidebar**. Jadi meskipun permission sudah benar, menu admin tetap tidak akan muncul!
+
+---
 
 ### STEP 1: Cek Apakah Tabel Menus Sudah Terisi
 
