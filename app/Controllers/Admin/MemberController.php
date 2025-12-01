@@ -347,7 +347,7 @@ class MemberController extends BaseController
     /**
      * Update member profile
      * Process member information update
-     * 
+     *
      * @param int $id Member profile ID
      * @return ResponseInterface
      */
@@ -367,7 +367,11 @@ class MemberController extends BaseController
         }
 
         try {
-            $member = $this->memberModel->find($id);
+            // Get member with email from auth_identities
+            $member = $this->memberModel
+                ->select('member_profiles.*, auth_identities.secret as email')
+                ->join('auth_identities', 'auth_identities.user_id = member_profiles.user_id AND auth_identities.type = "email_password"', 'left')
+                ->find($id);
 
             if (!$member) {
                 return redirect()->back()->with('error', 'Anggota tidak ditemukan');
