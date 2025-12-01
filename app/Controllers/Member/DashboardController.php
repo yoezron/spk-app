@@ -100,8 +100,9 @@ class DashboardController extends BaseController
             // Check account status and warnings
             $accountWarnings = $this->checkAccountWarnings($user, $member);
 
-            // Get general statistics
-            $generalStats = $this->getGeneralStatistics();
+            // Get general statistics (ONLY for pengurus and superadmin)
+            $isAdmin = $user->inGroup('pengurus') || $user->inGroup('superadmin');
+            $generalStats = $isAdmin ? $this->getGeneralStatistics() : [];
 
             $data = [
                 'title' => 'Dashboard - Serikat Pekerja Kampus',
@@ -110,6 +111,7 @@ class DashboardController extends BaseController
                 // User & Member Info
                 'user' => $user,
                 'member' => $member,
+                'isAdmin' => $isAdmin, // Flag to show/hide admin features
 
                 // Statistics
                 'personalStats' => $personalStats,
