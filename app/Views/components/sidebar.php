@@ -90,9 +90,12 @@ function renderMenuItem($item, $level = 0)
     echo '<li class="' . $activeClass . '">';
 
     if ($hasChildren) {
-        // Parent menu with children
+        // Parent menu with children - Support both Bootstrap 4 & 5
         $collapseId = 'menu-' . $item->id;
-        echo '<a href="#" data-bs-toggle="collapse" data-bs-target="#' . $collapseId . '">';
+        echo '<a href="#" class="submenu-toggle" ';
+        echo 'data-toggle="collapse" data-target="#' . $collapseId . '" ';  // Bootstrap 4
+        echo 'data-bs-toggle="collapse" data-bs-target="#' . $collapseId . '" ';  // Bootstrap 5
+        echo 'aria-expanded="' . ($isActive ? 'true' : 'false') . '">';
         echo '<i class="material-icons-two-tone">' . esc($item->icon ?? 'circle') . '</i>';
         echo esc($item->title);
         echo '<i class="material-icons has-sub-menu">keyboard_arrow_right</i>';
@@ -260,6 +263,35 @@ function renderMenuItem($item, $level = 0)
         font-size: 14px;
     }
 
+    /* Collapse animation */
+    .collapse {
+        transition: height 0.35s ease;
+    }
+
+    .collapse:not(.show) {
+        display: none;
+    }
+
+    .collapsing {
+        height: 0;
+        overflow: hidden;
+        transition: height 0.35s ease;
+    }
+
+    /* Submenu toggle arrow animation */
+    .submenu-toggle .has-sub-menu {
+        transition: transform 0.3s ease;
+    }
+
+    .submenu-toggle[aria-expanded="true"] .has-sub-menu {
+        transform: rotate(90deg);
+    }
+
+    /* Hover effect for submenu toggle */
+    .submenu-toggle:hover {
+        background-color: rgba(102, 126, 234, 0.05);
+    }
+
     /* Menu icons */
     .accordion-menu i.material-icons-two-tone,
     .accordion-menu i.material-icons-outlined {
@@ -315,8 +347,54 @@ function renderMenuItem($item, $level = 0)
             const parentCollapse = activeMenuItem.closest('.collapse');
             if (parentCollapse) {
                 parentCollapse.classList.add('show');
+                // Also mark parent toggle as expanded
+                const parentToggle = document.querySelector('[data-target="#' + parentCollapse.id + '"], [data-bs-target="#' + parentCollapse.id + '"]');
+                if (parentToggle) {
+                    parentToggle.setAttribute('aria-expanded', 'true');
+                }
             }
         }
+
+        // Manual toggle for submenu (fallback if Bootstrap not working)
+        document.querySelectorAll('.submenu-toggle').forEach(function(toggle) {
+            toggle.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                // Get target from both BS4 and BS5 attributes
+                const targetId = this.getAttribute('data-target') || this.getAttribute('data-bs-target');
+                if (!targetId) return;
+
+                const target = document.querySelector(targetId);
+                if (!target) return;
+
+                // Toggle collapse
+                const isExpanded = target.classList.contains('show');
+
+                if (isExpanded) {
+                    target.classList.remove('show');
+                    this.setAttribute('aria-expanded', 'false');
+                    this.classList.remove('active');
+                } else {
+                    // Close other open menus (accordion behavior)
+                    document.querySelectorAll('.accordion-menu .collapse.show').forEach(function(openMenu) {
+                        if (openMenu !== target) {
+                            openMenu.classList.remove('show');
+                            const relatedToggle = document.querySelector('[data-target="#' + openMenu.id + '"], [data-bs-target="#' + openMenu.id + '"]');
+                            if (relatedToggle) {
+                                relatedToggle.setAttribute('aria-expanded', 'false');
+                                relatedToggle.classList.remove('active');
+                            }
+                        }
+                    });
+
+                    target.classList.add('show');
+                    this.setAttribute('aria-expanded', 'true');
+                    this.classList.add('active');
+                }
+
+                return false;
+            });
+        });
 
         // Smooth scroll on menu click
         document.querySelectorAll('.app-menu a[href^="#"]').forEach(anchor => {
