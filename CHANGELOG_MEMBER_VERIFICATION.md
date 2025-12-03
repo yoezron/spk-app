@@ -7,7 +7,14 @@
 
 ## 🎯 Ringkasan Perubahan
 
-Perbaikan dan optimalisasi modul verifikasi pendaftaran calon anggota untuk disetujui menjadi anggota penuh. Mengatasi masalah inkonsistensi role naming dan menambahkan validasi untuk mencegah duplicate approval.
+Perbaikan dan optimalisasi modul verifikasi pendaftaran calon anggota untuk disetujui menjadi anggota penuh. Mengatasi masalah inkonsistensi role naming, menambahkan validasi untuk mencegah duplicate approval, dan menambahkan kolom database yang hilang.
+
+## ⚠️ PENTING: PERLU MENJALANKAN SQL SCRIPT TERLEBIH DAHULU!
+
+Sebelum testing, wajib menjalankan SQL script di phpMyAdmin:
+**File:** `database/sql/add_verified_fields_to_member_profiles.sql`
+
+Kolom `verified_at` dan `verified_by` harus ditambahkan ke tabel `member_profiles`.
 
 ---
 
@@ -59,7 +66,31 @@ Perbaikan dan optimalisasi modul verifikasi pendaftaran calon anggota untuk dise
 
 ---
 
-## 📝 File yang Diubah
+### 4. **Missing Database Columns** ❌→✅
+
+**Masalah:**
+- Kode menggunakan field `verified_at` dan `verified_by`
+- Tapi tabel `member_profiles` hanya punya `approved_at` dan `approved_by`
+- Error SQL: "Key column 'verified_at' doesn't exist in table"
+
+**Dampak:**
+- Approval member gagal dengan SQL error
+- Admin tidak bisa menyetujui calon anggota
+- System crash saat save data approval
+
+**Solusi:**
+✅ Buat migration untuk menambahkan kolom `verified_at` dan `verified_by`
+✅ Tambahkan index pada `verified_at` untuk performa query
+✅ Update `MemberProfileModel::$allowedFields` untuk include field baru
+✅ Buat SQL script manual untuk eksekusi di phpMyAdmin
+
+**File Baru:**
+- `app/Database/Migrations/2025_12_03_000001_AddVerifiedFieldsToMemberProfiles.php`
+- `database/sql/add_verified_fields_to_member_profiles.sql`
+
+---
+
+## 📝 File yang Diubah/Dibuat
 
 ### 1. `/app/Models/UserModel.php`
 
@@ -200,6 +231,75 @@ class Roles extends BaseConfig
 ✅ Type-safe dengan konstanta
 ✅ Helper methods untuk role validation
 ✅ Mudah maintenance jika ada perubahan role
+
+---
+
+### 5. `/app/Models/MemberProfileModel.php`
+
+**Perubahan di `$allowedFields`:**
+```php
+// BEFORE
+protected $allowedFields = [
+    ...
+    'approved_at',
+    'approved_by',
+    'skills',
+    ...
+];
+
+// AFTER
+protected $allowedFields = [
+    ...
+    'approved_at',
+    'approved_by',
+    'verified_at',    // ← NEW
+    'verified_by',    // ← NEW
+    'skills',
+    ...
+];
+```
+
+**Dampak:**
+- Memungkinkan `ApproveMemberService` untuk update field `verified_at` dan `verified_by`
+- Tanpa ini, update akan di-ignore oleh model protection
+
+---
+
+### 6. `database/sql/add_verified_fields_to_member_profiles.sql` (FILE BARU ✨)
+
+**SQL Script Manual:**
+```sql
+-- Tambah kolom verified_at
+ALTER TABLE member_profiles
+ADD COLUMN verified_at DATETIME NULL COMMENT 'Tanggal Verifikasi Anggota'
+AFTER approved_by;
+
+-- Tambah kolom verified_by
+ALTER TABLE member_profiles
+ADD COLUMN verified_by INT(11) UNSIGNED NULL COMMENT 'User ID yang Memverifikasi'
+AFTER verified_at;
+
+-- Tambah index untuk performa
+CREATE INDEX idx_verified_at ON member_profiles(verified_at);
+```
+
+**Cara Penggunaan:**
+1. Buka phpMyAdmin
+2. Pilih database `spk_db`
+3. Jalankan script di atas
+4. Verifikasi dengan: `SHOW COLUMNS FROM member_profiles;`
+
+**WAJIB DIJALANKAN** sebelum testing approval flow!
+
+---
+
+### 7. `app/Database/Migrations/2025_12_03_000001_AddVerifiedFieldsToMemberProfiles.php` (FILE BARU ✨)
+
+**CodeIgniter Migration File:**
+
+Untuk dijalankan via `php spark migrate` (jika vendor sudah terinstall).
+
+Menambahkan kolom yang sama seperti SQL script manual di atas, tapi dalam format CodeIgniter Migration.
 
 ---
 
