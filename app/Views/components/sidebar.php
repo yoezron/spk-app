@@ -340,14 +340,16 @@ function renderMenuItem($item, $level = 0)
 </style>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    // Use setTimeout to ensure DOM is fully loaded and theme JS has initialized
+    setTimeout(function() {
+        console.log('[Sidebar] Initializing submenu handlers...');
+
         // Auto-expand active parent menu
         const activeMenuItem = document.querySelector('.accordion-menu li.active-page');
         if (activeMenuItem) {
             const parentCollapse = activeMenuItem.closest('.collapse');
             if (parentCollapse) {
                 parentCollapse.classList.add('show');
-                // Also mark parent toggle as expanded
                 const parentToggle = document.querySelector('[data-target="#' + parentCollapse.id + '"], [data-bs-target="#' + parentCollapse.id + '"]');
                 if (parentToggle) {
                     parentToggle.setAttribute('aria-expanded', 'true');
@@ -355,30 +357,56 @@ function renderMenuItem($item, $level = 0)
             }
         }
 
-        // Manual toggle for submenu (fallback if Bootstrap not working)
-        document.querySelectorAll('.submenu-toggle').forEach(function(toggle) {
-            toggle.addEventListener('click', function(e) {
-                e.preventDefault();
+        // Remove any existing click handlers from theme
+        const submenuToggles = document.querySelectorAll('.submenu-toggle');
+        console.log('[Sidebar] Found ' + submenuToggles.length + ' submenu toggles');
 
-                // Get target from both BS4 and BS5 attributes
+        submenuToggles.forEach(function(toggle, index) {
+            // Clone and replace to remove all event listeners
+            const newToggle = toggle.cloneNode(true);
+            toggle.parentNode.replaceChild(newToggle, toggle);
+
+            // Add our custom click handler
+            newToggle.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+
+                console.log('[Sidebar] Toggle clicked:', this);
+
+                // Get target ID
                 const targetId = this.getAttribute('data-target') || this.getAttribute('data-bs-target');
-                if (!targetId) return;
+                console.log('[Sidebar] Target ID:', targetId);
+
+                if (!targetId) {
+                    console.error('[Sidebar] No target ID found');
+                    return false;
+                }
 
                 const target = document.querySelector(targetId);
-                if (!target) return;
+                console.log('[Sidebar] Target element:', target);
+
+                if (!target) {
+                    console.error('[Sidebar] Target element not found:', targetId);
+                    return false;
+                }
 
                 // Toggle collapse
                 const isExpanded = target.classList.contains('show');
+                console.log('[Sidebar] Is expanded:', isExpanded);
 
                 if (isExpanded) {
+                    // Close menu
                     target.classList.remove('show');
+                    target.style.display = 'none';
                     this.setAttribute('aria-expanded', 'false');
                     this.classList.remove('active');
+                    console.log('[Sidebar] Menu closed');
                 } else {
-                    // Close other open menus (accordion behavior)
+                    // Close other open menus first (accordion behavior)
                     document.querySelectorAll('.accordion-menu .collapse.show').forEach(function(openMenu) {
                         if (openMenu !== target) {
                             openMenu.classList.remove('show');
+                            openMenu.style.display = 'none';
                             const relatedToggle = document.querySelector('[data-target="#' + openMenu.id + '"], [data-bs-target="#' + openMenu.id + '"]');
                             if (relatedToggle) {
                                 relatedToggle.setAttribute('aria-expanded', 'false');
@@ -387,30 +415,21 @@ function renderMenuItem($item, $level = 0)
                         }
                     });
 
+                    // Open this menu
                     target.classList.add('show');
+                    target.style.display = 'block';
                     this.setAttribute('aria-expanded', 'true');
                     this.classList.add('active');
+                    console.log('[Sidebar] Menu opened');
                 }
 
                 return false;
             });
+
+            console.log('[Sidebar] Handler attached to toggle ' + (index + 1));
         });
 
-        // Smooth scroll on menu click
-        document.querySelectorAll('.app-menu a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function(e) {
-                const href = this.getAttribute('href');
-                if (href !== '#' && href !== '') {
-                    e.preventDefault();
-                    const target = document.querySelector(href);
-                    if (target) {
-                        target.scrollIntoView({
-                            behavior: 'smooth',
-                            block: 'start'
-                        });
-                    }
-                }
-            });
-        });
-    });
+        console.log('[Sidebar] Submenu initialization complete');
+
+    }, 500); // Wait 500ms for theme JS to initialize
 </script>
