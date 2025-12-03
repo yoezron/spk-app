@@ -340,96 +340,115 @@ function renderMenuItem($item, $level = 0)
 </style>
 
 <script>
-    // Use setTimeout to ensure DOM is fully loaded and theme JS has initialized
-    setTimeout(function() {
-        console.log('[Sidebar] Initializing submenu handlers...');
+    // Pure manual submenu toggle - No Bootstrap dependency
+    (function() {
+        console.log('[Sidebar] Initializing manual submenu handlers...');
 
-        // Auto-expand active parent menu
-        const activeMenuItem = document.querySelector('.accordion-menu li.active-page');
-        if (activeMenuItem) {
-            const parentCollapse = activeMenuItem.closest('.collapse');
-            if (parentCollapse) {
-                parentCollapse.classList.add('show');
-                const parentToggle = document.querySelector('[data-target="#' + parentCollapse.id + '"], [data-bs-target="#' + parentCollapse.id + '"]');
-                if (parentToggle) {
-                    parentToggle.setAttribute('aria-expanded', 'true');
-                }
-            }
+        // Wait for DOM ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initSubmenu);
+        } else {
+            // DOM already loaded, wait a bit for theme JS
+            setTimeout(initSubmenu, 300);
         }
 
-        // Remove any existing click handlers from theme
-        const submenuToggles = document.querySelectorAll('.submenu-toggle');
-        console.log('[Sidebar] Found ' + submenuToggles.length + ' submenu toggles');
+        function initSubmenu() {
+            console.log('[Sidebar] DOM ready, setting up submenu...');
 
-        submenuToggles.forEach(function(toggle, index) {
-            // Clone and replace to remove all event listeners
-            const newToggle = toggle.cloneNode(true);
-            toggle.parentNode.replaceChild(newToggle, toggle);
-
-            // Add our custom click handler
-            newToggle.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-
-                console.log('[Sidebar] Toggle clicked:', this);
-
-                // Get target ID
-                const targetId = this.getAttribute('data-target') || this.getAttribute('data-bs-target');
-                console.log('[Sidebar] Target ID:', targetId);
-
-                if (!targetId) {
-                    console.error('[Sidebar] No target ID found');
-                    return false;
+            // Auto-expand active parent menu
+            const activeMenuItem = document.querySelector('.accordion-menu li.active-page');
+            if (activeMenuItem) {
+                const parentCollapse = activeMenuItem.closest('.collapse');
+                if (parentCollapse) {
+                    parentCollapse.style.display = 'block';
+                    parentCollapse.classList.add('show');
+                    const parentToggle = document.querySelector('[data-target="#' + parentCollapse.id + '"]');
+                    if (parentToggle) {
+                        parentToggle.setAttribute('aria-expanded', 'true');
+                        parentToggle.classList.add('active');
+                    }
                 }
+            }
 
-                const target = document.querySelector(targetId);
-                console.log('[Sidebar] Target element:', target);
+            // Get all submenu toggles
+            const submenuToggles = document.querySelectorAll('.submenu-toggle');
+            console.log('[Sidebar] Found ' + submenuToggles.length + ' submenu toggles');
 
-                if (!target) {
-                    console.error('[Sidebar] Target element not found:', targetId);
-                    return false;
-                }
+            submenuToggles.forEach(function(toggle) {
+                // Remove all existing event listeners by cloning
+                const newToggle = toggle.cloneNode(true);
+                toggle.parentNode.replaceChild(newToggle, toggle);
 
-                // Toggle collapse
-                const isExpanded = target.classList.contains('show');
-                console.log('[Sidebar] Is expanded:', isExpanded);
+                // Add our pure manual click handler
+                newToggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
 
-                if (isExpanded) {
-                    // Close menu
-                    target.classList.remove('show');
-                    target.style.display = 'none';
-                    this.setAttribute('aria-expanded', 'false');
-                    this.classList.remove('active');
-                    console.log('[Sidebar] Menu closed');
-                } else {
-                    // Close other open menus first (accordion behavior)
-                    document.querySelectorAll('.accordion-menu .collapse.show').forEach(function(openMenu) {
-                        if (openMenu !== target) {
-                            openMenu.classList.remove('show');
-                            openMenu.style.display = 'none';
-                            const relatedToggle = document.querySelector('[data-target="#' + openMenu.id + '"], [data-bs-target="#' + openMenu.id + '"]');
-                            if (relatedToggle) {
-                                relatedToggle.setAttribute('aria-expanded', 'false');
-                                relatedToggle.classList.remove('active');
+                    console.log('[Sidebar] Toggle clicked');
+
+                    // Get target
+                    const targetId = this.getAttribute('data-target');
+                    if (!targetId) {
+                        console.error('[Sidebar] No target ID');
+                        return false;
+                    }
+
+                    const target = document.querySelector(targetId);
+                    if (!target) {
+                        console.error('[Sidebar] Target not found:', targetId);
+                        return false;
+                    }
+
+                    // Remove all Bootstrap animation classes
+                    target.classList.remove('collapsing');
+                    target.style.height = '';
+                    target.style.overflow = '';
+
+                    // Check ACTUAL visibility via display style
+                    const isCurrentlyVisible = (target.style.display === 'block' ||
+                                               (target.style.display === '' && target.classList.contains('show')));
+
+                    console.log('[Sidebar] Currently visible:', isCurrentlyVisible);
+
+                    if (isCurrentlyVisible) {
+                        // CLOSE menu
+                        target.classList.remove('show');
+                        target.style.display = 'none';
+                        this.setAttribute('aria-expanded', 'false');
+                        this.classList.remove('active');
+                        console.log('[Sidebar] ✓ Menu CLOSED');
+                    } else {
+                        // OPEN menu
+                        // First close all other menus
+                        document.querySelectorAll('.accordion-menu .collapse').forEach(function(menu) {
+                            if (menu !== target) {
+                                menu.classList.remove('show', 'collapsing');
+                                menu.style.display = 'none';
+                                menu.style.height = '';
+                                const relatedToggle = document.querySelector('[data-target="#' + menu.id + '"]');
+                                if (relatedToggle) {
+                                    relatedToggle.setAttribute('aria-expanded', 'false');
+                                    relatedToggle.classList.remove('active');
+                                }
                             }
-                        }
-                    });
+                        });
 
-                    // Open this menu
-                    target.classList.add('show');
-                    target.style.display = 'block';
-                    this.setAttribute('aria-expanded', 'true');
-                    this.classList.add('active');
-                    console.log('[Sidebar] Menu opened');
-                }
+                        // Now open this menu
+                        target.classList.remove('collapsing');
+                        target.classList.add('show');
+                        target.style.display = 'block';
+                        target.style.height = 'auto';
+                        this.setAttribute('aria-expanded', 'true');
+                        this.classList.add('active');
+                        console.log('[Sidebar] ✓ Menu OPENED');
+                    }
 
-                return false;
+                    return false;
+                }, true); // Use capture phase
             });
 
-            console.log('[Sidebar] Handler attached to toggle ' + (index + 1));
-        });
-
-        console.log('[Sidebar] Submenu initialization complete');
-
-    }, 500); // Wait 500ms for theme JS to initialize
+            console.log('[Sidebar] ✓ Setup complete');
+        }
+    })();
 </script>
