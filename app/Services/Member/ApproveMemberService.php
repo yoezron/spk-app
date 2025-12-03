@@ -6,6 +6,7 @@ use App\Models\UserModel;
 use App\Models\MemberProfileModel;
 use App\Models\AuditLogModel;
 use CodeIgniter\Database\Exceptions\DatabaseException;
+use Config\Roles;
 
 /**
  * ApproveMemberService
@@ -71,7 +72,7 @@ class ApproveMemberService
             }
 
             // 2. Check if user is pending approval
-            if (!$user->inGroup('calon_anggota')) {
+            if (!$user->inGroup(Roles::CALON_ANGGOTA)) {
                 return [
                     'success' => false,
                     'message' => 'User bukan calon anggota atau sudah disetujui',
@@ -90,11 +91,29 @@ class ApproveMemberService
                 ];
             }
 
-            // 4. Update member profile status
+            // 4. Validate membership status (prevent duplicate approval)
+            if ($member->membership_status === 'active') {
+                return [
+                    'success' => false,
+                    'message' => 'Anggota sudah disetujui sebelumnya',
+                    'data' => null
+                ];
+            }
+
+            if ($member->membership_status !== 'pending') {
+                return [
+                    'success' => false,
+                    'message' => 'Status anggota tidak valid untuk disetujui (status: ' . $member->membership_status . ')',
+                    'data' => null
+                ];
+            }
+
+            // 5. Update member profile status
             $memberUpdateData = [
                 'membership_status' => 'active',
                 'verified_at' => date('Y-m-d H:i:s'),
                 'verified_by' => $approvedBy,
+                'join_date' => $member->join_date ?? date('Y-m-d'), // Set join_date if not exists
             ];
 
             if (isset($options['notes'])) {
@@ -103,20 +122,20 @@ class ApproveMemberService
 
             $this->memberModel->update($member->id, $memberUpdateData);
 
-            // 5. Activate user account
+            // 6. Activate user account
             $this->userModel->update($userId, ['active' => 1]);
 
-            // 6. Change role from "calon_anggota" to "anggota"
-            $roleChanged = $this->changeRole($userId, 'calon_anggota', 'anggota');
+            // 7. Change role from "calon_anggota" to "anggota"
+            $roleChanged = $this->changeRole($userId, Roles::CALON_ANGGOTA, Roles::ANGGOTA);
 
             if (!$roleChanged['success']) {
                 throw new \Exception($roleChanged['message']);
             }
 
-            // 7. Log audit trail
+            // 8. Log audit trail
             $this->logApproval($userId, $approvedBy, 'approved', $options['notes'] ?? null);
 
-            // 8. Send approval notification email
+            // 9. Send approval notification email
             if (!isset($options['send_email']) || $options['send_email'] === true) {
                 $emailResult = $this->sendApprovalNotification($user, 'approved');
 
@@ -138,7 +157,7 @@ class ApproveMemberService
                     'user_id' => $userId,
                     'member_id' => $member->id,
                     'member_number' => $member->member_number,
-                    'new_role' => 'anggota',
+                    'new_role' => Roles::ANGGOTA,
                     'approved_by' => $approvedBy,
                     'approved_at' => date('Y-m-d H:i:s')
                 ]
@@ -184,7 +203,7 @@ class ApproveMemberService
             }
 
             // 2. Check if user is pending approval
-            if (!$user->inGroup('calon_anggota')) {
+            if (!$user->inGroup(Roles::CALON_ANGGOTA)) {
                 return [
                     'success' => false,
                     'message' => 'User bukan calon anggota',
@@ -493,7 +512,7 @@ class ApproveMemberService
 
     /**
      * Check if user can approve members
-     * 
+     *
      * @param int $userId User ID to check
      * @return bool
      */
@@ -506,7 +525,7 @@ class ApproveMemberService
         }
 
         // Only superadmin and pengurus can approve members
-        return $user->inGroup('superadmin') || $user->inGroup('pengurus');
+        return $user->inGroup(Roles::SUPERADMIN) || $user->inGroup(Roles::PENGURUS);
     }
 
     /**
