@@ -222,12 +222,51 @@ class MemberController extends BaseController
             ->orderBy('users.created_at', 'ASC')
             ->paginate(20);
 
+        // Get approval statistics
+        $today = date('Y-m-d');
+        $stats = [
+            'pending_count' => $this->memberModel
+                ->where('membership_status', 'pending')
+                ->countAllResults(false),
+            'approved_today' => $this->memberModel
+                ->where('membership_status', 'active')
+                ->where('DATE(verified_at)', $today)
+                ->countAllResults(false),
+            'rejected_total' => $this->memberModel
+                ->where('membership_status', 'rejected')
+                ->countAllResults(false),
+        ];
+
+        // Apply regional scope to statistics if koordinator
+        if ($isKoordinator) {
+            $scopeResult = $this->regionScope->getScopeData($user->id);
+            if ($scopeResult['success']) {
+                $provinceId = $scopeResult['data']['province_id'];
+                $stats = [
+                    'pending_count' => $this->memberModel
+                        ->where('membership_status', 'pending')
+                        ->where('province_id', $provinceId)
+                        ->countAllResults(false),
+                    'approved_today' => $this->memberModel
+                        ->where('membership_status', 'active')
+                        ->where('DATE(verified_at)', $today)
+                        ->where('province_id', $provinceId)
+                        ->countAllResults(false),
+                    'rejected_total' => $this->memberModel
+                        ->where('membership_status', 'rejected')
+                        ->where('province_id', $provinceId)
+                        ->countAllResults(false),
+                ];
+            }
+        }
+
         $data = [
             'title' => 'Calon Anggota (Pending)',
             'members' => $pendingMembers,
             'pager' => $this->memberModel->pager,
             'search' => $search,
-            'is_koordinator' => $isKoordinator
+            'is_koordinator' => $isKoordinator,
+            'stats' => $stats
         ];
 
         return view('admin/members/pending', $data);
@@ -318,7 +357,7 @@ class MemberController extends BaseController
 
         // Get user roles for role management (Super Admin only)
         $roles = [];
-        if ($user->inGroup('superadmin') || $user->inGroup('Super Admin')) {
+        if ($user->inGroup('superadmin')) {
             $roleModel = model('RoleModel');
             $roles = $roleModel->findAll();
 

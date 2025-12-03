@@ -109,22 +109,22 @@ class UserModel extends ShieldUserModel
 
     /**
      * Get users who are members (Anggota or higher, excluding Calon Anggota)
-     * 
+     *
      * @return object
      */
     public function members()
     {
-        return $this->byRoles(['Super Admin', 'Pengurus', 'Koordinator Wilayah', 'Anggota']);
+        return $this->byRoles(['superadmin', 'pengurus', 'koordinator', 'anggota']);
     }
 
     /**
      * Get pending members (Calon Anggota)
-     * 
+     *
      * @return object
      */
     public function pendingMembers()
     {
-        return $this->byRole('Calon Anggota');
+        return $this->byRole('calon_anggota');
     }
 
     /**
@@ -342,7 +342,7 @@ class UserModel extends ShieldUserModel
 
     /**
      * Get user statistics
-     * 
+     *
      * @return array
      */
     public function getStatistics(): array
@@ -351,11 +351,11 @@ class UserModel extends ShieldUserModel
             'total'             => $this->getTotalUsers(),
             'active'            => $this->getTotalActiveUsers(),
             'inactive'          => $this->getTotalUsers() - $this->getTotalActiveUsers(),
-            'super_admin'       => $this->getTotalByRole('Super Admin'),
-            'pengurus'          => $this->getTotalByRole('Pengurus'),
-            'koordinator'       => $this->getTotalByRole('Koordinator Wilayah'),
-            'anggota'           => $this->getTotalByRole('Anggota'),
-            'calon_anggota'     => $this->getTotalByRole('Calon Anggota'),
+            'super_admin'       => $this->getTotalByRole('superadmin'),
+            'pengurus'          => $this->getTotalByRole('pengurus'),
+            'koordinator'       => $this->getTotalByRole('koordinator'),
+            'anggota'           => $this->getTotalByRole('anggota'),
+            'calon_anggota'     => $this->getTotalByRole('calon_anggota'),
             'registered_today'  => $this->registeredBetween(date('Y-m-d'), date('Y-m-d'))->countAllResults(false),
             'registered_week'   => $this->registeredBetween(date('Y-m-d', strtotime('-7 days')), date('Y-m-d'))->countAllResults(false),
             'registered_month'  => $this->registeredBetween(date('Y-m-01'), date('Y-m-d'))->countAllResults(false),

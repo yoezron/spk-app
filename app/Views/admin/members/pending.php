@@ -252,6 +252,52 @@
     .info-value {
         color: #2c3e50;
     }
+
+    /* Loading Overlay */
+    .loading-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.7);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .loading-overlay.active {
+        display: flex;
+    }
+
+    .loading-content {
+        background: white;
+        padding: 30px;
+        border-radius: 12px;
+        text-align: center;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 15px;
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
 </style>
 <?= $this->endSection() ?>
 
@@ -304,7 +350,7 @@
                     <i class="feather icon-clock"></i>
                 </div>
             </div>
-            <div class="stat-value"><?= count($members) ?></div>
+            <div class="stat-value"><?= $stats['pending_count'] ?? 0 ?></div>
             <div class="stat-label">Menunggu Approval</div>
         </div>
     </div>
@@ -316,7 +362,7 @@
                     <i class="feather icon-check-circle"></i>
                 </div>
             </div>
-            <div class="stat-value">0</div>
+            <div class="stat-value"><?= $stats['approved_today'] ?? 0 ?></div>
             <div class="stat-label">Disetujui Hari Ini</div>
         </div>
     </div>
@@ -328,8 +374,8 @@
                     <i class="feather icon-x-circle"></i>
                 </div>
             </div>
-            <div class="stat-value">0</div>
-            <div class="stat-label">Ditolak</div>
+            <div class="stat-value"><?= $stats['rejected_total'] ?? 0 ?></div>
+            <div class="stat-label">Total Ditolak</div>
         </div>
     </div>
 </div>
@@ -389,8 +435,8 @@
                             <label class="custom-control-label" for="member_<?= $member->id ?>"></label>
                         </div>
 
-                        <?php if (!empty($member->photo_url)): ?>
-                            <img src="<?= base_url('uploads/photos/' . $member->photo_url) ?>"
+                        <?php if (!empty($member->photo_path)): ?>
+                            <img src="<?= base_url('uploads/photos/' . $member->photo_path) ?>"
                                 alt="Photo"
                                 class="member-photo"
                                 data-lightbox="member-<?= $member->id ?>"
@@ -466,17 +512,17 @@
                                     </div>
 
                                     <div class="checklist-item">
-                                        <div class="checklist-icon <?= !empty($member->photo_url) ? 'complete' : 'incomplete' ?>">
-                                            <i class="feather icon-<?= !empty($member->photo_url) ? 'check' : 'x' ?>"></i>
+                                        <div class="checklist-icon <?= !empty($member->photo_path) ? 'complete' : 'incomplete' ?>">
+                                            <i class="feather icon-<?= !empty($member->photo_path) ? 'check' : 'x' ?>"></i>
                                         </div>
                                         <div>Foto Profil</div>
                                     </div>
 
                                     <div class="checklist-item">
-                                        <div class="checklist-icon <?= !empty($member->payment_proof_url) ? 'complete' : 'incomplete' ?>">
-                                            <i class="feather icon-<?= !empty($member->payment_proof_url) ? 'check' : 'x' ?>"></i>
+                                        <div class="checklist-icon <?= !empty($member->id_card_path) ? 'complete' : 'incomplete' ?>">
+                                            <i class="feather icon-<?= !empty($member->id_card_path) ? 'check' : 'x' ?>"></i>
                                         </div>
-                                        <div>Bukti Pembayaran</div>
+                                        <div>Dokumen Identitas</div>
                                     </div>
 
                                     <div class="checklist-item">
@@ -493,23 +539,29 @@
                                 <h6 class="mb-3"><i class="feather icon-file"></i> Dokumen Pendukung</h6>
 
                                 <div class="row g-2 mb-3">
-                                    <?php if (!empty($member->photo_url)): ?>
+                                    <?php if (!empty($member->photo_path)): ?>
                                         <div class="col-6">
-                                            <div class="document-preview" data-lightbox="member-<?= $member->id ?>"
-                                                data-src="<?= base_url('uploads/photos/' . $member->photo_url) ?>">
-                                                <img src="<?= base_url('uploads/photos/' . $member->photo_url) ?>" alt="Foto">
+                                            <div class="document-preview">
+                                                <a href="<?= base_url('uploads/photos/' . $member->photo_path) ?>"
+                                                    data-lightbox="member-<?= $member->id ?>"
+                                                    data-title="Foto Profil - <?= esc($member->full_name) ?>">
+                                                    <img src="<?= base_url('uploads/photos/' . $member->photo_path) ?>" alt="Foto">
+                                                </a>
                                             </div>
                                             <small class="text-muted d-block text-center mt-1">Foto Profil</small>
                                         </div>
                                     <?php endif; ?>
 
-                                    <?php if (!empty($member->payment_proof_url)): ?>
+                                    <?php if (!empty($member->id_card_path)): ?>
                                         <div class="col-6">
-                                            <div class="document-preview" data-lightbox="member-<?= $member->id ?>"
-                                                data-src="<?= base_url('uploads/bukti_bayar/' . $member->payment_proof_url) ?>">
-                                                <img src="<?= base_url('uploads/bukti_bayar/' . $member->payment_proof_url) ?>" alt="Bukti Bayar">
+                                            <div class="document-preview">
+                                                <a href="<?= base_url('uploads/id_cards/' . $member->id_card_path) ?>"
+                                                    data-lightbox="member-<?= $member->id ?>"
+                                                    data-title="KTP - <?= esc($member->full_name) ?>">
+                                                    <img src="<?= base_url('uploads/id_cards/' . $member->id_card_path) ?>" alt="KTP">
+                                                </a>
                                             </div>
-                                            <small class="text-muted d-block text-center mt-1">Bukti Bayar</small>
+                                            <small class="text-muted d-block text-center mt-1">Dokumen ID</small>
                                         </div>
                                     <?php endif; ?>
                                 </div>
@@ -556,6 +608,14 @@
         <p class="text-muted">Saat ini tidak ada calon anggota yang menunggu persetujuan.</p>
     </div>
 <?php endif; ?>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-content">
+        <div class="spinner"></div>
+        <p class="mb-0"><strong id="loadingText">Memproses...</strong></p>
+    </div>
+</div>
 
 <!-- Reject Modal -->
 <div class="modal fade" id="rejectModal" tabindex="-1" role="dialog">
@@ -645,9 +705,21 @@
         }, 5000);
     });
 
+    // Show Loading Overlay
+    function showLoading(text = 'Memproses...') {
+        document.getElementById('loadingText').textContent = text;
+        document.getElementById('loadingOverlay').classList.add('active');
+    }
+
+    // Hide Loading Overlay
+    function hideLoading() {
+        document.getElementById('loadingOverlay').classList.remove('active');
+    }
+
     // Approve Confirmation
     function approveConfirm(memberId, memberName) {
         if (confirm(`Anda yakin ingin menyetujui pendaftaran "${memberName}"?\n\nSetelah disetujui, anggota akan:\n- Mendapat nomor anggota\n- Dapat login ke sistem\n- Menerima email konfirmasi`)) {
+            showLoading('Menyetujui anggota...');
             window.location.href = `<?= base_url('admin/members/approve/') ?>${memberId}`;
         }
     }
@@ -662,6 +734,7 @@
         }
 
         if (confirm(`Anda yakin ingin menyetujui ${checkedBoxes.length} calon anggota?\n\nSemua anggota terpilih akan:\n- Mendapat nomor anggota\n- Dapat login ke sistem\n- Menerima email konfirmasi`)) {
+            showLoading(`Menyetujui ${checkedBoxes.length} anggota...`);
             document.getElementById('bulkApproveForm').submit();
         }
     }
@@ -673,12 +746,31 @@
         $('#rejectModal').modal('show');
     }
 
+    // Reject Form Submit
+    $('#rejectForm').on('submit', function(e) {
+        const reason = $('#reason').val().trim();
+        if (reason.length < 10) {
+            e.preventDefault();
+            alert('Alasan penolakan harus minimal 10 karakter.');
+            return false;
+        }
+
+        $('#rejectModal').modal('hide');
+        showLoading('Menolak pendaftaran...');
+        return true;
+    });
+
     // Document Preview Click
     $('.document-preview').on('click', function() {
         const src = $(this).data('src');
         if (src) {
             lightbox.start($(this));
         }
+    });
+
+    // Hide loading on page load (if coming back from redirect)
+    $(window).on('load', function() {
+        hideLoading();
     });
 </script>
 <?= $this->endSection() ?>
