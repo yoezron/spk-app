@@ -53,6 +53,8 @@ class MemberProfileModel extends Model
         'join_date',
         'approved_at',
         'approved_by',
+        'verified_at',
+        'verified_by',
         'skills',
         'motivation',
         'photo_path',
