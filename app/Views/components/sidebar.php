@@ -263,18 +263,28 @@ function renderMenuItem($item, $level = 0)
         font-size: 14px;
     }
 
-    /* Collapse animation */
+    /* Collapse animation - FORCE DISPLAY */
     .collapse {
         transition: height 0.35s ease;
+        overflow: visible !important;
     }
 
     .collapse:not(.show) {
-        display: none;
+        display: none !important;
+        height: 0 !important;
+    }
+
+    .collapse.show {
+        display: block !important;
+        height: auto !important;
+        overflow: visible !important;
+        opacity: 1 !important;
+        visibility: visible !important;
     }
 
     .collapsing {
-        height: 0;
-        overflow: hidden;
+        height: 0 !important;
+        overflow: hidden !important;
         transition: height 0.35s ease;
     }
 
